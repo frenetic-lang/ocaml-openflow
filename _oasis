@@ -24,6 +24,7 @@ Library openflow
     cstruct,
     cstruct.syntax,
     lwt.syntax,
+    lwt.syntax.log,
     packet
   InternalModules:
     Misc,

@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 96ee02235a590c2948fb6d2c2fa11870)
+# DO NOT EDIT (digest: d03c18a0b22c1531763807398ece9754)
 # Ignore VCS directories, you can use the same kind of rule outside 
 # OASIS_START/STOP if you want to exclude directories that contains 
 # useless stuff for the build process
@@ -21,6 +21,7 @@
 <lib/*.ml{,i}>: pkg_cstruct
 <lib/*.ml{,i}>: pkg_cstruct.syntax
 <lib/*.ml{,i}>: pkg_lwt.syntax
+<lib/*.ml{,i}>: pkg_lwt.syntax.log
 # Library quickcheck
 "quickcheck/quickcheck.cmxs": use_quickcheck
 <quickcheck/*.ml{,i}>: use_openflow
@@ -31,6 +32,7 @@
 <quickcheck/*.ml{,i}>: pkg_cstruct
 <quickcheck/*.ml{,i}>: pkg_cstruct.syntax
 <quickcheck/*.ml{,i}>: pkg_lwt.syntax
+<quickcheck/*.ml{,i}>: pkg_lwt.syntax.log
 # Executable testtool
 "test/Test.byte": use_quickcheck
 "test/Test.byte": use_openflow
@@ -44,6 +46,7 @@
 "test/Test.byte": pkg_cstruct
 "test/Test.byte": pkg_cstruct.syntax
 "test/Test.byte": pkg_lwt.syntax
+"test/Test.byte": pkg_lwt.syntax.log
 <test/*.ml{,i}>: use_quickcheck
 <test/*.ml{,i}>: pkg_quickcheck
 # Executable test0
@@ -57,6 +60,7 @@
 "test/Test0.byte": pkg_cstruct
 "test/Test0.byte": pkg_cstruct.syntax
 "test/Test0.byte": pkg_lwt.syntax
+"test/Test0.byte": pkg_lwt.syntax.log
 <test/*.ml{,i}>: use_openflow
 <test/*.ml{,i}>: pkg_packet
 <test/*.ml{,i}>: pkg_oUnit
@@ -67,6 +71,7 @@
 <test/*.ml{,i}>: pkg_cstruct
 <test/*.ml{,i}>: pkg_cstruct.syntax
 <test/*.ml{,i}>: pkg_lwt.syntax
+<test/*.ml{,i}>: pkg_lwt.syntax.log
 # OASIS_STOP
 <lib/*.ml>: syntax_camlp4o
 <test/*.ml>: syntax_camlp4o

@@ -80,12 +80,12 @@ module Common = HighLevelSwitch_common.Make (struct
     let open OpenFlow0x01_Core in
     match act with
       | OutputAllPorts -> (Mod.none, Output AllPorts)
-      | OutputPort (VInt.Int16 n) ->
+      | OutputPort vn ->
+        let n = VInt.get_int16 vn in
         if Some n = inPort then
           (Mod.none, Output InPort)
         else
           (Mod.none, Output (PhysicalPort n))
-      | OutputPort _ -> raise (Invalid_argument "expected OpenFlow 1.0 port number")
       | SetField (AL.InPort, _) -> raise (Invalid_argument "cannot set input port")
       | SetField (EthType, _) -> raise (Invalid_argument "cannot set frame type")
       | SetField (EthSrc, VInt.Int48 n) -> (Mod.dlSrc, SetDlSrc n)
@@ -165,11 +165,19 @@ let disconnect (t : t) : unit Lwt.t =
 let setup_flow_table (sw : t) (tbl : AL.flowTable) : unit Lwt.t =
   let priority = ref 65535 in
   let send_flow_mod (flow : AL.flow) =
+    Format.eprintf "Sending 1 flowmod.\n%!";
+    try_lwt
     lwt flow_mod = Lwt.wrap2 from_flow !priority flow in
+    Format.eprintf "...wrapped.\n%!";
     lwt _ = TxSwitch.send sw.tx_switch (Msg.FlowModMsg flow_mod) in
     decr priority; (* TODO(arjun): range check *)
-    Lwt.return () in
+    Format.eprintf "..sent\n%!";
+        Lwt.return ()
+    with exn ->(Format.printf "Exn: %s\n%!" (Printexc.to_string exn);
+    Lwt.return ())
+ in
   lwt _ = TxSwitch.send sw.tx_switch (Msg.FlowModMsg Core.delete_all_flows) in
+  Format.eprintf "setup_file_table got a flow table of length %d\n%!" (List.length tbl);
   Lwt_list.iter_s send_flow_mod tbl
     
 let packet_in (sw : t) =

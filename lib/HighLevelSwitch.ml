@@ -106,3 +106,8 @@ let disconnect (t : t) = match t with
 let features (t : t) = match t with
   | OF0x01 u -> HighLevelSwitch0x01.features u
   | OF0x04 u -> HighLevelSwitch0x04.features u
+
+let recv_hello_from_switch (fd : Lwt_unix.file_descr) : int option Lwt.t = 
+  match_lwt OFHandshake.recv_hello_from_switch_fd fd with
+  | None -> Lwt.return None
+  | Some hdr -> Lwt.return (Some (OFHandshake.Header.ver hdr))
