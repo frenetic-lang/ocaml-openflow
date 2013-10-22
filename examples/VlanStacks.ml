@@ -17,8 +17,8 @@ let config_switch sw =
 	let send = Sw.send sw 0l in
   let actions = push_vlan vid @ [Output AllPorts] in
   lwt _ = send (FlowModMsg delete_all_flows) in
-  lwt _ = send (FlowModMsg (add_flow 500 [] [ApplyActions actions])) in
-  lwt _ = send (FlowModMsg (add_flow 400 [match_vlan vid] [ApplyActions [Output AllPorts]])) in
+  lwt _ = send (FlowModMsg (add_flow 400 [] [ApplyActions actions])) in
+  lwt _ = send (FlowModMsg (add_flow 500 [match_vlan vid] [ApplyActions [PopVlan; Output AllPorts]])) in
 
 	Format.eprintf "Configured switch %Lx.\n%!" (Sw.id sw);
 	Lwt.return ()
