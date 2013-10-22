@@ -92,10 +92,10 @@ Executable testtool
     openflow.quickcheck,
     quickcheck
 
-Executable test0
-  Path: test
+Executable example
+  Path: examples
   Install: False
-  MainIs: Test0.ml
+  MainIs: Main.ml
   BuildDepends: packet,openflow,oUnit,pa_ounit,pa_ounit.syntax
 
 Test all_tests

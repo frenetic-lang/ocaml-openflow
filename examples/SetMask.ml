@@ -16,7 +16,8 @@ let config_switch sw =
 	Lwt.return ()
 
 let main () =
-	Format.eprintf "Running OpenFlow 1.3 masking demo...\n%!";
+	Lwt_main.run
+  (Format.eprintf "Running OpenFlow 1.3 masking demo...\n%!";
   let open Lwt_unix in
   let server_fd = socket PF_INET SOCK_STREAM 0 in
   setsockopt server_fd SO_REUSEADDR true;
@@ -34,5 +35,5 @@ let main () =
     | None ->
         Format.eprintf "Switch did not send hello\n%!";
         accept_loop () in
-  accept_loop ()
+  accept_loop ())
 

@@ -25,7 +25,7 @@ let handle_switch (features : switchFeatures) : unit Lwt.t =
     ]
 
 let main () =
-	lwt (stop_accepting, new_switches) = SDN.accept_switches 6633 in
-	Lwt_stream.iter_p handle_switch new_switches
-
-let () = Lwt_main.run (SetMaskTest.main ())
+  let body = 
+    lwt (stop_accepting, new_switches) = SDN.accept_switches 6633 in
+    Lwt_stream.iter_p handle_switch new_switches in
+  Lwt_main.run body
