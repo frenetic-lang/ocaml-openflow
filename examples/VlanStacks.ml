@@ -2,19 +2,24 @@ module Sw = OpenFlow0x04_Switch
 open OpenFlow0x04_Core
 open OpenFlow0x04.Message
 
+let match_vlan n = 
+  OxmVlanVId { m_value = n; m_mask = None }
+
 let push_vlan n =
-    [ PushVlan; SetField (OxmVlanVId { m_value = n; m_mask = None }) ]
+    [ PushVlan; SetField (match_vlan n) ]
 
 let rec push_vlans min max =
     if min < max then push_vlan min @ push_vlans (min + 1) max else []
 
+let vid = 0xaa
+
 let config_switch sw = 
 	let send = Sw.send sw 0l in
-  let min = 1 + Int64.to_int (Sw.id sw) * 10 in
-  let max = min + 1 in
-  let actions = push_vlans min max @ [Output AllPorts] in
+  let actions = push_vlan vid @ [Output AllPorts] in
   lwt _ = send (FlowModMsg delete_all_flows) in
   lwt _ = send (FlowModMsg (add_flow 500 [] [ApplyActions actions])) in
+  lwt _ = send (FlowModMsg (add_flow 400 [match_vlan vid] [ApplyActions [Output AllPorts]])) in
+
 	Format.eprintf "Configured switch %Lx.\n%!" (Sw.id sw);
 	Lwt.return ()
 
