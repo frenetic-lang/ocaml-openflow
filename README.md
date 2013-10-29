@@ -18,13 +18,12 @@ Prerequisites:
   - lwt
   - cstruct 
   - oUnit
-  - pa_oUnit
   - quickcheck
 
   These are available on OPAM:
 
   ```
-  $ opam install ocamlfind cstruct lwt ounit quickcheck pa_ounit
+  $ opam install ocamlfind cstruct lwt ounit quickcheck
   ```
 
 - The [ocaml-packet](https://github.com/frenetic-lang/ocaml-packet) library.
