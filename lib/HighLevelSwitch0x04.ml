@@ -61,7 +61,8 @@ let from_pattern (pat : AL.pattern) : Core.oxmMatch * Core.portId option =
      @ (lookup (fun x -> Core.OxmEthDst (v_to_m (VInt.get_int48 x))) AL.EthDst) 
      @ (lookup (fun x -> Core.OxmEthType (VInt.get_int16 x)) AL.EthType)
      @ (try match VInt.get_int16 (Fields.find AL.Vlan pat) with
-       | 0xFFFF -> []
+       | -1 -> [Core.OxmVlanVId {Core.m_value = 0x1000; Core.m_mask = Some 0x1000}]
+       | 0xFFFF -> [Core.OxmVlanVId (v_to_m 0)]
        | x -> [ Core.OxmVlanVId (v_to_m x) ]
        with Not_found -> [])
      @ (lookup (fun x -> Core.OxmVlanPcp (VInt.get_int4 x)) AL.VlanPcp)
@@ -238,6 +239,7 @@ let rec fix_vlan_in_table tbl = match tbl with
   | fl :: tbl -> fix_vlan_in_flow fl @ fix_vlan_in_table tbl
  
 let setup_flow_table (sw : t) (tbl : AL.flowTable) : unit Lwt.t =
+  let tbl = fix_vlan_in_table tbl in
   let priority = ref 65535 in
   let mk_flow_mod (flow : AL.flow) =
     let flow_mod = from_flow sw.group_table !priority flow in
