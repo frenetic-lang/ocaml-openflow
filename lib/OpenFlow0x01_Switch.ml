@@ -45,17 +45,19 @@ let send_to_switch_fd (sock : file_descr) (xid : xid) (msg : msg) : bool Lwt.t =
 let switch_handshake (fd : file_descr) : OF.SwitchFeatures.t option Lwt.t =
   let open Message in
   match_lwt send_to_switch_fd fd 0l (Hello (Cstruct.of_string "")) with
-  | true -> begin
-    match_lwt send_to_switch_fd fd 0l SwitchFeaturesRequest with
-      | true ->
-        begin match_lwt recv_from_switch_fd fd with 
-          | Some (_,SwitchFeaturesReply feats) ->
-            Lwt.return (Some feats)
-          | _ -> Lwt.return None
-        end
-      | false ->
-        Lwt.return None
-    end
+  | true -> begin match_lwt recv_from_switch_fd fd with
+    | Some (_, Hello _) ->
+      begin
+      match_lwt send_to_switch_fd fd 0l SwitchFeaturesRequest with
+        | true ->
+          begin match_lwt recv_from_switch_fd fd with
+            | Some (_,SwitchFeaturesReply feats) ->
+              Lwt.return (Some feats)
+            | _ -> Lwt.return None
+          end
+        | false ->
+          Lwt.return None
+      end
 (* Failed Hello handling no longer done here *)
 (*
     | Some (_, error) ->
@@ -77,8 +79,8 @@ let switch_handshake (fd : file_descr) : OF.SwitchFeatures.t option Lwt.t =
       end
       | None ->
         Lwt.return None
-    end 
 *)
+    end
   | false -> 
     Lwt.return None
 
