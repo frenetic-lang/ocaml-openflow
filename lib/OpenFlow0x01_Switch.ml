@@ -80,6 +80,8 @@ let switch_handshake (fd : file_descr) : OF.SwitchFeatures.t option Lwt.t =
       | None ->
         Lwt.return None
 *)
+    | _ ->
+      Lwt.return None
     end
   | false -> 
     Lwt.return None
