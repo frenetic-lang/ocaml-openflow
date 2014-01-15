@@ -47,6 +47,7 @@ module MakeSerializers (M : Message) = struct
       | `Ok ->
         let m = M.parse hdr (Cstruct.of_string body_buf) in
         (* extra space left so read and write align in the log *)
+        Printf.printf "MARCO: read  %s\n%!" (Header.to_string hdr);
         log (lazy (sprintf "[%s] read  %s hash=%s"
                      label
                      (Header.to_string hdr)

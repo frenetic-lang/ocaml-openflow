@@ -165,7 +165,7 @@ let features t evt =
         return None
      end
 
-let create ?max_pending_connections ?verbose ?log_disconnects ?buffer_age_limit ~port =
+let create ?max_pending_connections ?verbose ?log_disconnects ?buffer_age_limit ~port () =
   Platform.create ?max_pending_connections ?verbose ?log_disconnects
       ?buffer_age_limit ~port
   >>| function t ->
@@ -181,6 +181,7 @@ let accept_switches (t : t) =
   let stages =
     (local (fun t -> t.sub)
       (handshake max_version >=> echo))
+    (* >=> (fun _ _ -> return None) in THIS WORKS *)
     >=> features in
   run stages t (listen t.sub)
 

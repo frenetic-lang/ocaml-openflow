@@ -1,7 +1,9 @@
 open Core.Std
 
+
 module Platform = Async_OpenFlow_Platform
 module Header = OpenFlow_Header
+
 
 module Message : Platform.Message 
   with type t = (Header.t * Cstruct.t) = struct
@@ -29,6 +31,11 @@ module Controller = struct
 
   module SwitchSet = Set.Make(Client_id)
 
+  module Log = Async_OpenFlow_Log
+
+  (* Use this as the ~tags argument to Log.info, Log.debug, etc. *)
+  let tags = [("openflow", "chunk")]
+
   exception Handshake of Client_id.t * string
 
   type m = Platform.m
@@ -50,15 +57,19 @@ module Controller = struct
       | `Drop exn -> raise exn
 
   let handshake v t evt =
+    Log.info ~tags "HANDSHAKE";
+    Printf.printf "***HANDSHAKE\n%!";
     let open Header in
     match evt with
       | `Connect s_id ->
+        Printf.printf "****Connect\n%!";
         let header = { version = v; type_code = type_code_hello;
                        length = size; xid = 0l; } in
         Platform.send t.platform s_id (header, Cstruct.of_string "")
         >>| ensure
         >>| (fun e -> t.handshakes <- SwitchSet.add t.handshakes s_id; e)
       | `Message (s_id, msg) when SwitchSet.mem t.handshakes s_id ->
+        Printf.printf "****Message1\n%!";
         let hdr, bits = msg in
         begin
           t.handshakes <- SwitchSet.remove t.handshakes s_id;
@@ -71,20 +82,42 @@ module Controller = struct
           end
         end;
         return (Some(`Connect (s_id, min hdr.version v)))
-      | `Message x -> return(Some(`Message x))
+      | `Message x ->
+        Printf.printf "****Message2\n%!";
+        return(Some(`Message x))
       | `Disconnect (s_id, _) when SwitchSet.mem t.handshakes s_id ->
+        Log.info ~tags "Disconnect2 during handshake.";
+        Printf.printf "****Disconnect1 during handshake.\n%!";
         t.handshakes <- SwitchSet.remove t.handshakes s_id;
         return None
-      | `Disconnect x -> return(Some(`Disconnect x))
+      | `Disconnect x ->
+        Log.info ~tags "Disconnect2.";
+        Printf.printf "****Disconnect2.\n%!";
+        return(Some(`Disconnect x))
 
   let echo t evt =
+    Log.info ~tags "ECHO";
+    Printf.printf "***ECHO\n%!";
     let open Header in
     match evt with
       | `Message (s_id, (hdr, bytes))
           when hdr.Header.type_code = type_code_echo_request ->
+        begin
+        Log.info ~tags "Received ECHO req.";
+        Printf.printf "****Received ECHO req.\n%!";
         Platform.send t.platform s_id ({ hdr with type_code = type_code_echo_reply }, bytes)
         >>| ensure
-      | _ -> return (Some(evt))
+        >>| (fun e -> Log.info ~tags "Sent ECHO resp."; Printf.printf "Sent ECHO resp.\n"; e)
+        end
+      | `Message _ ->
+        Printf.printf "****Message X\n%!";
+        return (Some(evt))
+      | `Disconnect _ ->
+        Printf.printf "****Disconnect X\n%!";
+        return (Some(evt))
+      | `Connect _ ->
+        Printf.printf "****Connect X\n%!";
+        return (Some(evt))
 
   let create ?max_pending_connections ?verbose ?log_disconnects ?buffer_age_limit ~port =
     Platform.create ?max_pending_connections ?verbose ?log_disconnects
