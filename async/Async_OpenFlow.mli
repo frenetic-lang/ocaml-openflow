@@ -47,6 +47,7 @@ module Platform : sig
       -> ?log_disconnects:bool
       -> ?buffer_age_limit:[ `At_most of Time.Span.t | `Unlimited ]
       -> port:int
+      -> unit
       -> t Deferred.t
 
     val listen : t -> e Pipe.Reader.t
@@ -175,6 +176,7 @@ module Highlevel : sig
     -> ?log_disconnects:bool (** default is [true] *)
     -> ?buffer_age_limit:[ `At_most of Time.Span.t | `Unlimited ]
     -> port:int
+    -> unit
     -> t Deferred.t
   val accept_switches : t -> SDN_Types.switchFeatures Pipe.Reader.t
 
