@@ -1495,7 +1495,7 @@ module Message = struct
 
   let to_string (msg : t) : string = match msg with
     | Hello -> "Hello"
-    | Error _ -> "Error"
+    | Error errmsg -> Printf.sprintf "Error: %s" (Error.to_string errmsg)
     | EchoRequest _ -> "EchoRequest"
     | EchoReply _ -> "EchoReply"
     | FeaturesRequest -> "FeaturesRequest"
