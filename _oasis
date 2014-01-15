@@ -168,3 +168,17 @@ Executable learning_switch
     cstruct.async,
     openflow,
     openflow.async
+
+Executable leak_exercise
+  Path: examples
+  MainIs: LeakExercise.ml
+  Install: false
+  CompiledObject: best
+  BuildDepends:
+    threads,
+    core,
+    async,
+    packet,
+    cstruct.async,
+    openflow,
+    openflow.async
