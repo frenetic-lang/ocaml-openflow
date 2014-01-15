@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 75bddf836df5c6c98dd3f3bbf7b26b7d)
+# DO NOT EDIT (digest: ab16085f736862096deb51f5299df484)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -132,6 +132,19 @@
 "examples/Learning_Switch.byte": package(str)
 "examples/Learning_Switch.byte": package(cstruct)
 "examples/Learning_Switch.byte": package(cstruct.syntax)
+# Executable leak_exercise
+<examples/LeakExercise.{native,byte}>: use_async
+<examples/LeakExercise.{native,byte}>: use_openflow
+<examples/LeakExercise.{native,byte}>: package(threads)
+<examples/LeakExercise.{native,byte}>: package(core)
+<examples/LeakExercise.{native,byte}>: package(async)
+<examples/LeakExercise.{native,byte}>: package(packet)
+<examples/LeakExercise.{native,byte}>: package(cstruct.async)
+<examples/LeakExercise.{native,byte}>: package(textutils)
+<examples/LeakExercise.{native,byte}>: package(sexplib.syntax)
+<examples/LeakExercise.{native,byte}>: package(str)
+<examples/LeakExercise.{native,byte}>: package(cstruct)
+<examples/LeakExercise.{native,byte}>: package(cstruct.syntax)
 <examples/*.ml{,i}>: use_async
 <examples/*.ml{,i}>: use_openflow
 <examples/*.ml{,i}>: package(threads)
