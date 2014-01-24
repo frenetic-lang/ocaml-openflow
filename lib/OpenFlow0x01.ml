@@ -799,22 +799,22 @@ module PacketIn = struct
     type t = packetInReason
 
     cenum ofp_reason {
-      NO_MATCH = 0;
-      ACTION = 1
+      OFPR_NO_MATCH = 0;
+      OFPR_ACTION = 1
     } as uint8_t
 
     let of_int d = match int_to_ofp_reason d with
-      | Some NO_MATCH -> NoMatch
-      | Some ACTION -> ExplicitSend
+      | Some OFPR_NO_MATCH -> NoMatch
+      | Some OFPR_ACTION -> ExplicitSend
       | None -> raise (Unparsable (sprintf "bad reason in packet_in (%d)" d))
 
     let to_int r = match r with
-      | NoMatch -> ofp_reason_to_int NO_MATCH
-      | ExplicitSend -> ofp_reason_to_int ACTION
+      | NoMatch -> ofp_reason_to_int OFPR_NO_MATCH
+      | ExplicitSend -> ofp_reason_to_int OFPR_ACTION
 
     let to_string r = match r with
-      | NoMatch -> "NoMatch"
-      | ExplicitSend -> "ExplicitSend"
+      | NoMatch -> "OFPR_NO_MATCH"
+      | ExplicitSend -> "OFPR_ACTION"
 
     let size_of _ = 1
 
@@ -832,7 +832,8 @@ module PacketIn = struct
 
   let to_string pi = 
     Printf.sprintf
-      "{ in_port = %d; payload = %s }"
+      "{ reason = %s; in_port = %d; payload = %s }"
+      (Reason.to_string pi.reason)
       pi.port
       (Payload.to_string pi.input_payload)
 
@@ -2533,8 +2534,8 @@ module Message = struct
     | SwitchFeaturesReply _ -> "SwitchFeaturesReply"
     | FlowModMsg _ -> "FlowMod"
     | PacketOutMsg _ -> "PacketOut"
-    | PortStatusMsg p -> PortStatus.to_string p
-    | PacketInMsg _ -> "PacketIn"
+    | PortStatusMsg m -> PortStatus.to_string m
+    | PacketInMsg m -> PacketIn.to_string m
     | FlowRemovedMsg _ -> "FlowRemoved"
     | BarrierRequest -> "BarrierRequest"
     | BarrierReply -> "BarrierReply"
