@@ -2534,8 +2534,8 @@ module Message = struct
     | SwitchFeaturesReply _ -> "SwitchFeaturesReply"
     | FlowModMsg _ -> "FlowMod"
     | PacketOutMsg _ -> "PacketOut"
-    | PortStatusMsg m -> PortStatus.to_string m
-    | PacketInMsg m -> PacketIn.to_string m
+    | PortStatusMsg m -> Printf.sprintf "PortStatus %s" (PortStatus.to_string m)
+    | PacketInMsg m -> Printf.sprintf "PacketIn %s" (PacketIn.to_string m)
     | FlowRemovedMsg _ -> "FlowRemoved"
     | BarrierRequest -> "BarrierRequest"
     | BarrierReply -> "BarrierReply"
