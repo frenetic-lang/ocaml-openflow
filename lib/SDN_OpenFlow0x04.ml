@@ -128,14 +128,23 @@ let rec auto_watch_port (actionSequence : Core.actionSequence) (inPort : Core.po
   | (Core.Output Core.InPort) :: _ -> inPort
   | _ :: rest -> auto_watch_port rest inPort
 
-let auto_ff_bucket (inPort : Core.portId option) (par : AL.par) : Core.bucket = 
+let auto_ff_bucket ?bu_watch_group (inPort : Core.portId option) (par : AL.par) : Core.bucket =
   let open Core in
   let bu_actions = Common.flatten_par inPort par in
   let bu_watch_port = auto_watch_port bu_actions inPort in
-  let bu_watch_group = None in
   let bu_weight = 0 in
   { bu_weight; bu_watch_port; bu_watch_group; bu_actions }
-  
+
+let pica8_auto_ff_bucket (groupTable : GroupTable0x04.t) (inPort : Core.portId option) (par : AL.par) : Core.bucket =
+    let open Core in
+    let all_bucket = {
+      bu_actions = Common.flatten_par inPort par;
+      bu_watch_port = None;
+      bu_watch_group = None;
+      bu_weight = 0;
+    } in
+    let ff_bucket = GroupTable0x04.add_group groupTable Core.All [all_bucket] in
+    auto_ff_bucket ~bu_watch_group:ff_bucket inPort par
 
 let from_group (groupTable : GroupTable0x04.t) (inPort : Core.portId option)
   (act : AL.group) 
@@ -145,7 +154,7 @@ let from_group (groupTable : GroupTable0x04.t) (inPort : Core.portId option)
   | [] -> []
   | [par] -> Common.flatten_par inPort par
   | pars ->
-    let buckets = List.map (auto_ff_bucket inPort) pars in
+    let buckets = List.map (pica8_auto_ff_bucket groupTable inPort) pars in
     let group_id = GroupTable0x04.add_group groupTable Core.FF buckets in
     [Core.Group group_id]
 
@@ -228,4 +237,3 @@ let fix_vlan_in_flow fl =
 let rec fix_vlan_in_table tbl = match tbl with
   | [] -> []
   | fl :: tbl -> fix_vlan_in_flow fl @ fix_vlan_in_table tbl
- 
