@@ -830,7 +830,7 @@ module PacketIn = struct
     uint8_t pad
   } as big_endian
 
-  let to_string pi = 
+  let to_string (pi : t) : string =
     Printf.sprintf
       "{ reason = %s; in_port = %d; payload = %s }"
       (Reason.to_string pi.reason)
@@ -2093,8 +2093,8 @@ module Error = struct
         raise (Unparsable msg)
 
     let to_string e = match e with
-      | Incompatible -> "Incompatible"
-      | Eperm -> "Eperm"
+      | Incompatible -> "OFPHFC_INCOMPATIBLE"
+      | Eperm -> "OFPHFC_EPERM"
 
   end
 
@@ -2526,7 +2526,7 @@ module Message = struct
 
   let to_string (msg : t) : string = match msg with
     | Hello _ -> "Hello"
-    | ErrorMsg e -> Error.to_string e
+    | ErrorMsg m -> Printf.sprintf "Error %s" (Error.to_string m)
     | EchoRequest _ -> "EchoRequest"
     | EchoReply _ -> "EchoReply"
     | VendorMsg _ -> "Vendor"
