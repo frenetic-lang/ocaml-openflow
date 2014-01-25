@@ -27,6 +27,11 @@ include Async_OpenFlow_Message.MakeSerializers (Message)
 module Controller = struct
   open Async.Std
 
+  module Log = Async_OpenFlow_Log
+
+  (* Use this as the ~tags argument to Log.info, Log.debug, etc. *)
+  let tags = [("openflow", "platform")]
+
   module ChunkController = Async_OpenFlowChunk.Controller
   module Client_id = ChunkController.Client_id
 
@@ -86,14 +91,14 @@ module Controller = struct
         t.feat <- SwitchSet.add t.feat c_id;
         send t c_id (0l, M.SwitchFeaturesRequest) >>| ChunkController.ensure
       | `Message (c_id, (_, msg)) when SwitchSet.mem t.feat c_id ->
-        t.feat <- SwitchSet.remove t.feat c_id;
         begin match msg with
-          | M.SwitchFeaturesReply fs -> return(Some(`Connect(c_id, fs)))
+          | M.SwitchFeaturesReply fs ->
+            t.feat <- SwitchSet.remove t.feat c_id;
+            return(Some(`Connect(c_id, fs)))
           | _ ->
-            close t c_id;
-            raise (ChunkController.Handshake (c_id,
-                    Printf.sprintf "Expected FEATURES_REPLY but received: %s"
-                    (M.to_string msg)))
+            Log.error ~tags "Dropped packet awaiting FEATURES_REPLY: %s"
+              (M.to_string msg);
+            return None
         end
       | `Message (c_id, msg) -> return(Some(`Message(c_id, msg)))
       | `Disconnect (c_id, exn) ->
