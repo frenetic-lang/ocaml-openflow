@@ -113,10 +113,6 @@ type flowMod = { mfCookie : int64 mask; mfTable_id : tableId;
                  mfOut_group : groupId option; mfFlags : flowModFlags;
                  mfOfp_match : oxmMatch; mfInstructions : instruction list }
 
-val add_flow : int16 -> oxmMatch -> instruction list -> flowMod
-
-val delete_all_flows : flowMod
-
 type packetInReason =
 | NoMatch
 | ExplicitSend
@@ -150,3 +146,8 @@ type multipartRequest =
 
 type multipartReply = 
   | PortsDescReply of portDesc list
+
+val add_flow : int16 -> oxmMatch -> instruction list -> flowMod
+
+val delete_all_flows : flowMod
+  

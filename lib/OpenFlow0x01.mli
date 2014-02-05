@@ -1,16 +1,7 @@
 open Packet
 open OpenFlow0x01_Core
 
-type switchId = OpenFlow0x01_Core.switchId
-
-type portId = OpenFlow0x01_Core.portId
-
-type queueId = OpenFlow0x01_Core.queueId
-
-type xid = OpenFlow0x01_Core.xid
-
 module Wildcards : sig
-
     type t = {
       in_port: bool;
       dl_vlan: bool;
@@ -20,176 +11,98 @@ module Wildcards : sig
       nw_proto: bool;
       tp_src: bool;
       tp_dst: bool;
-      nw_src: int; (* XXX: unsigned *)
-      nw_dst: int; (* XXX: unsigned *)
+      nw_src: int;
+      nw_dst: int;
       dl_vlan_pcp: bool;
       nw_tos: bool;
     }
-
     val to_string : t -> string
-
     val marshal : t -> int32
     val parse : int32 -> t
-
 end
 
 module Match : sig
-
   type t = pattern
-
   val to_string : t -> string
-
   val marshal : t -> Cstruct.t -> int
   val parse : Cstruct.t -> t
-
   val size_of : t -> int
-
 end
 
 module PseudoPort : sig
-
   type t = pseudoPort
-
   val to_string : t -> string
-
   val marshal : t -> int
   val make : int -> int -> t
-
 end
 
 module Action : sig
-
   type t = action
-
   type sequence = t list
-
-  (** [move_controller_last seq] produces a semantically-equivalent list of
-  actions with actions that send packets to the controller moved to the end.
-  This works around a known bug in the OpenFlow reference switch where actions
-  in an action sequence after a "send to controller" ([Output (Controller n)])
-  action are ignored. *)
   val move_controller_last : sequence -> sequence
-
-  (** [to_string v] pretty-prints [v]. *)
   val to_string : t -> string
-
-  (** [sequence_to_string v] pretty-prints an action sequence. *)
   val sequence_to_string : sequence -> string
-
   val marshal : t -> Cstruct.t -> int
   val parse : Cstruct.t -> t
-
   val size_of : t -> int
-
 end
 
-(** The type of flow rule timeouts.  See Section 5.3.3 of the OpenFlow 1.0
-specification. *)
 module Timeout : sig
-
   type t = timeout
-
-  (** [to_string v] pretty-prints [v]. *)
   val to_string : t -> string
-
   val to_int : t -> int16
   val of_int : int16 -> t
 end
 
-(** A flow modification data structure.  See Section 5.3.3 of the OpenFlow 1.0
-specification. *)
 module FlowMod : sig
-
-  (** See the [ofp_flow_mod_command] enumeration in Section 5.3.3 of the 
-  OpenFlow 1.0 specification. *)
   module Command : sig
-
     type t = flowModCommand
-
-    (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
-
     val to_int : t -> int16
     val of_int : int16 -> t
-
   end
-
   type t = flowMod
-
-
-  (** [to_string v] pretty-prints [v]. *)
   val to_string : t -> string
-
   val marshal : t -> Cstruct.t -> int
   val parse : Cstruct.t -> t
-
   val size_of : t -> int
-
 end
 
-
 module Payload : sig
-
   type t = payload
-
 end
 
 module PacketIn : sig
-
   module Reason : sig
-
     type t = packetInReason
-
   end
-
   type t = packetIn
-
 end
 
-(** Flow removed data structure. See section 5.4.3 of the OpenFlow 1.0 specification. *)
 module FlowRemoved : sig
-
   module Reason : sig
-
     type t = flowRemovedReason
-
     val to_string : t -> string
-
     val to_int : t -> int16
     val of_int : int16 -> t
-
   end
-
   type t = flowRemoved
-
   val to_string : t -> string
-
   val marshal : t -> Cstruct.t -> int
   val parse : Cstruct.t -> t
-
   val size_of : t -> int
-
 end
 
 module PacketOut : sig
-
   type t = packetOut
-
-  (** [to_string v] pretty-prints [v]. *)
   val to_string : t -> string
-
 end
 
 module PortDescription : sig
 
   module PortConfig : sig
-
     type t = portConfig
-
-    (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
-
-
     val to_int : t -> Int32.t
     val of_int : Int32.t -> t
   end
@@ -198,133 +111,73 @@ module PortDescription : sig
 
     module StpState : sig
       type t = stpState
-
       val of_int : Int32.t -> t
       val to_int : t -> Int32.t
-
       val to_string : t -> string
     end
 
     type t = portState
-
-    (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
-
     val of_int : Int32.t -> t
     val to_int : t -> Int32.t
-
   end
 
-  (** See the [ofp_port_features] enumeration in Section 5.2.1 of the OpenFlow
-  1.0 specification. *)
   module PortFeatures : sig
-
     type t = portFeatures
-
-    (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
-
     val of_int : Int32.t -> t
     val to_int : t -> Int32.t
-
   end
-
   type t = portDescription
-
-  (** [to_string v] pretty-prints [v]. *)
   val to_string : t -> string
-
   val parse : Cstruct.t -> t
   val marshal : t -> Cstruct.t -> int
-
   val size_of : t -> int
-
 end
 
-(** Port status message.  See Section 5.4.3 of the OpenFlow 1.0 specification. *)
 module PortStatus : sig
-
   module ChangeReason : sig
-
     type t = portChangeReason
-    (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
-
   end
-
   type t = portStatus
-
-  (** [to_string v] pretty-prints [v]. *)
   val to_string : t -> string
-
   val parse : Cstruct.t -> t
   val marshal : t -> Cstruct.t -> int
-
   val size_of : t -> int
-
 end
 
-(** Switch features data structure.  See Section 5.3.1 of the OpenFlow 1.0
-specification. *)
 module SwitchFeatures : sig
-
-  (** Fields that support wildcard patterns on this switch. *)
   type supported_wildcards = supportedWildcards
-
-  (** See the [ofp_capabilities] enumeration in Section 5.3.1 of the OpenFlow
-  1.0 specification. *)
   module Capabilities : sig
-
-
     type t = capabilities
-
-    (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
-
   end
-
-  (** Describes which actions ([Action.t]) this switch supports. *)
   module SupportedActions : sig
-
     type t = supportedActions
-    (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
-
   end
-
   type t = switchFeatures
-
-  (** [to_string v] pretty-prints [v]. *)
   val to_string : t -> string
 
 end
 
 module ConfigReply : sig
-    
   module FragFlags : sig
-
     type t = fragFlags
-
     val to_string : t -> string
-  end
-    
-  type t = switchConfig
-      
+  end    
+  type t = switchConfig 
   val to_string : t -> string 
 end
 
 
 module SwitchConfig : sig
-    
   module FragFlags : sig
-
     type t = fragFlags
-
     val to_string : t -> string
   end
-    
   type t = switchConfig
-      
   val to_string : t -> string 
 end
 
@@ -334,92 +187,59 @@ module StatsRequest : sig
 end
 
 module StatsReply : sig
-
   type t = statsReply
-  
   val parse : Cstruct.t -> t
-  
   val marshal : t -> Cstruct.t -> int
-  
 end
 
 module Error : sig
 
   module HelloFailed : sig
-
     type t = helloFailed
-    (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
-
   end
 
   module BadRequest : sig
-
     type t = badRequest
-    (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
 
   end
 
   module BadAction : sig
-
     type t = badAction
-    (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
-
   end
 
   module FlowModFailed : sig
-
     type t = flowModFailed
-    (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
-
   end
 
   module PortModFailed : sig
-
     type t = portModFailed
-    (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
-
   end
 
   module QueueOpFailed : sig
-
     type t = queueOpFailed
-    (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
-
   end
 
   type c = errorCode
   type t = error
-  (** [to_string v] pretty-prints [v]. *)
   val to_string : t -> string
 
 end
 
-(** A VENDOR message.  See Section 5.5.4 of the OpenFlow 1.0 specification. *)
 module Vendor : sig
-
-  type t = int32 * Cstruct.t
-  
+  type t = int32 * Cstruct.t  
   val parse : Cstruct.t -> t
-
-  val marshal : t -> Cstruct.t  -> int
-  
+  val marshal : t -> Cstruct.t  -> int  
 end
 
-(** A subset of the OpenFlow 1.0 messages defined in Section 5.1 of the 
-specification. *)
 module Message : sig
-
   type t = message
-
-  (** [size_of msg] returns the size of [msg] in bytes when serialized. *)
   val size_of : t -> int
-
   val header_of : xid -> t -> OpenFlow_Header.t
 
   (** [parse hdr bits] parses the body of a message with header [hdr] from
@@ -442,20 +262,8 @@ module Message : sig
 
 end
 
-
-(** {9 Pretty printing}
-
-    In general, each submodule contains pretty-printing functions for the types
-    defined therein.  This section defines pretty printers for top-level types.
-*)
-
-(** [string_of_switchId sw] pretty-prints [sw] in hex. *)
 val string_of_switchId : switchId -> string
-
-(** [string_of_portId p] pretty-prints [p]. *)
 val string_of_portId : portId -> string
-
-(** [string_of_queueId q] pretty-prints [q]. *)
 val string_of_queueId : queueId -> string
 
 (** {9 Parsing exceptions}
