@@ -244,23 +244,15 @@ end
 (** Port status message.  See Section 5.4.3 of the OpenFlow 1.0 specification. *)
 module PortStatus : sig
 
-  (** See the [ofp_port_reason] enumeration in Section 5.4.3 of the OpenFlow
-  1.0 specification. *)
   module ChangeReason : sig
 
-    type t =
-      | Add (** The port was added. *)
-      | Delete (** The port was removed. *)
-      | Modify (** Some attribute of the port has changed. *)
-
+    type t = portChangeReason
     (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
 
   end
 
-  type t =
-      { reason : ChangeReason.t
-      ; desc : PortDescription.t }
+  type t = portStatus
 
   (** [to_string v] pretty-prints [v]. *)
   val to_string : t -> string
@@ -504,11 +496,11 @@ module Message : sig
     | EchoReply of bytes
     | VendorMsg of int32 * Cstruct.t
     | SwitchFeaturesRequest
-    | SwitchFeaturesReply of SwitchFeatures.t
+    | SwitchFeaturesReply of switchFeatures
     | FlowModMsg of flowMod
     | PacketInMsg of packetIn
     | FlowRemovedMsg of flowRemoved
-    | PortStatusMsg of PortStatus.t
+    | PortStatusMsg of portStatus
     | PacketOutMsg of packetOut
     | BarrierRequest
     | BarrierReply

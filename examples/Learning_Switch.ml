@@ -105,14 +105,14 @@ let switch
           let open PortStatus in
           let port = ps.desc.port_no in
           begin match ps.reason with
-            | ChangeReason.Delete ->
+            | Delete ->
               let tbl' = SwitchTable.change tbl c_id (function
                   | None -> None
                   | Some eth_tbl ->
                     Some(EthTable.filter eth_tbl (fun ~key:_ ~data:v -> v = port))) in
               return tbl'
-            | ChangeReason.Add
-            | ChangeReason.Modify -> return tbl
+            | Add
+            | Modify -> return tbl
           end
         | _ -> failwith "WHAT MESSAGE IS THIS???"
       end

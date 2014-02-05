@@ -116,6 +116,14 @@ type switchFeatures =
   ; ports : portDescription list (** Port definitions. *)
   }
 
+type portChangeReason =
+  | Add
+  | Delete
+  | Modify
+
+type portStatus =
+      { reason : portChangeReason
+      ; desc : portDescription }
 
 type pattern =  
     { dlSrc : dlAddr option

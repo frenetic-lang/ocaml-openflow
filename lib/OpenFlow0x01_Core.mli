@@ -22,6 +22,7 @@ type queueId = int32
 
 (** {2 Configuration} *)
 
+
 (** See the [ofp_port_config] enumeration in Section 5.2.1 of the OpenFlow 
 1.0 specification. *)
 type portConfig =
@@ -135,6 +136,17 @@ type switchFeatures =
   ; supported_actions : supportedActions
   ; ports : portDescription list (** Port definitions. *)
   }
+
+(** See the [ofp_port_reason] enumeration in Section 5.4.3 of the OpenFlow
+1.0 specification. *)
+type portChangeReason =
+  | Add (** The port was added. *)
+  | Delete (** The port was removed. *)
+  | Modify (** Some attribute of the port has changed. *)
+
+type portStatus =
+      { reason : portChangeReason
+      ; desc : portDescription }
 
 
 (** {2 OpenFlow types}

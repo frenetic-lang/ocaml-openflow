@@ -1259,10 +1259,7 @@ module PortStatus = struct
 
   module ChangeReason = struct
 
-    type t =
-      | Add
-      | Delete
-      | Modify
+    type t = portChangeReason
 
     cenum ofp_port_reason {
       OFPPR_ADD;
@@ -1297,17 +1294,14 @@ module PortStatus = struct
 
   end
 
-  type t =
-    { reason : ChangeReason.t;
-      desc : PortDescription.t }
+  type t = portStatus
 
-
-  let to_string status = Printf.sprintf
+  let to_string (status : portStatus) = Printf.sprintf
     "{ reason = %s; desc = %s }"
     (ChangeReason.to_string status.reason)
     (PortDescription.to_string status.desc)
 
-  let size_of ps = 
+  let size_of (ps : portStatus) = 
     ChangeReason.size_of ps.reason + PortDescription.size_of ps.desc
 
   let parse bits0 =
@@ -1317,7 +1311,7 @@ module PortStatus = struct
     { reason = reason
     ; desc = description }
 
-  let marshal ps bits0 =
+  let marshal (ps : portStatus) bits0 =
     set_ofp_port_status_reason bits0 (ChangeReason.to_int ps.reason);
     let bits1 = Cstruct.shift bits0 sizeof_ofp_port_status in
     let _ = PortDescription.marshal ps.desc bits1 in
@@ -2382,7 +2376,7 @@ module Message = struct
     | FlowModMsg of FlowMod.t
     | PacketInMsg of PacketIn.t
     | FlowRemovedMsg of FlowRemoved.t
-    | PortStatusMsg of PortStatus.t
+    | PortStatusMsg of portStatus
     | PacketOutMsg of PacketOut.t
     | BarrierRequest
     | BarrierReply
