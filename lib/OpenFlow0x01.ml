@@ -1693,7 +1693,6 @@ end
 
 module StatsRequest = struct
 
-  open OpenFlow0x01_Stats
   type t = request
 
   cstruct ofp_stats_request {
@@ -1808,7 +1807,6 @@ end
 
 module StatsReply = struct
 
-  open OpenFlow0x01_Stats
   type t = reply
 
   let desc_str_len = 256

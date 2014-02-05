@@ -47,7 +47,6 @@ Library openflow
     OpenFlow_Header,
     OpenFlow0x01,
     OpenFlow0x01_Core,
-    OpenFlow0x01_Stats,
     OpenFlow0x04,
     OpenFlow0x04_Core,
     SDN_OpenFlow0x01,

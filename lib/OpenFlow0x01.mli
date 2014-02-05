@@ -437,13 +437,13 @@ module SwitchConfig : sig
 end
 
 module StatsRequest : sig
-  type t = OpenFlow0x01_Stats.request
+  type t = request
   val to_string : t -> string
 end
 
 module StatsReply : sig
 
-  type t = OpenFlow0x01_Stats.reply
+  type t = reply
   
   val parse : Cstruct.t -> t
   

@@ -18,7 +18,7 @@ let _ =
   Pa_ounit_lib.Runtime.set_lib "openflow"
 
 open OpenFlow0x01
-open OpenFlow0x01_Stats
+open OpenFlow0x01_Core
 module Header = OpenFlow_Header
 
 open QuickCheck
