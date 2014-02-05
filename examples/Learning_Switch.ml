@@ -103,7 +103,7 @@ let switch
         | ErrorMsg err -> failwith (Error.to_string err)
         | PortStatusMsg ps ->
           let open PortStatus in
-          let port = ps.desc.PortDescription.port_no in
+          let port = ps.desc.port_no in
           begin match ps.reason with
             | ChangeReason.Delete ->
               let tbl' = SwitchTable.change tbl c_id (function

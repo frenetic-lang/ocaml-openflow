@@ -1,4 +1,5 @@
 open OpenFlow0x01
+open OpenFlow0x01_Core
 open Arbitrary_Base
 
 open QuickCheck

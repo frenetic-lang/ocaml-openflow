@@ -180,23 +180,11 @@ module PacketOut : sig
 
 end
 
-(** Port data structure.  See section 5.2.1 of the OpenFlow 1.0 specification. *)
 module PortDescription : sig
 
-  (** See the [ofp_port_config] enumeration in Section 5.2.1 of the OpenFlow 
-  1.0 specification. *)
   module PortConfig : sig
 
-    type t =
-      { down : bool (** Port is administratively down. *)
-      ; no_stp : bool (** Disable 802.1D spanning tree on port. *)
-      ; no_recv : bool (** Drop all packets except 802.1D spanning
-                         * tree packets. *)
-      ; no_recv_stp : bool (** Drop received 802.1D STP packets. *)
-      ; no_flood : bool (** Do not include this port when flooding. *)
-      ; no_fwd : bool (** Drop packets forwarded to port. *)
-      ; no_packet_in : bool (** Do not send packet-in msgs for port. *)
-      }
+    type t = portConfig
 
     (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
@@ -206,20 +194,10 @@ module PortDescription : sig
     val of_int : Int32.t -> t
   end
 
-  (** See the [ofp_port_state] enumeration in Section 5.2.1 of the OpenFlow 
-  1.0 specification.
-  
-  The [stp_X] fields have no effect on switch operation.  The controller must
-  adjust [PortConfig.no_recv], [PortConfig.no_fwd], and
-  [PortConfig.no_packet_in] to fully implement an 802.1D tree. *)
   module PortState : sig
 
     module StpState : sig
-      type t =
-        | Listen (** Not learning or relaying frames *)
-        | Learn (** Learning but not relaying frames *)
-        | Forward (** Learning and relaying frames *)
-        | Block (** Not part of the spanning tree *)
+      type t = stpState
 
       val of_int : Int32.t -> t
       val to_int : t -> Int32.t
@@ -227,11 +205,7 @@ module PortDescription : sig
       val to_string : t -> string
     end
 
-    type t =
-      { down : bool  (** No physical link present. *)
-      ; stp_state : StpState.t (** The state of the port wrt the spanning tree
-                                   algorithm *)
-      }
+    type t = portState
 
     (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
@@ -245,20 +219,7 @@ module PortDescription : sig
   1.0 specification. *)
   module PortFeatures : sig
 
-    type t =
-      { f_10MBHD : bool (** 10 Mb half-duplex rate support. *)
-      ; f_10MBFD : bool (** 10 Mb full-duplex rate support. *)
-      ; f_100MBHD : bool (** 100 Mb half-duplex rate support. *)
-      ; f_100MBFD : bool (** 100 Mb full-duplex rate support. *)
-      ; f_1GBHD : bool (** 1 Gb half-duplex rate support. *)
-      ; f_1GBFD : bool (** 1 Gb full-duplex rate support. *)
-      ; f_10GBFD : bool (** 10 Gb full-duplex rate support. *)
-      ; copper : bool (** Copper medium. *)
-      ; fiber : bool (** Fiber medium. *)
-      ; autoneg : bool (** Auto-negotiation. *)
-      ; pause : bool (** Pause. *)
-      ; pause_asym : bool (** Asymmetric pause. *)
-      }
+    type t = portFeatures
 
     (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
@@ -268,17 +229,7 @@ module PortDescription : sig
 
   end
 
-  type t =
-    { port_no : portId
-    ; hw_addr : dlAddr
-    ; name : string
-    ; config : PortConfig.t
-    ; state : PortState.t
-    ; curr : PortFeatures.t (** Current features. *)
-    ; advertised : PortFeatures.t (** Features being advertised by the port. *)
-    ; supported : PortFeatures.t (** Features supported by the port. *)
-    ; peer : PortFeatures.t (** Features advertised by peer. *)
-    }
+  type t = portDescription
 
   (** [to_string v] pretty-prints [v]. *)
   val to_string : t -> string
@@ -326,34 +277,14 @@ specification. *)
 module SwitchFeatures : sig
 
   (** Fields that support wildcard patterns on this switch. *)
-  type supported_wildcards =
-    { dlSrc : bool
-    ; dlDst : bool
-    ; dlTyp : bool
-    ; dlVlan : bool
-    ; dlVlanPcp : bool
-    ; nwSrc : bool
-    ; nwDst : bool
-    ; nwProto : bool
-    ; nwTos : bool
-    ; tpSrc : bool
-    ; tpDst : bool
-    ; inPort : bool }
+  type supported_wildcards = supportedWildcards
 
   (** See the [ofp_capabilities] enumeration in Section 5.3.1 of the OpenFlow
   1.0 specification. *)
   module Capabilities : sig
 
 
-    type t =
-      { flow_stats : bool (** Flow statistics. *)
-      ; table_stats : bool (** Table statistics. *)
-      ; port_stats : bool (** Port statistics. *)
-      ; stp : bool (** 802.1D spanning tree. *)
-      ; ip_reasm : bool (** Can reassemble IP fragments. *)
-      ; queue_stats : bool (** Queue statistics. *)
-      ; arp_match_ip : bool (** Match IP addresses in ARP packets. *)
-      }
+    type t = capabilities
 
     (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
@@ -363,36 +294,13 @@ module SwitchFeatures : sig
   (** Describes which actions ([Action.t]) this switch supports. *)
   module SupportedActions : sig
 
-    type t =
-      { output : bool
-      ; set_vlan_id : bool
-      ; set_vlan_pcp : bool
-      ; strip_vlan : bool
-      ; set_dl_src : bool
-      ; set_dl_dst : bool
-      ; set_nw_src : bool
-      ; set_nw_dst : bool
-      ; set_nw_tos : bool
-      ; set_tp_src : bool
-      ; set_tp_dst : bool
-      ; enqueue : bool
-      ; vendor : bool }
-
+    type t = supportedActions
     (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
 
   end
 
-  type t =
-    { switch_id : switchId (** Datapath unique ID.  The lower 48 bits are for 
-                           a MAC address, while the upper 16 bits are 
-                           implementer-defined. *)
-    ; num_buffers : int32 (** Max packets buffered at once. *)
-    ; num_tables : int8 (** Number of tables supported by datapath. *)
-    ; supported_capabilities : Capabilities.t
-    ; supported_actions : SupportedActions.t
-    ; ports : PortDescription.t list (** Port definitions. *)
-    }
+  type t = switchFeatures
 
   (** [to_string v] pretty-prints [v]. *)
   val to_string : t -> string
@@ -594,14 +502,14 @@ module Message : sig
     | ErrorMsg of Error.t
     | EchoRequest of bytes
     | EchoReply of bytes
-    | VendorMsg of Vendor.t
+    | VendorMsg of int32 * Cstruct.t
     | SwitchFeaturesRequest
     | SwitchFeaturesReply of SwitchFeatures.t
-    | FlowModMsg of FlowMod.t
-    | PacketInMsg of PacketIn.t
-    | FlowRemovedMsg of FlowRemoved.t
+    | FlowModMsg of flowMod
+    | PacketInMsg of packetIn
+    | FlowRemovedMsg of flowRemoved
     | PortStatusMsg of PortStatus.t
-    | PacketOutMsg of PacketOut.t
+    | PacketOutMsg of packetOut
     | BarrierRequest
     | BarrierReply
     | StatsRequestMsg of StatsRequest.t

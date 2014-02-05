@@ -1030,18 +1030,9 @@ module PortDescription = struct
 
   module PortConfig = struct
 
-    type t =
-        { down : bool (* Port is administratively down. *)
-      ; no_stp : bool (* Disable 802.1D spanning tree on port. *)
-      ; no_recv : bool (* Drop all packets except 802.1D spanning
-                                 * tree packets. *)
-      ; no_recv_stp : bool (* Drop received 802.1D STP packets. *)
-      ; no_flood : bool (* Do not include this port when flooding. *)
-      ; no_fwd : bool (* Drop packets forwarded to port. *)
-      ; no_packet_in : bool (* Do not send packet-in msgs for port. *)
-      }
+    type t = portConfig
 
-    let to_string c = Printf.sprintf
+    let to_string (c : portConfig) = Printf.sprintf
       "{ down = %B; \
          no_stp = %B; \
          no_recv = %B; \
@@ -1085,11 +1076,7 @@ module PortDescription = struct
   module PortState = struct
 
     module StpState = struct
-      type t =
-        | Listen
-        | Learn
-        | Forward
-        | Block
+      type t = stpState
 
       let mask = Int32.shift_left 3l 8
 
@@ -1115,11 +1102,7 @@ module PortDescription = struct
           (Printf.sprintf "Unexpected ofp_port_state for STP: %ld" d_masked))
     end
 
-    type t =
-      { down : bool  (* No physical link present. *)
-      ; stp_state : StpState.t } (* The state of the port wrt the spanning tree
-                                    algorithm. *)
-
+    type t = portState
     let to_string p = Printf.sprintf
       "{ down = %B; \
          stp_state = %s }"
@@ -1141,20 +1124,7 @@ module PortDescription = struct
 
   module PortFeatures = struct
 
-    type t =
-      { f_10MBHD : bool (* 10 Mb half-duplex rate support. *)
-      ; f_10MBFD : bool (* 10 Mb full-duplex rate support. *)
-      ; f_100MBHD : bool (* 100 Mb half-duplex rate support. *)
-      ; f_100MBFD : bool (* 100 Mb full-duplex rate support. *)
-      ; f_1GBHD : bool (* 1 Gb half-duplex rate support. *)
-      ; f_1GBFD : bool (* 1 Gb full-duplex rate support. *)
-      ; f_10GBFD : bool (* 10 Gb full-duplex rate support. *)
-      ; copper : bool (* Copper medium. *)
-      ; fiber : bool (* Fiber medium. *)
-      ; autoneg : bool (* Auto-negotiation. *)
-      ; pause : bool (* Pause. *)
-      ; pause_asym : bool (* Asymmetric pause. *)
-      }
+    type t = portFeatures
 
     let to_string p = Printf.sprintf
       "{ f_10MBHD = %B; \
@@ -1216,16 +1186,7 @@ module PortDescription = struct
       bits
   end
 
-  type t =
-    { port_no : portId
-    ; hw_addr : dlAddr
-    ; name : string
-    ; config : PortConfig.t
-    ; state : PortState.t
-    ; curr : PortFeatures.t
-    ; advertised : PortFeatures.t
-    ; supported : PortFeatures.t
-    ; peer : PortFeatures.t }
+  type t = portDescription
 
   cstruct ofp_phy_port {
     uint16_t port_no;
@@ -1365,30 +1326,11 @@ end
 
 module SwitchFeatures = struct
 
-  type supported_wildcards =
-    { dlSrc : bool
-    ; dlDst : bool
-    ; dlTyp : bool
-    ; dlVlan : bool
-    ; dlVlanPcp : bool
-    ; nwSrc : bool
-    ; nwDst : bool
-    ; nwProto : bool
-    ; nwTos : bool
-    ; tpSrc : bool
-    ; tpDst : bool
-    ; inPort : bool }
+  type supported_wildcards = supportedWildcards
 
   module Capabilities = struct
 
-    type t =
-      { flow_stats : bool
-      ; table_stats : bool
-      ; port_stats : bool
-      ; stp : bool
-      ; ip_reasm : bool
-      ; queue_stats : bool
-      ; arp_match_ip : bool }
+    type t = capabilities
 
     let size_of _ = 4
 
@@ -1432,20 +1374,7 @@ module SwitchFeatures = struct
 
   module SupportedActions = struct
 
-    type t =
-      { output : bool
-      ; set_vlan_id : bool
-      ; set_vlan_pcp : bool
-      ; strip_vlan : bool
-      ; set_dl_src : bool
-      ; set_dl_dst : bool
-      ; set_nw_src : bool
-      ; set_nw_dst : bool
-      ; set_nw_tos : bool
-      ; set_tp_src : bool
-      ; set_tp_dst : bool
-      ; enqueue : bool
-      ; vendor : bool }
+    type t = supportedActions
 
     let size_of _ = 4
 
@@ -1511,13 +1440,7 @@ module SwitchFeatures = struct
 
   end
 
-  type t =
-    { switch_id : int64
-    ; num_buffers : int32
-    ; num_tables : int8
-    ; supported_capabilities : Capabilities.t
-    ; supported_actions : SupportedActions.t
-    ; ports : PortDescription.t list }
+  type t = switchFeatures
 
   cstruct ofp_switch_features {
     uint64_t datapath_id;
@@ -2390,7 +2313,7 @@ module Vendor = struct
     let _ = Cstruct.blit (body) 0 out 0 (Cstruct.len (body)) in
     12
     
-  let size_of _ = 12
+  let size_of _ = 12 (* TODO(arjun): this is wrong! *)
   
 end
 
@@ -2453,7 +2376,7 @@ module Message = struct
     | ErrorMsg of Error.t
     | EchoRequest of bytes
     | EchoReply of bytes
-    | VendorMsg of Vendor.t
+    | VendorMsg of int32 * Cstruct.t
     | SwitchFeaturesRequest
     | SwitchFeaturesReply of SwitchFeatures.t
     | FlowModMsg of FlowMod.t
@@ -2479,7 +2402,7 @@ module Message = struct
       | ERROR -> ErrorMsg (Error.parse buf)
       | ECHO_REQ -> EchoRequest buf
       | ECHO_RESP -> EchoReply buf
-      | VENDOR -> VendorMsg (Vendor.parse buf)
+      | VENDOR -> let (x, y) = Vendor.parse buf in VendorMsg (x, y)
       | FEATURES_REQ -> SwitchFeaturesRequest
       | FEATURES_RESP -> SwitchFeaturesReply (SwitchFeatures.parse buf)
       | PACKET_IN -> PacketInMsg (PacketIn.parse buf)
@@ -2549,7 +2472,7 @@ module Message = struct
     | Hello buf -> Cstruct.len buf
     | EchoRequest buf -> Cstruct.len buf
     | EchoReply buf -> Cstruct.len buf
-    | VendorMsg buf -> Vendor.size_of msg
+    | VendorMsg (x, y) -> Vendor.size_of (x, y)
     | SwitchFeaturesRequest -> 0
     | SwitchFeaturesReply rep -> SwitchFeatures.size_of rep
     | FlowModMsg msg -> FlowMod.size_of msg
@@ -2572,8 +2495,8 @@ module Message = struct
     | EchoRequest buf
     | EchoReply buf ->
       Cstruct.blit buf 0 out 0 (Cstruct.len buf)
-    | VendorMsg msg ->
-      let _ = Vendor.marshal msg out in
+    | VendorMsg (x, y) ->
+      let _ = Vendor.marshal (x,y) out in
       ()      
     | SwitchFeaturesRequest -> 
       ()

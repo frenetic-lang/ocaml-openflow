@@ -1,5 +1,6 @@
 open Core.Std
 open Async.Std
+open OpenFlow0x01_Core
 
 module S = SDN_Types
 module Header = OpenFlow_Header
@@ -17,6 +18,7 @@ module Platform = Async_OpenFlowChunk.Controller
 module Clients = Hashtbl.Make(Platform.Client_id)
 
 module Switches = Hashtbl.Make(Int64)
+
 
 exception Handshake of Platform.Client_id.t * string
 
@@ -110,9 +112,9 @@ let features t evt =
           begin 
             match M1.parse hdr (Cstruct.to_string bits) with 
             | (_, M1.SwitchFeaturesReply feats) -> 
-               let get_port pd = VInt.Int16 pd.OF1.PortDescription.port_no in 
-               let switch_id = feats.OF1.SwitchFeatures.switch_id in
-               let switch_ports = List.map feats.OF1.SwitchFeatures.ports ~f:get_port in 
+               let get_port pd = VInt.Int16 pd.port_no in 
+               let switch_id = feats.switch_id in
+               let switch_ports = List.map feats.ports ~f:get_port in 
                let feats = { S.switch_id = switch_id;
                              S.switch_ports = switch_ports } in 
                Clients.replace t.clients c_id (Connected0x01 switch_id);
@@ -209,7 +211,7 @@ let setup_flow_table t (sw:S.switchId) (tbl:S.flowTable) =
      let send_flow_mod (fl : S.flow) : unit Deferred.t =
        decr priority;
        send_msg0x01 t c_id (M1.FlowModMsg (SDN_OpenFlow0x01.from_flow !priority fl)) in
-     let delete_flows = send_msg0x01 t c_id (M1.FlowModMsg OF1_Core.delete_all_flows) in
+     let delete_flows = send_msg0x01 t c_id (M1.FlowModMsg delete_all_flows) in
      let flow_mods = List.map tbl ~f:send_flow_mod in
      delete_flows >>= fun _ -> 
      Deferred.all_ignore flow_mods

@@ -10,6 +10,113 @@ type queueId = int32
 
 type xid = OpenFlow_Header.xid
 
+type portConfig =
+{ down : bool (** Port is administratively down. *)
+; no_stp : bool (** Disable 802.1D spanning tree on port. *)
+; no_recv : bool (** Drop all packets except 802.1D spanning
+                   * tree packets. *)
+; no_recv_stp : bool (** Drop received 802.1D STP packets. *)
+; no_flood : bool (** Do not include this port when flooding. *)
+; no_fwd : bool (** Drop packets forwarded to port. *)
+; no_packet_in : bool (** Do not send packet-in msgs for port. *)
+}
+
+type stpState =
+  | Listen (** Not learning or relaying frames *)
+  | Learn (** Learning but not relaying frames *)
+  | Forward (** Learning and relaying frames *)
+  | Block (** Not part of the spanning tree *)
+
+type portState =
+  { down : bool  (** No physical link present. *)
+  ; stp_state : stpState (** The state of the port wrt the spanning tree
+                               algorithm *)
+  }
+
+(** See the [ofp_port_features] enumeration in Section 5.2.1 of the OpenFlow
+1.0 specification. *)
+type portFeatures =
+  { f_10MBHD : bool (** 10 Mb half-duplex rate support. *)
+  ; f_10MBFD : bool (** 10 Mb full-duplex rate support. *)
+  ; f_100MBHD : bool (** 100 Mb half-duplex rate support. *)
+  ; f_100MBFD : bool (** 100 Mb full-duplex rate support. *)
+  ; f_1GBHD : bool (** 1 Gb half-duplex rate support. *)
+  ; f_1GBFD : bool (** 1 Gb full-duplex rate support. *)
+  ; f_10GBFD : bool (** 10 Gb full-duplex rate support. *)
+  ; copper : bool (** Copper medium. *)
+  ; fiber : bool (** Fiber medium. *)
+  ; autoneg : bool (** Auto-negotiation. *)
+  ; pause : bool (** Pause. *)
+  ; pause_asym : bool (** Asymmetric pause. *)
+  }
+
+type portDescription =
+  { port_no : portId
+  ; hw_addr : dlAddr
+  ; name : string
+  ; config : portConfig
+  ; state : portState
+  ; curr : portFeatures (** Current features. *)
+  ; advertised : portFeatures (** Features being advertised by the port. *)
+  ; supported : portFeatures (** Features supported by the port. *)
+  ; peer : portFeatures (** Features advertised by peer. *)
+  }
+
+(** Fields that support wildcard patterns on this switch. *)
+type supportedWildcards =
+  { dlSrc : bool
+  ; dlDst : bool
+  ; dlTyp : bool
+  ; dlVlan : bool
+  ; dlVlanPcp : bool
+  ; nwSrc : bool
+  ; nwDst : bool
+  ; nwProto : bool
+  ; nwTos : bool
+  ; tpSrc : bool
+  ; tpDst : bool
+  ; inPort : bool }
+
+(** See the [ofp_capabilities] enumeration in Section 5.3.1 of the OpenFlow
+1.0 specification. *)
+type capabilities =
+  { flow_stats : bool (** Flow statistics. *)
+  ; table_stats : bool (** Table statistics. *)
+  ; port_stats : bool (** Port statistics. *)
+  ; stp : bool (** 802.1D spanning tree. *)
+  ; ip_reasm : bool (** Can reassemble IP fragments. *)
+  ; queue_stats : bool (** Queue statistics. *)
+  ; arp_match_ip : bool (** Match IP addresses in ARP packets. *)
+  }
+
+(** Describes which actions ([Action.t]) this switch supports. *)
+type supportedActions =
+  { output : bool
+  ; set_vlan_id : bool
+  ; set_vlan_pcp : bool
+  ; strip_vlan : bool
+  ; set_dl_src : bool
+  ; set_dl_dst : bool
+  ; set_nw_src : bool
+  ; set_nw_dst : bool
+  ; set_nw_tos : bool
+  ; set_tp_src : bool
+  ; set_tp_dst : bool
+  ; enqueue : bool
+  ; vendor : bool }
+
+type switchFeatures =
+  { switch_id : switchId (** Datapath unique ID.  The lower 48 bits are for 
+                         a MAC address, while the upper 16 bits are 
+                         implementer-defined. *)
+  ; num_buffers : int32 (** Max packets buffered at once. *)
+  ; num_tables : int8 (** Number of tables supported by datapath. *)
+  ; supported_capabilities : capabilities
+  ; supported_actions : supportedActions
+  ; ports : portDescription list (** Port definitions. *)
+  }
+
+
 type pattern =  
     { dlSrc : dlAddr option
     ; dlDst : dlAddr option
@@ -158,6 +265,7 @@ type statsReply =
   | IndividualFlowRep of individualStats list
   | AggregateFlowRep of aggregateStats
   
+
 let add_flow prio pat ?(idle_to = Permanent) ?(notify_removed = false) actions =
   { command = AddFlow;
     pattern = pat;
@@ -186,7 +294,7 @@ let delete_flow_strict prio pat port =
   ; check_overlap = false
   }
 
-let match_all = {
+let match_all : pattern = {
   dlSrc = None;
   dlDst = None;
   dlTyp = None;
