@@ -16,6 +16,11 @@ end)
 
 type switchTable = portId EthTable.t SwitchTable.t
 
+let parse_payload = function
+  | Buffered (_, b)
+  | NotBuffered b -> 
+    Packet.parse b
+
 let switch
   (ctl : OF0x01Controller.t)
   (tbl : switchTable)

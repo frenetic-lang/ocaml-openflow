@@ -19,9 +19,7 @@ type portId = int16
 (** [queueId] identifies a specific queue for QoS. *)
 type queueId = int32
 
-
 (** {2 Configuration} *)
-
 
 (** See the [ofp_port_config] enumeration in Section 5.2.1 of the OpenFlow 
 1.0 specification. *)
@@ -459,14 +457,6 @@ type message =
   | SetConfig of switchConfig
   | ConfigRequestMsg
   | ConfigReplyMsg of switchConfig
-
-(** {2 Convenient Functions} *)
-
-val parse_payload : payload -> Packet.packet
-
-(** [marshal_payload buf pkt] serializes pkt, where [buf] is an optional 
-buffer ID. *)
-val marshal_payload : int32 option -> Packet.packet -> payload
 
 (** A pattern that matches all packets. (All fields wildcarded.) *)
 val match_all : pattern
