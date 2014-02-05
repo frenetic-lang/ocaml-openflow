@@ -303,16 +303,12 @@ module ConfigReply : sig
     
   module FragFlags : sig
 
-    type t = 
-      | FragNormal 
-      | FragDrop
-      | FragReassemble 
+    type t = fragFlags
 
     val to_string : t -> string
   end
     
-  type t = { frag_flags : FragFlags.t; 
-	     miss_send_len : int }
+  type t = switchConfig
       
   val to_string : t -> string 
 end
@@ -322,16 +318,12 @@ module SwitchConfig : sig
     
   module FragFlags : sig
 
-    type t = 
-      | FragNormal 
-      | FragDrop
-      | FragReassemble 
+    type t = fragFlags
 
     val to_string : t -> string
   end
     
-  type t = { frag_flags : FragFlags.t; 
-	     miss_send_len : int }
+  type t = switchConfig
       
   val to_string : t -> string 
 end
@@ -504,11 +496,11 @@ module Message : sig
     | PacketOutMsg of packetOut
     | BarrierRequest
     | BarrierReply
-    | StatsRequestMsg of StatsRequest.t
-    | StatsReplyMsg of StatsReply.t
-    | SetConfig of SwitchConfig.t
+    | StatsRequestMsg of statsRequest
+    | StatsReplyMsg of statsReply
+    | SetConfig of switchConfig
     | ConfigRequestMsg
-    | ConfigReplyMsg of ConfigReply.t
+    | ConfigReplyMsg of switchConfig
 
   (** [size_of msg] returns the size of [msg] in bytes when serialized. *)
   val size_of : t -> int

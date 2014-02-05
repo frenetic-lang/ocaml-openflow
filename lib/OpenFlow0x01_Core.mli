@@ -148,6 +148,14 @@ type portStatus =
       { reason : portChangeReason
       ; desc : portDescription }
 
+type fragFlags =
+  | FragNormal 
+  | FragDrop
+  | FragReassemble 
+
+type switchConfig = { 
+  frag_flags : fragFlags; 
+  miss_send_len : int }
 
 (** {2 OpenFlow types}
 

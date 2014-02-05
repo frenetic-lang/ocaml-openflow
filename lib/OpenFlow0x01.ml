@@ -1501,10 +1501,7 @@ module ConfigReply = struct
     
   module FragFlags = struct
 
-    type t = 
-      | FragNormal 
-      | FragDrop
-      | FragReassemble 
+    type t = fragFlags 
 
     let of_int d = match d with 
       | 0 -> FragNormal
@@ -1524,9 +1521,7 @@ module ConfigReply = struct
 
   end
     
-  type t = { 
-    frag_flags : FragFlags.t; 
-    miss_send_len : int }
+  type t = switchConfig
 
   cstruct ofp_switch_config {
     uint16_t flags;
@@ -1557,10 +1552,7 @@ module SwitchConfig = struct
     
   module FragFlags = struct
 
-    type t = 
-      | FragNormal 
-      | FragDrop
-      | FragReassemble 
+    type t = fragFlags 
 
     let of_int d = match d with 
       | 0 -> FragNormal
@@ -1580,8 +1572,7 @@ module SwitchConfig = struct
 
   end
     
-  type t = { frag_flags : FragFlags.t; 
-	     miss_send_len : int }
+  type t = switchConfig
 
       cstruct ofp_switch_config {
 	uint16_t flags;
