@@ -437,13 +437,13 @@ module SwitchConfig : sig
 end
 
 module StatsRequest : sig
-  type t = request
+  type t = statsRequest
   val to_string : t -> string
 end
 
 module StatsReply : sig
 
-  type t = reply
+  type t = statsReply
   
   val parse : Cstruct.t -> t
   

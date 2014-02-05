@@ -119,7 +119,7 @@ type aggregateStatsReq =
   ; as_out_port : pseudoPort option
   }
 
-type request =
+type statsRequest =
   | DescriptionRequest
   | FlowTableStatsRequest
   | IndividualRequest of individualStatsReq
@@ -153,7 +153,7 @@ type aggregateStats =
     ; flow_count : int32 
     }
 
-type reply =
+type statsReply =
   | DescriptionRep of descriptionStats
   | IndividualFlowRep of individualStats list
   | AggregateFlowRep of aggregateStats

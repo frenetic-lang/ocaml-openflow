@@ -1693,7 +1693,7 @@ end
 
 module StatsRequest = struct
 
-  type t = request
+  type t = statsRequest
 
   cstruct ofp_stats_request {
     uint16_t req_type;
@@ -1744,7 +1744,7 @@ module StatsRequest = struct
     | IndividualRequest _ -> OFPST_FLOW
     | AggregateRequest _ -> OFPST_AGGREGATE
 
-  let marshal (msg : request) (out : Cstruct.t) =
+  let marshal (msg : statsRequest) (out : Cstruct.t) =
     let req_type = ofp_stats_type_of_request msg in
     let flags = 0x0 in
     set_ofp_stats_request_req_type out (ofp_stats_types_to_int req_type);
@@ -1807,7 +1807,7 @@ end
 
 module StatsReply = struct
 
-  type t = reply
+  type t = statsReply
 
   let desc_str_len = 256
   let serial_num_len = 32
