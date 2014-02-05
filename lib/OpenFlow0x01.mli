@@ -343,15 +343,11 @@ module StatsReply : sig
   
 end
 
-(** An error message.  See Section 5.4.4 of the OpenFlow 1.0 specification. *)
 module Error : sig
 
   module HelloFailed : sig
 
-    type t =
-      | Incompatible (** No compatible version. *)
-      | Eperm (** Permissions error. *)
-
+    type t = helloFailed
     (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
 
@@ -359,17 +355,7 @@ module Error : sig
 
   module BadRequest : sig
 
-    type t =
-      | BadVersion (** [Header] version not supported. *)
-      | BadType (** [Message] type not supported. *)
-      | BadStat (** StatsRequest type not supported. *)
-      | BadVendor (** Vendor not supported. *)
-      | BadSubType (** Vendor subtype not supported. *)
-      | Eperm (** Permissions error. *)
-      | BadLen (** Wrong request length for type. *)
-      | BufferEmpty (** Specified buffer has already been used. *)
-      | BufferUnknown (** Specified buffer does not exist. *)
-
+    type t = badRequest
     (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
 
@@ -377,17 +363,7 @@ module Error : sig
 
   module BadAction : sig
 
-    type t =
-      | BadType (** Unknown action type. *)
-      | BadLen (** Length problem in actions. *)
-      | BadVendor (** Unknown vendor id specified. *)
-      | BadVendorType (** Unknown action type for vendor id. *)
-      | BadOutPort (** Problem validating output action. *)
-      | BadArgument (** Bad action argument. *)
-      | Eperm (** Permissions error. *)
-      | TooMany (** Can't handle this many actions. *)
-      | BadQueue (** Problem validating output queue. *)
-
+    type t = badAction
     (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
 
@@ -395,16 +371,7 @@ module Error : sig
 
   module FlowModFailed : sig
 
-    type t =
-      | AllTablesFull (** Flow not added because of full tables. *)
-      | Overlap (** Attepted to add overlapping flow with 
-                [FlowMod.check_overlap] set. *)
-      | Eperm (** Permissions error. *)
-      | BadEmergTimeout (** Flow not added because of non-zero idle/hard timeout. *)
-      | BadCommand (** Unknown command. *)
-      | Unsupported (** Unsupported action list - cannot process in the order
-                    specified. *)
-
+    type t = flowModFailed
     (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
 
@@ -412,10 +379,7 @@ module Error : sig
 
   module PortModFailed : sig
 
-    type t =
-      | BadPort (** Specified port does not exist. *)
-      | BadHwAddr (** Specified hardware address is wrong. *)
-
+    type t = portModFailed
     (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
 
@@ -423,44 +387,14 @@ module Error : sig
 
   module QueueOpFailed : sig
 
-    type t =
-      | BadPort (** Invalid port (or port does not exist). *)
-      | BadQueue (** Queue does not exist. *)
-      | Eperm (** Permissions error. *)
-
+    type t = queueOpFailed
     (** [to_string v] pretty-prints [v]. *)
     val to_string : t -> string
 
   end
 
-  
-
-
-  (** Each error is composed of a pair (error_code, data) *)
-  type c =
-  
-    (** Hello protocol failed. *)
-    | HelloFailed of HelloFailed.t
-
-    (** Request was not understood. *)
-    | BadRequest of BadRequest.t
-
-    (** Error in action description *)
-    | BadAction of BadAction.t
-
-    (** Problem modifying flow entry. *)
-    | FlowModFailed of FlowModFailed.t
-
-    (** Port mod request failed. *)
-    | PortModFailed of PortModFailed.t
-
-    (** Queue operation failed. *)
-    | QueueOpFailed of QueueOpFailed.t
-  
-  type t = 
-  
-    | Error of c * Cstruct.t
-
+  type c = errorCode
+  type t = error
   (** [to_string v] pretty-prints [v]. *)
   val to_string : t -> string
 
@@ -483,7 +417,7 @@ module Message : sig
 
   type t =
     | Hello of bytes
-    | ErrorMsg of Error.t
+    | ErrorMsg of error
     | EchoRequest of bytes
     | EchoReply of bytes
     | VendorMsg of int32 * Cstruct.t

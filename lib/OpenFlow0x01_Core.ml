@@ -134,6 +134,69 @@ type switchConfig = {
   frag_flags : fragFlags; 
   miss_send_len : int }
 
+type helloFailed =
+  | Incompatible (** No compatible version. *)
+  | Eperm (** Permissions error. *)
+
+type badRequest =
+  | BadVersion (** [Header] version not supported. *)
+  | BadType (** [Message] type not supported. *)
+  | BadStat (** StatsRequest type not supported. *)
+  | BadVendor (** Vendor not supported. *)
+  | BadSubType (** Vendor subtype not supported. *)
+  | Eperm (** Permissions error. *)
+  | BadLen (** Wrong request length for type. *)
+  | BufferEmpty (** Specified buffer has already been used. *)
+  | BufferUnknown (** Specified buffer does not exist. *)
+
+type badAction =
+  | BadType (** Unknown action type. *)
+  | BadLen (** Length problem in actions. *)
+  | BadVendor (** Unknown vendor id specified. *)
+  | BadVendorType (** Unknown action type for vendor id. *)
+  | BadOutPort (** Problem validating output action. *)
+  | BadArgument (** Bad action argument. *)
+  | Eperm (** Permissions error. *)
+  | TooMany (** Can't handle this many actions. *)
+  | BadQueue (** Problem validating output queue. *)
+
+type flowModFailed =
+  | AllTablesFull (** Flow not added because of full tables. *)
+  | Overlap (** Attepted to add overlapping flow with 
+            [FlowMod.check_overlap] set. *)
+  | Eperm (** Permissions error. *)
+  | BadEmergTimeout (** Flow not added because of non-zero idle/hard timeout. *)
+  | BadCommand (** Unknown command. *)
+  | Unsupported (** Unsupported action list - cannot process in the order
+                specified. *)
+
+type portModFailed =
+  | BadPort (** Specified port does not exist. *)
+  | BadHwAddr (** Specified hardware address is wrong. *)
+
+type queueOpFailed =
+  | BadPort (** Invalid port (or port does not exist). *)
+  | BadQueue (** Queue does not exist. *)
+  | Eperm (** Permissions error. *)
+
+(** Each error is composed of a pair (error_code, data) *)
+type errorCode  =
+  (** Hello protocol failed. *)
+  | HelloFailed of helloFailed
+  (** Request was not understood. *)
+  | BadRequest of badRequest
+  (** Error in action description *)
+  | BadAction of badAction
+  (** Problem modifying flow entry. *)
+  | FlowModFailed of flowModFailed
+  (** Port mod request failed. *)
+  | PortModFailed of portModFailed
+  (** Queue operation failed. *)
+  | QueueOpFailed of queueOpFailed
+
+type error = 
+  | Error of errorCode * Cstruct.t
+
 type pattern =  
     { dlSrc : dlAddr option
     ; dlDst : dlAddr option

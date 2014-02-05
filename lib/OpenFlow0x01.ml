@@ -1981,9 +1981,7 @@ module Error = struct
 
   module HelloFailed = struct
 
-    type t =
-      | Incompatible
-      | Eperm
+    type t = helloFailed
     
     let type_code (a : t) = match a with
       | Incompatible -> OFPHFC_INCOMPATIBLE
@@ -2005,16 +2003,7 @@ module Error = struct
 
   module BadRequest = struct
 
-    type t =
-      | BadVersion
-      | BadType
-      | BadStat
-      | BadVendor
-      | BadSubType
-      | Eperm
-      | BadLen
-      | BufferEmpty
-      | BufferUnknown
+    type t = badRequest
     
     let type_code (a : t) = match a with
       | BadVersion -> OFPBRC_BAD_VERSION
@@ -2057,17 +2046,8 @@ module Error = struct
 
   module BadAction = struct
 
-    type t =
-      | BadType
-      | BadLen
-      | BadVendor
-      | BadVendorType
-      | BadOutPort
-      | BadArgument
-      | Eperm
-      | TooMany
-      | BadQueue
-    
+    type t = badAction
+
      let type_code (a : t) = match a with
        | BadType -> OFPBAC_BAD_TYPE
        | BadLen -> OFPBAC_BAD_LEN
@@ -2109,13 +2089,7 @@ module Error = struct
 
   module FlowModFailed = struct
 
-    type t =
-      | AllTablesFull
-      | Overlap
-      | Eperm
-      | BadEmergTimeout
-      | BadCommand
-      | Unsupported
+    type t = flowModFailed
     
     let type_code (a : t) = match a with
       | AllTablesFull -> OFPFMFC_ALL_TABLES_FULL
@@ -2149,15 +2123,13 @@ module Error = struct
 
   module PortModFailed = struct
 
-    type t =
-      | BadPort
-      | BadHwAddr
+    type t = portModFailed
     
     let type_code (a : t) = match a with
       | BadPort -> OFPPMFC_BAD_PORT
       | BadHwAddr -> OFPPMFC_BAD_HW_ADDR
 
-    let of_int error_code =
+    let of_int error_code : portModFailed =
       match int_to_ofp_port_mod_failed_code error_code with
       | Some OFPPMFC_BAD_PORT -> BadPort
       | Some OFPPMFC_BAD_HW_ADDR -> BadHwAddr
@@ -2165,7 +2137,7 @@ module Error = struct
         let msg = sprintf "bad ofp_port_mod_failed_code in error (%d)" error_code in
               raise (Unparsable msg)
 
-    let to_string = function
+    let to_string (e : portModFailed) = match e with
       | BadPort -> "BadPort"
       | BadHwAddr -> "BadHwAddr"
 
@@ -2173,10 +2145,7 @@ module Error = struct
 
   module QueueOpFailed = struct
 
-    type t =
-      | BadPort
-      | BadQueue
-      | Eperm
+    type t = queueOpFailed
     
     let type_code (a : t) = match a with
       | BadPort -> OFPQOFC_BAD_PORT
@@ -2201,17 +2170,9 @@ module Error = struct
 
   let size_of _ = sizeof_ofp_error_msg
 
-  (* Each error is composed of a pair (error_code, data) *)
-  type c =
-    | HelloFailed of HelloFailed.t
-    | BadRequest of BadRequest.t
-    | BadAction of BadAction.t
-    | FlowModFailed of FlowModFailed.t
-    | PortModFailed of PortModFailed.t
-    | QueueOpFailed of QueueOpFailed.t
+  type c = errorCode
   
-  type t =
-    | Error of c * Cstruct.t
+  type t = error
 
   let parse bits =
     let error_type = get_ofp_error_msg_error_type bits in
