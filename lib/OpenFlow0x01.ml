@@ -2317,26 +2317,7 @@ module Message = struct
     | QUEUE_GET_CONFIG_REQ -> "QUEUE_GET_CONFIG_REQ"
     | QUEUE_GET_CONFIG_RESP -> "QUEUE_GET_CONFIG_RESP"
 
-  type t =
-    | Hello of bytes
-    | ErrorMsg of Error.t
-    | EchoRequest of bytes
-    | EchoReply of bytes
-    | VendorMsg of int32 * Cstruct.t
-    | SwitchFeaturesRequest
-    | SwitchFeaturesReply of SwitchFeatures.t
-    | FlowModMsg of FlowMod.t
-    | PacketInMsg of PacketIn.t
-    | FlowRemovedMsg of FlowRemoved.t
-    | PortStatusMsg of portStatus
-    | PacketOutMsg of PacketOut.t
-    | BarrierRequest
-    | BarrierReply
-    | StatsRequestMsg of StatsRequest.t
-    | StatsReplyMsg of StatsReply.t
-    | SetConfig of SwitchConfig.t
-    | ConfigRequestMsg
-    | ConfigReplyMsg of ConfigReply.t
+  type t = message
 
   let parse (hdr : Header.t) (body_buf : string) : (xid * t) =
     let buf = Cstruct.of_string body_buf in

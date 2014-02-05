@@ -1,5 +1,6 @@
 open Core.Std
 
+open OpenFlow0x01_Core
 module Platform = Async_OpenFlow_Platform
 module Header = OpenFlow_Header
 module M = OpenFlow0x01.Message
@@ -84,11 +85,11 @@ module Controller = struct
     match evt with
       | `Connect (c_id) ->
         t.feat <- SwitchSet.add t.feat c_id;
-        send t c_id (0l, M.SwitchFeaturesRequest) >>| ChunkController.ensure
+        send t c_id (0l, SwitchFeaturesRequest) >>| ChunkController.ensure
       | `Message (c_id, (_, msg)) when SwitchSet.mem t.feat c_id ->
         t.feat <- SwitchSet.remove t.feat c_id;
         begin match msg with
-          | M.SwitchFeaturesReply fs -> return(Some(`Connect(c_id, fs)))
+          | SwitchFeaturesReply fs -> return(Some(`Connect(c_id, fs)))
           | _ ->
             close t c_id;
             raise (ChunkController.Handshake (c_id,

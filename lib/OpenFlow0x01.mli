@@ -415,26 +415,7 @@ end
 specification. *)
 module Message : sig
 
-  type t =
-    | Hello of bytes
-    | ErrorMsg of error
-    | EchoRequest of bytes
-    | EchoReply of bytes
-    | VendorMsg of int32 * Cstruct.t
-    | SwitchFeaturesRequest
-    | SwitchFeaturesReply of switchFeatures
-    | FlowModMsg of flowMod
-    | PacketInMsg of packetIn
-    | FlowRemovedMsg of flowRemoved
-    | PortStatusMsg of portStatus
-    | PacketOutMsg of packetOut
-    | BarrierRequest
-    | BarrierReply
-    | StatsRequestMsg of statsRequest
-    | StatsReplyMsg of statsReply
-    | SetConfig of switchConfig
-    | ConfigRequestMsg
-    | ConfigReplyMsg of switchConfig
+  type t = message
 
   (** [size_of msg] returns the size of [msg] in bytes when serialized. *)
   val size_of : t -> int

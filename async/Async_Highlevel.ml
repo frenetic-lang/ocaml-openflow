@@ -1,12 +1,9 @@
 open Core.Std
 open Async.Std
-open OpenFlow0x01_Core
 
 module S = SDN_Types
 module Header = OpenFlow_Header
-module OF1 = OpenFlow0x01
-module OF1_Core = OpenFlow0x01_Core
-module M1 = OF1.Message
+module M1 = OpenFlow0x01.Message
 module OF4 = OpenFlow0x04
 module OF4_Core = OpenFlow0x04_Core
 module M4 = OpenFlow0x04.Message
@@ -108,10 +105,11 @@ let features t evt =
      begin 
        match of_type_code, handshake_state with
        | FeaturesReply, Some SentFeaturesRequest0x01 -> 
+          let open OpenFlow0x01_Core in
           Log.info ~tags "SentFeaturesRequest0x01";
           begin 
             match M1.parse hdr (Cstruct.to_string bits) with 
-            | (_, M1.SwitchFeaturesReply feats) -> 
+            | (_, SwitchFeaturesReply feats) -> 
                let get_port pd = VInt.Int16 pd.port_no in 
                let switch_id = feats.switch_id in
                let switch_ports = List.map feats.ports ~f:get_port in 
@@ -207,11 +205,12 @@ let setup_flow_table t (sw:S.switchId) (tbl:S.flowTable) =
        failwith "No such switch" in 
   match Clients.find t.clients c_id with
   | Some Connected0x01 _ -> 
+     let open OpenFlow0x01_Core in
      let priority = ref 65536 in
      let send_flow_mod (fl : S.flow) : unit Deferred.t =
        decr priority;
-       send_msg0x01 t c_id (M1.FlowModMsg (SDN_OpenFlow0x01.from_flow !priority fl)) in
-     let delete_flows = send_msg0x01 t c_id (M1.FlowModMsg delete_all_flows) in
+       send_msg0x01 t c_id (FlowModMsg (SDN_OpenFlow0x01.from_flow !priority fl)) in
+     let delete_flows = send_msg0x01 t c_id (FlowModMsg delete_all_flows) in
      let flow_mods = List.map tbl ~f:send_flow_mod in
      delete_flows >>= fun _ -> 
      Deferred.all_ignore flow_mods

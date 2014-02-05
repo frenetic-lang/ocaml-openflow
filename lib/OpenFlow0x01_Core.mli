@@ -439,6 +439,27 @@ type statsReply =
   | IndividualFlowRep of individualStats list
   | AggregateFlowRep of aggregateStats
 
+type message =
+  | Hello of bytes
+  | ErrorMsg of error
+  | EchoRequest of bytes
+  | EchoReply of bytes
+  | VendorMsg of int32 * Cstruct.t
+  | SwitchFeaturesRequest
+  | SwitchFeaturesReply of switchFeatures
+  | FlowModMsg of flowMod
+  | PacketInMsg of packetIn
+  | FlowRemovedMsg of flowRemoved
+  | PortStatusMsg of portStatus
+  | PacketOutMsg of packetOut
+  | BarrierRequest
+  | BarrierReply
+  | StatsRequestMsg of statsRequest
+  | StatsReplyMsg of statsReply
+  | SetConfig of switchConfig
+  | ConfigRequestMsg
+  | ConfigReplyMsg of switchConfig
+
 (** {2 Convenient Functions} *)
 
 val parse_payload : payload -> Packet.packet
