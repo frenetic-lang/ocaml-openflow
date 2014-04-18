@@ -215,18 +215,18 @@ let format_timeout (fmt:Format.formatter) (t:timeout) : unit =
     | ExpiresAfter(n) -> Format.fprintf fmt "ExpiresAfter(%d)" n
 
 let format_flow (fmt: Format.formatter) (f : flow) : unit = 
-  Format.fprintf fmt "@[{pattern=%a,@," format_pattern f.pattern;
-  Format.fprintf fmt "action=%a,@," format_group f.action;
-  Format.fprintf fmt "cookie=%s,@," (Int64.to_string f.cookie);
-  Format.fprintf fmt "idle_timeout=%a,@," format_timeout f.idle_timeout;
+  Format.fprintf fmt "@[{pattern=%a," format_pattern f.pattern;
+  Format.fprintf fmt "action=%a," format_group f.action;
+  Format.fprintf fmt "cookie=%s," (Int64.to_string f.cookie);
+  Format.fprintf fmt "idle_timeout=%a," format_timeout f.idle_timeout;
   Format.fprintf fmt "hard_timeout=%a}@]" format_timeout f.hard_timeout
-    
+
 let format_flowTable (fmt:Format.formatter) (l:flowTable) : unit = 
   Format.fprintf fmt "@[[";
   let _ = 
     List.fold_left
-      (fun b f -> 
-        if b then Format.fprintf fmt "@ ";
+      (fun b f ->
+        if b then Format.fprintf fmt "@\n ";
         format_flow fmt f;
         true) false l in 
   Format.fprintf fmt "]@]"
@@ -235,7 +235,7 @@ let make_string_of formatter x =
   let open Format in
   let buf = Buffer.create 100 in
   let fmt = formatter_of_buffer buf in
-  pp_set_margin fmt 80;
+  pp_set_margin fmt 300;
   formatter fmt x;
   fprintf fmt "@?";
   Buffer.contents buf
