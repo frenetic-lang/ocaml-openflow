@@ -23,6 +23,6 @@ let local (l : 'r1 -> 'r2) (f : ('r2, 'a, 'b) t) : ('r1, 'a, 'b) t =
 
 let run (f : ('r, 'a, 'b) t) (t : 'r) (r : 'a Pipe.Reader.t) : 'b Pipe.Reader.t =
   Pipe.init (fun w ->
-    Pipe.iter r ~f:(fun e ->
+    Pipe.iter_without_pushback r ~f:(fun e ->
       f t e >>| Queue.of_list
-            >>= Pipe.write' w))
+            >>> Pipe.write_without_pushback' w))
