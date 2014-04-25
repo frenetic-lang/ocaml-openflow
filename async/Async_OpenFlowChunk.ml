@@ -47,7 +47,8 @@ module Controller = struct
   let ensure response =
     match response with
       | `Sent _ -> []
-      | `Drop exn -> raise exn
+      | `Drop exn -> Async_OpenFlow_Log.error ~tags:[] "Async_OpenFlowChunk.ensure: exception raised %s" (Exn.to_string exn);
+        raise exn
 
   let handshake v t evt =
     let open Header in
@@ -73,6 +74,7 @@ module Controller = struct
         return [`Connect (s_id, min hdr.version v)]
       | `Message x -> return [`Message x]
       | `Disconnect (s_id, _) when SwitchSet.mem t.handshakes s_id ->
+        Async_OpenFlow_Log.debug ~tags:[] "Async_OpenFlowChunk.handshake: switch disconnected";
         t.handshakes <- SwitchSet.remove t.handshakes s_id;
         return []
       | `Disconnect x -> return [`Disconnect x]

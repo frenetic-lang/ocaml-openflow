@@ -98,7 +98,9 @@ module Controller = struct
                     0x01 version))
         end
       | `Message (c_id, (hdr, bits)) ->
-        return [`Message (c_id, Message.parse hdr bits)]
+        let msg = Message.parse hdr bits in
+        Log.debug ~tags "Async_OpenFlow0x01.openflow0x01: received message %s" (Message.to_string msg);
+        return [`Message (c_id, msg)]
       | `Disconnect e -> return [`Disconnect e]
 
   let features t evt =
@@ -107,6 +109,7 @@ module Controller = struct
         t.shakes <- ClientSet.add t.shakes c_id;
         send t c_id (0l, M.SwitchFeaturesRequest) >>| ChunkController.ensure
       | `Message (c_id, (xid, msg)) when ClientSet.mem t.shakes c_id ->
+        Log.debug ~tags "Async_OpenFlow0x01.features: received message from handshaking sw %s" (Message.to_string (xid, msg));
         begin match msg with
           | M.SwitchFeaturesReply fs ->
             let switch_id = fs.OpenFlow0x01.SwitchFeatures.switch_id in
@@ -121,6 +124,7 @@ module Controller = struct
             return []
         end
       | `Message (c_id, msg) ->
+        Log.debug ~tags "Async_OpenFlow0x01.features: received message %s" (Message.to_string msg);
         return [`Message(c_id, msg)]
       | `Disconnect (c_id, exn) ->
         let m_sw_id = ClientMap.find t.switches c_id in
