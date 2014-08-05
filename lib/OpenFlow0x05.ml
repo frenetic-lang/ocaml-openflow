@@ -227,6 +227,9 @@ module PortDesc = struct
   module Properties = struct
 
     module EthFeatures = struct
+
+      type t = ethFeatures
+
       let features_to_int (features : ethFeatures) : int32 =
         Int32.logor (if features.rate_10mb_hd then (Int32.shift_left 1l 0) else 0l)
         (Int32.logor (if features.rate_10mb_fd then (Int32.shift_left 1l 1) else 0l)
@@ -292,6 +295,8 @@ module PortDesc = struct
     end
 
     module OptFeatures = struct
+
+      type t = opticalFeatures
 
       let marshal (optFeat : opticalFeatures) : int32 =
         Int32.logor (if optFeat.rx_tune then (Int32.shift_left 1l 0) else 0l)

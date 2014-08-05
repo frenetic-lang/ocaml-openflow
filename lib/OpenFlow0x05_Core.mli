@@ -29,6 +29,9 @@ type tableId = int8
 
 type bufferId = int32
 
+type timeout =
+| Permanent
+| ExpiresAfter of int16
 
 type experimenter = { experimenter : int32; exp_typ : int32 }
 

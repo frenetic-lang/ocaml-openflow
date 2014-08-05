@@ -32,6 +32,10 @@ type tableId = int8
 
 type bufferId = int32
 
+type timeout =
+| Permanent
+| ExpiresAfter of int16
+
 type experimenter = { experimenter : int32; exp_typ : int32 }
 
 type ethFeatures = { rate_10mb_hd : bool; rate_10mb_fd : bool; 

@@ -38,6 +38,30 @@ module PortDesc : sig
 
   module Properties : sig
 
+    module EthFeatures : sig
+
+      type t = ethFeatures
+
+      val to_string : t -> string
+
+      val marshal : t -> int32
+
+      val parse : int32 -> t    
+
+    end
+
+    module OptFeatures : sig
+
+      type t = opticalFeatures
+
+      val to_string : t -> string
+
+      val marshal : t -> int32
+
+      val parse : int32 -> t    
+
+   end
+
    type t = portProp
 
    val sizeof : t -> int

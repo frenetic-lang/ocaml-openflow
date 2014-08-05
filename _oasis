@@ -85,6 +85,7 @@ Library quickcheck
       Arbitrary_OpenFlow,
       Arbitrary_OpenFlow0x01,
       Arbitrary_OpenFlow0x04,
+      Arbitrary_OpenFlow0x05,
       Arbitrary_SDN_Types
 
 Executable testtool
