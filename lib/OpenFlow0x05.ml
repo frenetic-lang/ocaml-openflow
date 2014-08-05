@@ -1778,6 +1778,628 @@ module OfpMatch = struct
 
 end 
 
+module PseudoPort = struct
+  type t = pseudoPort
+
+  cenum ofp_port_no {
+    (* Maximum number of physical and logical switch ports. *)
+    OFPP_MAX        = 0xffffff00l;
+
+    (* Reserved OpenFlow Port (fake output "ports"). *)
+    OFPP_IN_PORT    = 0xfffffff8l; (* Send the packet out the input port. This
+                                      reserved port must be explicitly used
+                                      in order to send back out of the input
+                                      port.*)
+    OFPP_TABLE      = 0xfffffff9l; (* Submit the packet to the first flow table
+                                      NB: This destination port can only be
+                                      used in packet-out messages. *)
+    OFPP_NORMAL     = 0xfffffffal; (* Process with normal L2/L3 switching. *)
+    OFPP_FLOOD      = 0xfffffffbl; (* All physical ports in VLAN, except input
+                                      port and those blocked or link down. *)
+    OFPP_ALL        = 0xfffffffcl; (* All physical ports except input port. *)
+    OFPP_CONTROLLER = 0xfffffffdl; (* Send to controller. *)
+    OFPP_LOCAL      = 0xfffffffel; (* Local openflow "port". *)
+    OFPP_ANY        = 0xffffffffl  (* Wildcard port used only for flow mod
+                                     (delete) and flow stats requests. Selects
+                                     all flows regardless of output port
+                                     (including flows with no output port). *)
+  } as uint32_t
+
+  let size_of _ = 4
+
+  let to_string (t : t) = 
+   match t with
+    | PhysicalPort p -> sprintf "PhysicalPort = %lu" p
+    | InPort -> "InPort"
+    | Table -> "Table"
+    | Normal -> "Normal"
+    | Flood -> "Flood"
+    | AllPorts -> "AllPorts"
+    | Controller n -> sprintf "Controller<%d bytes>" n
+    | Local -> "Local"
+    | Any -> "Any"
+
+  let marshal (t : t) : int32 = match t with
+    | PhysicalPort(p) -> p
+    | InPort -> ofp_port_no_to_int OFPP_IN_PORT
+    | Table -> ofp_port_no_to_int OFPP_TABLE
+    | Normal -> ofp_port_no_to_int OFPP_NORMAL
+    | Flood -> ofp_port_no_to_int  OFPP_FLOOD
+    | AllPorts -> ofp_port_no_to_int OFPP_ALL
+    | Controller(_) -> ofp_port_no_to_int  OFPP_CONTROLLER
+    | Local -> ofp_port_no_to_int  OFPP_LOCAL
+    | Any -> ofp_port_no_to_int  OFPP_ANY
+
+  let make ofp_port_no_code len =
+    match int_to_ofp_port_no ofp_port_no_code with
+      | Some OFPP_IN_PORT -> InPort
+      | Some OFPP_TABLE -> Table
+      | Some OFPP_NORMAL -> Normal
+      | Some OFPP_FLOOD -> Flood
+      | Some OFPP_ALL -> AllPorts
+      | Some OFPP_CONTROLLER -> Controller len
+      | Some OFPP_LOCAL -> Local
+      | Some OFPP_ANY -> Any
+      | _ ->
+        if compare_uint32 ofp_port_no_code (ofp_port_no_to_int OFPP_MAX) then
+          PhysicalPort ofp_port_no_code
+        else
+          raise
+            (Unparsable (sprintf "unsupported port number (%lu)" ofp_port_no_code))
+
+end
+
+
+module Action = struct
+
+  cstruct ofp_action_output {
+      uint16_t typ;                   (* OFPAT_OUTPUT. *)
+      uint16_t len;                   (* Length is 16. *)
+      uint32_t port;                  (* Output port. *)
+      uint16_t max_len;               (* Max length to send to controller. *)
+      uint8_t pad0;                   (* Pad to 64 bits. *)
+      uint8_t pad1;                   (* Pad to 64 bits. *)
+      uint8_t pad2;                   (* Pad to 64 bits. *)
+      uint8_t pad3;                   (* Pad to 64 bits. *)
+      uint8_t pad4;                   (* Pad to 64 bits. *)
+      uint8_t pad5                    (* Pad to 64 bits. *)
+  } as big_endian
+
+  (* Action structure for OFPAT_GROUP. *)
+  cstruct ofp_action_group {
+    uint16_t typ;                   (* OFPAT_GROUP. *)
+    uint16_t len;                   (* Length is 8. *)
+    uint32_t group_id               (* Group identifier. *)
+  } as big_endian
+
+  (* Generic action header. Used for POP_VLAN *)
+  cstruct ofp_action_header {
+    uint16_t typ;                   (* POP_VLAN. *)
+    uint16_t len;                   (* Length is 8. *)
+    uint8_t pad;
+    uint8_t pad1;
+    uint8_t pad2;
+    uint8_t pad3
+  } as big_endian
+
+  (* Action structure for POP_MPLS *)
+  cstruct ofp_action_pop_mpls {
+    uint16_t typ;                   (* POP_VLAN. *)
+    uint16_t len;                   (* Length is 8. *)
+    uint16_t ethertype;
+    uint8_t pad0;
+    uint8_t pad1
+  } as big_endian
+
+  (* Action structure for SET_NW_TTL *)
+  cstruct ofp_action_nw_ttl {
+    uint16_t typ;                   (* SET_NW_TTL. *)
+    uint16_t len;                   (* Length is 8. *)
+    uint8_t nw_ttl;
+    uint8_t pad;
+    uint8_t pad1;
+    uint8_t pad2
+  } as big_endian
+
+  (* Action structure for SET_MPLS_TTL *)
+  cstruct ofp_action_mpls_ttl {
+    uint16_t typ;                   (* SET_MPLS_TTL. *)
+    uint16_t len;                   (* Length is 8. *)
+    uint8_t mpls_ttl;
+    uint8_t pad[3];
+  } as big_endian
+
+  (* Action structure for *_PUSH *)
+  cstruct ofp_action_push {
+    uint16_t typ;                   (* OFPAT_PUSH_VLAN/MPLS/PBB *)
+    uint16_t len;                   (* Length is 8. *)
+    uint16_t ethertype;
+    uint8_t pad0;
+    uint8_t pad1
+  } as big_endian
+
+  (* Action structure for OFPAT_SET_FIELD. *)
+  cstruct ofp_action_set_field {
+      uint16_t typ;                  (* OFPAT_SET_FIELD. *)
+      uint16_t len                   (* Length is padded to 64 bits. *)
+
+  } as big_endian
+
+  (* Action structure for SET_QUEUE *)
+  cstruct ofp_action_set_queue {
+     uint16_t typ;                   (* OFPAT_SET_QUEUE*)
+     uint16_t len;                   (* Length is 8. *)
+     uint32_t queue_id
+  } as big_endian
+
+  cstruct ofp_action_experimenter { 
+     uint16_t typ;
+     uint16_t len;
+     uint32_t experimenter
+  } as big_endian
+
+  cenum ofp_action_type {
+    OFPAT_OUTPUT       = 0;  (* Output to switch port. *)
+    OFPAT_COPY_TTL_OUT = 11; (* Copy TTL "outwards" -- from next-to-outermost
+                                to outermost *)
+    OFPAT_COPY_TTL_IN  = 12; (* Copy TTL "inwards" -- from outermost to
+                               next-to-outermost *)
+    OFPAT_SET_MPLS_TTL = 15; (* MPLS TTL *)
+    OFPAT_DEC_MPLS_TTL = 16; (* Decrement MPLS TTL *)
+
+    OFPAT_PUSH_VLAN    = 17; (* Push a new VLAN tag *)
+    OFPAT_POP_VLAN     = 18; (* Pop the outer VLAN tag *)
+    OFPAT_PUSH_MPLS    = 19; (* Push a new MPLS tag *)
+    OFPAT_POP_MPLS     = 20; (* Pop the outer MPLS tag *)
+    OFPAT_SET_QUEUE    = 21; (* Set queue id when outputting to a port *)
+    OFPAT_GROUP        = 22; (* Apply group. *)
+    OFPAT_SET_NW_TTL   = 23; (* IP TTL. *)
+    OFPAT_DEC_NW_TTL   = 24; (* Decrement IP TTL. *)
+    OFPAT_SET_FIELD    = 25; (* Set a header field using OXM TLV format. *)
+    OFPAT_PUSH_PBB     = 26; (* Push a new PBB service tag (I-TAG) *)
+    OFPAT_POP_PBB      = 27; (* Pop the outer PBB service tag (I-TAG) *)
+    OFPAT_EXPERIMENTER = 0xffff
+  } as uint16_t
+
+  type sequence = OpenFlow0x05_Core.actionSequence
+
+  type t = action
+
+  let sizeof (act : action) : int = match act with
+    | Output _ -> sizeof_ofp_action_output
+    | Group _ -> sizeof_ofp_action_group
+    | PopVlan -> sizeof_ofp_action_header
+    | PushVlan -> sizeof_ofp_action_push
+    | PopMpls -> sizeof_ofp_action_pop_mpls
+    | PushMpls -> sizeof_ofp_action_push
+    | SetField oxm -> pad_to_64bits (sizeof_ofp_action_set_field + Oxm.sizeof oxm)
+    | CopyTtlOut -> sizeof_ofp_action_header
+    | CopyTtlIn -> sizeof_ofp_action_header
+    | SetNwTtl _ -> sizeof_ofp_action_nw_ttl
+    | DecNwTtl -> sizeof_ofp_action_header
+    | PushPbb -> sizeof_ofp_action_push
+    | PopPbb -> sizeof_ofp_action_header
+    | SetMplsTtl _ -> sizeof_ofp_action_push
+    | DecMplsTtl -> sizeof_ofp_action_header
+    | SetQueue _ -> sizeof_ofp_action_set_queue
+    | Experimenter _ -> sizeof_ofp_action_experimenter
+
+  let to_type t : actionTyp = 
+    match (int_to_ofp_action_type t) with
+      | Some OFPAT_OUTPUT -> Output
+      | Some OFPAT_COPY_TTL_OUT -> CopyTTLOut
+      | Some OFPAT_COPY_TTL_IN -> CopyTTLIn
+      | Some OFPAT_SET_MPLS_TTL -> SetMPLSTTL
+      | Some OFPAT_DEC_MPLS_TTL -> DecMPLSTTL
+      | Some OFPAT_PUSH_VLAN -> PushVLAN
+      | Some OFPAT_POP_VLAN -> PopVLAN
+      | Some OFPAT_PUSH_MPLS -> PushMPLS
+      | Some OFPAT_POP_MPLS -> PopMPLS
+      | Some OFPAT_SET_QUEUE -> SetQueue
+      | Some OFPAT_GROUP -> Group
+      | Some OFPAT_SET_NW_TTL -> SetNWTTL
+      | Some OFPAT_DEC_NW_TTL -> DecNWTTL
+      | Some OFPAT_SET_FIELD -> SetField
+      | Some OFPAT_PUSH_PBB -> PushPBB
+      | Some OFPAT_POP_PBB -> PopPBB
+      | Some OFPAT_EXPERIMENTER -> Experimenter
+      | None -> failwith "None type"
+
+  let marshal (buf : Cstruct.t) (act : action) : int =
+    let size = sizeof act in
+    match act with
+      | Output port ->
+        set_ofp_action_output_typ buf 0; (* OFPAT_OUTPUT *)
+        set_ofp_action_output_len buf size;
+        set_ofp_action_output_port buf (PseudoPort.marshal port);
+        set_ofp_action_output_max_len buf
+          (match port with
+            | Controller max_len -> max_len
+            | _ -> 0);
+        set_ofp_action_output_pad0 buf 0;
+        set_ofp_action_output_pad1 buf 0;
+        set_ofp_action_output_pad2 buf 0;
+        set_ofp_action_output_pad3 buf 0;
+        set_ofp_action_output_pad4 buf 0;
+        set_ofp_action_output_pad5 buf 0;
+        size
+      | PushVlan ->
+	set_ofp_action_push_typ buf 17; (* PUSH_VLAN *)
+	set_ofp_action_push_len buf size;
+	set_ofp_action_push_ethertype buf 0x8100;
+	size
+      | PopVlan ->
+	set_ofp_action_header_typ buf 18; (* POP_VLAN *)
+	set_ofp_action_header_len buf size;
+        set_ofp_action_header_pad buf 0;
+        set_ofp_action_header_pad1 buf 0;
+        set_ofp_action_header_pad2 buf 0;
+        set_ofp_action_header_pad3 buf 0;
+	size
+      | PushMpls ->
+	set_ofp_action_push_typ buf 19; (* PUSH_MPLS *)
+	set_ofp_action_push_len buf size;
+	set_ofp_action_push_ethertype buf 0x8847;
+	size
+      | PopMpls ->
+	set_ofp_action_pop_mpls_typ buf 20; (* POP_MPLS *)
+	set_ofp_action_pop_mpls_len buf size;
+	set_ofp_action_pop_mpls_ethertype buf 0x800;
+	size
+      | Group gid ->
+        set_ofp_action_group_typ buf 22; (* OFPAT_GROUP *)
+        set_ofp_action_group_len buf size;
+        set_ofp_action_group_group_id buf gid;
+        size
+      | SetField oxm ->
+        set_ofp_action_set_field_typ buf 25; (* OFPAT_SET_FIELD *)
+        set_ofp_action_set_field_len buf size;
+        let buf = Cstruct.shift buf sizeof_ofp_action_set_field in
+        let oxm_size = Oxm.marshal buf oxm in
+        let pad = size - (sizeof_ofp_action_set_field + oxm_size) in
+        (* printf "pad = %d\n" pad; *)
+        if pad > 0 then
+          let buf = Cstruct.shift buf oxm_size in
+          let _ = pad_with_zeros buf pad in
+          size
+        else size
+      | CopyTtlOut ->
+        set_ofp_action_header_typ buf 11; (* OFPAT_COPY_TTL_OUT *)
+        set_ofp_action_header_len buf size;
+        set_ofp_action_header_pad buf 0;
+        set_ofp_action_header_pad1 buf 0;
+        set_ofp_action_header_pad2 buf 0;
+        set_ofp_action_header_pad3 buf 0;
+        size
+      | CopyTtlIn ->
+        set_ofp_action_header_typ buf 12; (* OFPAT_COPY_TTL_IN *)
+        set_ofp_action_header_len buf size;
+        set_ofp_action_header_pad buf 0;
+        set_ofp_action_header_pad1 buf 0;
+        set_ofp_action_header_pad2 buf 0;
+        set_ofp_action_header_pad3 buf 0;
+        size
+      | SetNwTtl newTtl ->
+        set_ofp_action_nw_ttl_typ buf 23; (* OFPAT_SET_NW_TTL *)
+        set_ofp_action_nw_ttl_len buf size;
+        set_ofp_action_nw_ttl_nw_ttl buf newTtl;
+        set_ofp_action_nw_ttl_pad buf 0;
+        set_ofp_action_nw_ttl_pad1 buf 0;
+        set_ofp_action_nw_ttl_pad2 buf 0;
+        size
+      | DecNwTtl ->
+        set_ofp_action_header_typ buf 24; (* OFPAT_DEC_NW_TTL *)
+        set_ofp_action_header_len buf size;
+        set_ofp_action_header_pad buf 0;
+        set_ofp_action_header_pad1 buf 0;
+        set_ofp_action_header_pad2 buf 0;
+        set_ofp_action_header_pad3 buf 0;
+        size
+      | PushPbb ->
+        set_ofp_action_push_typ buf 26; (* OFPAT_PUSH_PBB *)
+        set_ofp_action_push_len buf size;
+        set_ofp_action_push_ethertype buf 0x88a8; (* Not sure, maybe need to redefine*)
+        size
+      | PopPbb ->
+        set_ofp_action_header_typ buf 27; (* OFPAT_POP_PBB *)
+        set_ofp_action_header_len buf size;
+        set_ofp_action_header_pad buf 0;
+        set_ofp_action_header_pad1 buf 0;
+        set_ofp_action_header_pad2 buf 0;
+        set_ofp_action_header_pad3 buf 0;
+        size
+      | SetMplsTtl newTtl ->
+        set_ofp_action_mpls_ttl_typ buf 15; (* OFPAT_SET_MPLS_TTL *)
+        set_ofp_action_mpls_ttl_len buf size;
+        set_ofp_action_mpls_ttl_mpls_ttl buf newTtl;
+        size
+      | DecMplsTtl ->
+        set_ofp_action_header_typ buf 16; (* OFPAT_DEC_MPLS_TTL *)
+        set_ofp_action_header_len buf size;
+        set_ofp_action_header_pad buf 0;
+        set_ofp_action_header_pad1 buf 0;
+        set_ofp_action_header_pad2 buf 0;
+        set_ofp_action_header_pad3 buf 0;
+        size
+      | SetQueue queueId ->
+        set_ofp_action_set_queue_typ buf 21; (* OFPAT_SET_QUEUE *)
+        set_ofp_action_set_queue_len buf size;
+        set_ofp_action_set_queue_queue_id buf queueId;
+        size
+      | Experimenter exp ->
+        set_ofp_action_experimenter_typ buf 0xffff; (* OFPAT_EXPERIMENTER *)
+        set_ofp_action_experimenter_len buf size;
+        set_ofp_action_experimenter_experimenter buf exp;
+        size
+
+  let parse (bits : Cstruct.t) : action =
+    match to_type (get_ofp_action_header_typ bits) with
+     | Output -> Output (PseudoPort.make (get_ofp_action_output_port bits) 
+     (get_ofp_action_output_max_len bits))
+     | Group -> Group (get_ofp_action_group_group_id bits)
+     | PushVLAN -> PushVlan
+     | PopVLAN -> PopVlan
+     | PushMPLS -> PushMpls
+     | PopMPLS -> PopMpls
+     | SetField -> let field,_ = Oxm.parse (
+     Cstruct.shift bits 4) in (*TEST BECAUSE OF WRONG OFFSET??*)
+     SetField (field)
+     | CopyTTLOut -> CopyTtlOut
+     | CopyTTLIn -> CopyTtlIn
+     | SetMPLSTTL -> SetMplsTtl (get_ofp_action_mpls_ttl_mpls_ttl bits)
+     | DecMPLSTTL -> DecMplsTtl
+     | SetQueue -> SetQueue (get_ofp_action_set_queue_queue_id bits)
+     | SetNWTTL -> SetNwTtl (get_ofp_action_nw_ttl_nw_ttl bits)
+     | DecNWTTL -> DecNwTtl
+     | PushPBB -> PushPbb
+     | PopPBB  -> PopPbb
+     | Experimenter -> Experimenter (get_ofp_action_experimenter_experimenter bits)
+
+  let rec parse_fields (bits : Cstruct.t) : sequence * Cstruct.t =
+    if Cstruct.len bits < sizeof_ofp_action_header then ([], bits)
+    else let field = parse bits in
+    let bits2 = Cstruct.shift bits (sizeof field) in
+    let fields, bits3 = parse_fields bits2 in
+    (List.append [field] fields, bits3)
+
+  let parse_sequence (bits : Cstruct.t) : sequence =
+    let fields, _ = parse_fields bits in
+    fields
+
+  let to_string seq =
+      match seq with
+        | Output o -> Format.sprintf "PseudoPort: %s" (PseudoPort.to_string o)
+        | Group g -> Format.sprintf "Group ID: %lu" g
+        | PopVlan -> "Pop Vlan"
+        | PushVlan -> "Push Vlan"
+        | PopMpls -> "Pop Mpls"
+        | PushMpls -> "Push Mpls"
+        | SetField oxm -> Format.sprintf "oxm: %s" (Oxm.to_string oxm)
+        | CopyTtlOut -> "Copy TTL out"
+        | CopyTtlIn -> "Copy TTL In"
+        | SetNwTtl t -> Format.sprintf "Set NW TTL %u" t
+        | DecNwTtl -> "Dec NW TTL"
+        | PushPbb -> "Push PBB"
+        | PopPbb -> "POP PBB"
+        | SetMplsTtl t -> Format.sprintf "Set MPLS TTL: %u" t
+        | DecMplsTtl -> "Dec MPLS TTL"
+        | SetQueue q -> Format.sprintf "Set Queue: %lu" q
+        | Experimenter e -> Format.sprintf "Experimenter: %lu" e
+end
+
+cstruct ofp_instruction {
+    uint16_t typ;                 (* Instruction type *)
+    uint16_t len                  (* Length of this struct in bytes. *)
+} as big_endian
+
+module Instruction = struct
+
+  cenum ofp_instruction_type {
+      OFPIT_GOTO_TABLE        = 1;
+      OFPIT_WRITE_METADATA    = 2;
+      OFPIT_WRITE_ACTIONS     = 3;
+      OFPIT_APPLY_ACTIONS     = 4;
+      OFPIT_CLEAR_ACTIONS     = 5;
+      OFPIT_METER             = 6;
+      OFPIT_EXPERIMENTER      = 0xFFFF;
+  } as uint16_t
+
+  (* Instruction structure for OFPIT_GOTO_TABLE *)
+  cstruct ofp_instruction_goto_table {
+      uint16_t typ;                 (* OFPIT_GOTO_TABLE *)
+      uint16_t len;                 (* Length of this struct in bytes. *)
+      uint8_t table_id;             (* Set next table in the lookup pipeline *)
+      uint8_t pad0;                 (* Pad to 64 bits. *)
+      uint8_t pad1;
+      uint8_t pad2
+  } as big_endian
+
+  (* Instruction structure for OFPIT_WRITE_METADATA *)
+  cstruct ofp_instruction_write_metadata {
+      uint16_t typ;                 (* OFPIT_WRITE_METADATA *)
+      uint16_t len;                 (* Length of this struct in bytes. *)
+      uint8_t pad0;                 (* Align to 64-bits *)
+      uint8_t pad1;
+      uint8_t pad2;
+      uint8_t pad3;
+      uint64_t metadata;            (* Metadata value to write *)
+      uint64_t metadata_mask        (* Metadata write bitmask *)
+  } as big_endian
+
+  (* Instruction structure for OFPIT_WRITE/APPLY/CLEAR_ACTIONS *)
+  cstruct ofp_instruction_actions {
+      uint16_t typ;               (* One of OFPIT_*_ACTIONS *)
+      uint16_t len;               (* Length of this struct in bytes. *)
+      uint8_t pad0;               (* Align to 64-bits *)
+      uint8_t pad1;
+      uint8_t pad2;
+      uint8_t pad3
+  } as big_endian
+
+  (* Instruction structure for OFPIT_METER *)
+  cstruct ofp_instruction_meter {
+      uint16_t typ;                 (* OFPIT_METER *)
+      uint16_t len;                 (* Length is 8. *)
+      uint32_t meter_id             (* Meter instance. *)
+  } as big_endian
+
+  (* Instruction structure for experimental instructions *)
+  cstruct ofp_instruction_experimenter {
+      uint16_t typ;               (* OFPIT_EXPERIMENTER *)
+      uint16_t len;               (* Length of this struct in bytes *)
+      uint32_t experimenter       (* Experimenter ID which takes the same form
+                                     as in struct ofp_experimenter_header. *)
+      (* Experimenter-defined arbitrary additional data. *)
+  } as big_endian
+
+  type t = instruction
+
+  let to_string ins =
+    match ins with
+      | GotoTable t -> Format.sprintf "Go to Table = %u" t
+      | ApplyActions actions -> Format.sprintf "Apply Actions = [ %s ]"
+                                (String.concat "; " (map Action.to_string actions))
+      | WriteActions actions -> Format.sprintf "Write Actions = [ %s ]" 
+                                (String.concat "; " (map Action.to_string actions))
+      | WriteMetadata meta -> 
+        (match meta.m_mask with
+          | None -> Format.sprintf "WriteMeta = %LX" meta.m_value
+          | Some m -> Format.sprintf "WriteMeta = %LX/%LX" meta.m_value m)
+      | Clear -> "Clear"
+      | Meter m -> Format.sprintf "Meter = %lu" m
+      | Experimenter e -> Format.sprintf "Experimenter = %lu" e
+
+  let sizeof (ins : instruction) : int =
+    match ins with
+      | GotoTable _ ->
+        sizeof_ofp_instruction_goto_table
+      | ApplyActions actions ->
+        sizeof_ofp_instruction_actions + sum (map Action.sizeof actions)
+      | WriteActions actions ->
+        sizeof_ofp_instruction_actions + sum (map Action.sizeof actions)
+      | WriteMetadata _ -> sizeof_ofp_instruction_write_metadata
+      | Clear -> sizeof_ofp_instruction_actions
+      | Meter _ -> sizeof_ofp_instruction_meter
+      | Experimenter _ -> sizeof_ofp_instruction_experimenter
+
+  let marshal (buf : Cstruct.t) (ins : instruction) : int =
+    let size = sizeof ins in
+      match ins with
+        | GotoTable table_id ->
+          set_ofp_instruction_goto_table_typ buf 1; (* OFPIT_GOTO_TABLE *)
+          set_ofp_instruction_goto_table_len buf size;
+          set_ofp_instruction_goto_table_table_id buf table_id;
+          set_ofp_instruction_goto_table_pad0 buf 0;
+          set_ofp_instruction_goto_table_pad1 buf 0;
+          set_ofp_instruction_goto_table_pad2 buf 0;
+          size
+        | WriteActions actions ->
+          set_ofp_instruction_actions_typ buf 3; (* OFPIT_WRITE_ACTIONS *)
+          set_ofp_instruction_actions_len buf size;
+          set_ofp_instruction_actions_pad0 buf 0;
+          set_ofp_instruction_actions_pad1 buf 0;
+          set_ofp_instruction_actions_pad2 buf 0;
+          set_ofp_instruction_actions_pad3 buf 0;
+          sizeof_ofp_instruction_actions + (
+          marshal_fields 
+          (Cstruct.shift buf sizeof_ofp_instruction_actions)
+          actions
+          Action.marshal)
+        | ApplyActions actions ->
+          set_ofp_instruction_actions_typ buf 4; (* OFPIT_APPLY_ACTIONS *)
+          set_ofp_instruction_actions_len buf size;
+          set_ofp_instruction_actions_pad0 buf 0;
+          set_ofp_instruction_actions_pad1 buf 0;
+          set_ofp_instruction_actions_pad2 buf 0;
+          set_ofp_instruction_actions_pad3 buf 0;
+          sizeof_ofp_instruction_actions + (marshal_fields (Cstruct.shift buf sizeof_ofp_instruction_actions) actions Action.marshal)
+        | WriteMetadata metadata ->
+          set_ofp_instruction_write_metadata_typ buf 2; (* OFPIT_WRITE_METADATA *)
+          set_ofp_instruction_write_metadata_len buf size;
+          set_ofp_instruction_write_metadata_pad0 buf 0;
+          set_ofp_instruction_write_metadata_pad1 buf 0;
+          set_ofp_instruction_write_metadata_pad2 buf 0;
+          set_ofp_instruction_write_metadata_pad3 buf 0;
+          set_ofp_instruction_write_metadata_metadata buf metadata.m_value;
+          set_ofp_instruction_write_metadata_metadata_mask buf (
+            match metadata.m_mask with
+              | None -> 0L
+              | Some mask -> mask);
+          size
+        | Clear -> 
+          set_ofp_instruction_actions_typ buf 5; (* OFPIT_CLEAR_ACTIONS *)
+          set_ofp_instruction_actions_len buf size;
+          set_ofp_instruction_actions_pad0 buf 0;
+          set_ofp_instruction_actions_pad1 buf 0;
+          set_ofp_instruction_actions_pad2 buf 0;
+          set_ofp_instruction_actions_pad3 buf 0;
+          size
+        | Meter meterId->
+          set_ofp_instruction_meter_typ buf 6; (* OFPIT_METER *)
+          set_ofp_instruction_meter_len buf size;
+          set_ofp_instruction_meter_meter_id buf meterId;
+          size
+        | Experimenter experimenterId->
+          set_ofp_instruction_experimenter_typ buf 0xffff; (* OFPIT_EXPERIMENTER *)
+          set_ofp_instruction_experimenter_len buf size;
+          set_ofp_instruction_experimenter_experimenter buf experimenterId;
+          size
+
+
+  let parse (bits : Cstruct.t) : instruction =
+    let typ = get_ofp_instruction_typ bits in
+    let len = get_ofp_instruction_len bits in
+      match (int_to_ofp_instruction_type typ) with
+        | Some OFPIT_GOTO_TABLE -> GotoTable (
+        get_ofp_instruction_goto_table_table_id bits)
+        | Some OFPIT_WRITE_METADATA -> 
+            let value = get_ofp_instruction_write_metadata_metadata bits in 
+            let mask = get_ofp_instruction_write_metadata_metadata_mask bits in
+            if mask <> 0L then
+              WriteMetadata ({m_value = value; m_mask = Some mask})
+            else
+              WriteMetadata ({m_value = value; m_mask = None})
+        | Some OFPIT_WRITE_ACTIONS -> WriteActions (
+        Action.parse_sequence (Cstruct.sub bits sizeof_ofp_instruction_actions (len-sizeof_ofp_instruction_actions)))
+        | Some OFPIT_APPLY_ACTIONS -> ApplyActions (
+        Action.parse_sequence (Cstruct.sub bits sizeof_ofp_instruction_actions (len-sizeof_ofp_instruction_actions))) 
+        | Some OFPIT_CLEAR_ACTIONS -> Clear
+        | Some OFPIT_METER -> Meter (get_ofp_instruction_meter_meter_id bits)
+        | Some OFPIT_EXPERIMENTER -> Experimenter (
+        get_ofp_instruction_experimenter_experimenter bits)
+        | _ -> raise (Unparsable (sprintf "Unkown instruction message"))
+        
+end
+
+module Instructions = struct
+
+  type t = instruction list
+
+  let sizeof (inss : instruction list) : int =
+    sum (map Instruction.sizeof inss)
+
+  let marshal (buf : Cstruct.t) (inss : instruction list) : int =
+    if sizeof inss <> 0 then
+      marshal_fields buf inss Instruction.marshal
+    else 0
+
+  let rec parse_field (bits : Cstruct.t) : instruction list*Cstruct.t =
+    if Cstruct.len bits < sizeof_ofp_instruction then [],bits
+    else let field = Instruction.parse bits in
+    let bits2 = Cstruct.shift bits (Instruction.sizeof field) in
+    let fields, bits3 = parse_field bits2 in
+    (List.append [field] fields, bits3)
+
+  let to_string ins =
+    "[ " ^ (String.concat "; " (map Instruction.to_string ins)) ^ " ]"
+    
+
+  let parse (bits : Cstruct.t) : instruction list =
+    let field,_ = parse_field bits in
+    field
+
+end
+
 module Message = struct
 
   type t =
@@ -1834,7 +2456,7 @@ module Message = struct
 
   (* let marshal (buf : Cstruct.t) (msg : message) : int = *)
   (*   let buf2 = (Cstruct.shift buf Header.size) in *)
-  (*   set_ofp_header_version buf 0x04; *)
+  (*   set_ofp_header_version buf 0x05; *)
   (*   set_ofp_header_typ buf (msg_code_to_int (msg_code_of_message msg)); *)
   (*   set_ofp_header_length buf (sizeof msg); *)
 

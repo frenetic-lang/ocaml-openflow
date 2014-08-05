@@ -98,6 +98,66 @@ module OfpMatch : sig
 
 end
 
+module PseudoPort : sig
+
+  type t = pseudoPort
+
+  val size_of : t -> int
+
+  val to_string : t -> string
+
+  val marshal : t -> int32
+
+  val make : int32 -> int16 -> t
+
+end
+
+module Action : sig
+
+  type sequence = OpenFlow0x05_Core.actionSequence
+
+  type t = action
+
+  val sizeof : t -> int
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+  val parse_sequence : Cstruct.t -> sequence
+
+  val to_string :  t -> string
+    
+end
+
+module Instruction : sig
+
+  type t = instruction
+
+  val to_string : t -> string
+
+  val sizeof : t -> int
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t ->  t
+
+end
+
+module Instructions : sig
+
+  type t = instruction list
+
+  val sizeof : t -> int
+
+  val marshal : Cstruct.t -> t -> int
+
+  val to_string : t -> string
+
+  val parse : Cstruct.t -> t
+
+end
+
 module Message : sig
 
   type t =
