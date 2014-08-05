@@ -62,6 +62,42 @@ module PortDesc : sig
 
 end
 
+module Oxm : sig
+
+  type t = oxm
+
+  val field_name : t -> string
+
+  val sizeof : t -> int 
+
+  val sizeof_headers : t list -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val marshal_header : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t * Cstruct.t
+
+  val parse_header : Cstruct.t -> t * Cstruct.t
+
+end
+
+module OfpMatch : sig
+
+  type t = oxmMatch
+
+  val sizeof : t -> int
+
+  val to_string : t -> string 
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t * Cstruct.t
+
+end
+
 module Message : sig
 
   type t =

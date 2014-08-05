@@ -71,3 +71,49 @@ type portDesc = { port_no : portId;
                   state : portState;
                   properties : portProp list
                   }
+
+type oxm =
+| OxmInPort of portId
+| OxmInPhyPort of portId
+| OxmMetadata of int64 mask
+| OxmEthType of int16
+| OxmEthDst of int48 mask
+| OxmEthSrc of int48 mask
+| OxmVlanVId of int12 mask
+| OxmVlanPcp of int8
+| OxmIPProto of int8
+| OxmIPDscp of int8
+| OxmIPEcn of int8
+| OxmIP4Src of int32 mask
+| OxmIP4Dst of int32 mask
+| OxmTCPSrc of int16
+| OxmTCPDst of int16
+| OxmARPOp of int16
+| OxmARPSpa of int32 mask
+| OxmARPTpa of int32 mask
+| OxmARPSha of int48 mask
+| OxmARPTha of int48 mask
+| OxmICMPType of int8
+| OxmICMPCode of int8
+| OxmMPLSLabel of int32
+| OxmMPLSTc of int8
+| OxmTunnelId of int64 mask
+| OxmUDPSrc of int16
+| OxmUDPDst of int16
+| OxmSCTPSrc of int16
+| OxmSCTPDst of int16
+| OxmIPv6Src of int128 mask
+| OxmIPv6Dst of int128 mask
+| OxmIPv6FLabel of int32 mask
+| OxmICMPv6Type of int8
+| OxmICMPv6Code of int8
+| OxmIPv6NDTarget of int128 mask
+| OxmIPv6NDSll of int48
+| OxmIPv6NDTll of int48
+| OxmMPLSBos of int8
+| OxmPBBIsid of int24 mask
+| OxmIPv6ExtHdr of int16 mask
+
+type oxmMatch = oxm list
+
+val match_all : oxmMatch
