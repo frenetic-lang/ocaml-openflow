@@ -72,6 +72,9 @@ type portDesc = { port_no : portId;
                   properties : portProp list
                   }
 
+type oxmIPv6ExtHdr = { noext : bool; esp : bool; auth : bool; dest : bool; frac : bool;
+                       router : bool; hop : bool; unrep : bool; unseq : bool }
+
 type oxm =
 | OxmInPort of portId
 | OxmInPhyPort of portId
@@ -110,9 +113,10 @@ type oxm =
 | OxmIPv6NDTarget of int128 mask
 | OxmIPv6NDSll of int48
 | OxmIPv6NDTll of int48
-| OxmMPLSBos of int8
+| OxmMPLSBos of bool
 | OxmPBBIsid of int24 mask
-| OxmIPv6ExtHdr of int16 mask
+| OxmIPv6ExtHdr of oxmIPv6ExtHdr mask
+| OxmPBBUCA of bool
 
 type oxmMatch = oxm list
 
