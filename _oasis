@@ -43,6 +43,8 @@ Library openflow
     OpenFlow0x01_Stats,
     OpenFlow0x04,
     OpenFlow0x04_Core,
+    OpenFlow0x05,
+    OpenFlow0x05_Core,
     SDN_OpenFlow0x01,
     SDN_Types    
 
