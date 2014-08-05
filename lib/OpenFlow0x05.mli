@@ -158,10 +158,45 @@ module Instructions : sig
 
 end
 
+module Experimenter : sig
+
+  type t = experimenter
+
+  val sizeof : t -> int
+
+  val marshal : Cstruct.t -> t -> int
+
+  val to_string : t -> string
+
+  val parse : Cstruct.t -> t
+
+end
+
+module SwitchFeatures : sig
+
+  type t = { datapath_id : int64; num_buffers : int32;
+             num_tables : int8; aux_id : int8;
+             supported_capabilities : switchCapabilities }
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+end
+
 module Message : sig
 
   type t =
     | Hello
+    | EchoRequest of bytes
+    | EchoReply of bytes
+    | Experimenter of experimenter
+    | FeaturesRequest
+    | FeaturesReply of SwitchFeatures.t
 
   val sizeof : t -> int
 

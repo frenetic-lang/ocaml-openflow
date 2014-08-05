@@ -183,3 +183,8 @@ type instruction =
 | Clear
 | Meter of int32
 | Experimenter of int32
+
+type switchCapabilities = { flow_stats : bool; table_stats : bool;
+                      port_stats : bool; group_stats : bool; ip_reasm : 
+                      bool; queue_stats : bool; port_blocked : bool }
+                      

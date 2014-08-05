@@ -2400,10 +2400,137 @@ module Instructions = struct
 
 end
 
+module Experimenter = struct
+
+  cstruct ofp_experimenter_structure {
+    uint32_t experimenter;
+    uint32_t exp_typ
+  } as big_endian
+
+  type t = experimenter
+
+  let sizeof (_ : experimenter) : int = 
+    sizeof_ofp_experimenter_structure
+
+  let to_string (exp : experimenter) : string =
+    Format.sprintf "{ experimenter = %lu; exp_typ = %lu }" 
+    exp.experimenter
+    exp.exp_typ
+
+  let marshal (buf : Cstruct.t) (exp : t) : int =
+    set_ofp_experimenter_structure_experimenter buf exp.experimenter;
+    set_ofp_experimenter_structure_exp_typ buf exp.exp_typ;
+    sizeof_ofp_experimenter_structure
+
+  let parse (bits : Cstruct.t) : t = 
+    { experimenter = get_ofp_experimenter_structure_experimenter bits
+    ; exp_typ = get_ofp_experimenter_structure_exp_typ bits }
+
+end
+
+(* Controller to switch message *)
+
+module SwitchFeatures = struct
+
+  module Capabilities = struct
+
+    type t = switchCapabilities
+
+    let to_int32 (capa : t) : int32 = 
+      Int32.logor (if capa.flow_stats then (Int32.shift_left 1l 0) else 0l)
+       (Int32.logor (if capa.table_stats then (Int32.shift_left 1l 1) else 0l)
+        (Int32.logor (if capa.port_stats then (Int32.shift_left 1l 2) else 0l)
+         (Int32.logor (if capa.group_stats then (Int32.shift_left 1l 3) else 0l)
+          (Int32.logor (if capa.ip_reasm then (Int32.shift_left 1l 5) else 0l)
+           (Int32.logor (if capa.queue_stats then (Int32.shift_left 1l 6) else 0l)
+             (if capa.port_blocked then (Int32.shift_left 1l 7) else 0l))))))
+
+    let to_string (cap : t) : string =
+        Format.sprintf "{ port_blocked = %B; queue_stats = %B; ip_reasm = %B; group_stats = %B; \
+                          port_stats = %B; table_stats = %B; flow_stats = %B }"
+        cap.port_blocked
+        cap.queue_stats
+        cap.ip_reasm
+        cap.group_stats
+        cap.port_stats
+        cap.table_stats
+        cap.flow_stats
+
+    let parse (bits : int32) : t =
+      { port_blocked = Bits.test_bit 7 bits;
+        queue_stats = Bits.test_bit 6 bits;
+        ip_reasm = Bits.test_bit 5 bits;
+        group_stats = Bits.test_bit 3 bits;
+        port_stats = Bits.test_bit 2 bits;
+        table_stats = Bits.test_bit 1 bits;
+        flow_stats = Bits.test_bit 0 bits;
+      }
+
+  end
+
+  cstruct ofp_switch_features {
+    uint64_t datapath_id;
+    uint32_t n_buffers;
+    uint8_t n_tables;
+    uint8_t auxiliary_id;
+    uint8_t pad0;
+    uint8_t pad1;
+    uint8_t pad2;
+    uint32_t capabilities; 
+    uint32_t reserved
+  } as big_endian 
+
+  type t = { datapath_id : int64; num_buffers : int32;
+             num_tables : int8; aux_id : int8;
+             supported_capabilities : switchCapabilities }
+
+  let sizeof (sw : t) : int =
+      sizeof_ofp_switch_features
+
+  let to_string (sw : t) : string =
+      Format.sprintf "{ datapath_id = %Lu; num_buffers = %lu; num_Tables = %u; aux_id = %u; capabilities = %s }"
+      sw.datapath_id
+      sw.num_buffers
+      sw.num_tables
+      sw.aux_id
+      (Capabilities.to_string sw.supported_capabilities)
+
+  let marshal (buf : Cstruct.t) (features : t) : int =
+    set_ofp_switch_features_datapath_id buf features.datapath_id;
+    set_ofp_switch_features_n_buffers buf features.num_buffers;
+    set_ofp_switch_features_n_tables buf features.num_tables;
+    set_ofp_switch_features_auxiliary_id buf features.aux_id;
+    set_ofp_switch_features_pad0 buf 0;
+    set_ofp_switch_features_pad1 buf 0;
+    set_ofp_switch_features_pad2 buf 0;
+    set_ofp_switch_features_capabilities buf (Capabilities.to_int32 features.supported_capabilities); 
+    sizeof_ofp_switch_features
+
+  let parse (bits : Cstruct.t) : t =
+    let datapath_id = get_ofp_switch_features_datapath_id bits in 
+    let num_buffers = get_ofp_switch_features_n_buffers bits in
+    let num_tables = get_ofp_switch_features_n_tables bits in
+    let aux_id = get_ofp_switch_features_auxiliary_id bits in
+    let supported_capabilities = Capabilities.parse
+      (get_ofp_switch_features_capabilities bits) in
+    { datapath_id; 
+      num_buffers; 
+      num_tables;
+      aux_id; 
+      supported_capabilities }
+
+end
+
+
 module Message = struct
 
   type t =
     | Hello
+    | EchoRequest of bytes
+    | EchoReply of bytes
+    | Experimenter of experimenter
+    | FeaturesRequest
+    | FeaturesReply of SwitchFeatures.t
 
   let string_of_msg_code (msg : msg_code) : string = match msg with
     | HELLO -> "HELLO"
@@ -2445,14 +2572,27 @@ module Message = struct
 
   let msg_code_of_message (msg : t) : msg_code = match msg with
     | Hello -> HELLO
+    | EchoRequest _ -> ECHO_REQ
+    | EchoReply _ -> ECHO_RESP
+    | Experimenter _ -> EXPERIMENTER
+    | FeaturesRequest -> FEATURES_REQ
+    | FeaturesReply _ -> FEATURES_RESP
 
   let sizeof (msg : t) : int = match msg with
     | Hello -> Header.size
-
+    | EchoRequest bytes -> Header.size + (String.length (Cstruct.to_string bytes))
+    | EchoReply bytes -> Header.size + (String.length (Cstruct.to_string bytes))
+    | Experimenter exp -> Header.size + (Experimenter.sizeof exp)
+    | FeaturesRequest -> Header.size
+    | FeaturesReply f -> Header.size + (SwitchFeatures.sizeof f)
 
   let to_string (msg : t) : string = match msg with
     | Hello -> "Hello"
-
+    | EchoRequest _ -> "EchoRequest"
+    | EchoReply _ -> "EchoReply"
+    | Experimenter _ -> "Experimenter"
+    | FeaturesRequest -> "FeaturesRequest"
+    | FeaturesReply _ -> "FeaturesReply"
 
   (* let marshal (buf : Cstruct.t) (msg : message) : int = *)
   (*   let buf2 = (Cstruct.shift buf Header.size) in *)
@@ -2464,6 +2604,16 @@ module Message = struct
     match msg with
       | Hello ->
         Header.size
+      | EchoRequest bytes
+      | EchoReply bytes ->
+        Cstruct.blit_from_string (Cstruct.to_string bytes) 0 out 0 (String.length (Cstruct.to_string bytes));
+        Header.size + String.length (Cstruct.to_string bytes)
+      | Experimenter exp ->
+        Header.size + Experimenter.marshal out exp
+      | FeaturesRequest ->
+        Header.size
+      | FeaturesReply fr ->
+        Header.size + SwitchFeatures.marshal out fr
       
   let header_of xid msg =
     let open Header in
@@ -2489,6 +2639,10 @@ module Message = struct
       | None -> raise (Unparsable "unknown message code") in
     let msg = match typ with
       | HELLO -> Hello
+      | ECHO_REQ -> EchoRequest body_bits
+      | ECHO_RESP -> EchoReply body_bits
+      | EXPERIMENTER -> Experimenter (Experimenter.parse body_bits)
+      | FEATURES_RESP -> FeaturesReply (SwitchFeatures.parse body_bits)
       | code -> raise (Unparsable (Printf.sprintf "unexpected message type %s" (string_of_msg_code typ))) in
     (hdr.Header.xid, msg)
 end
