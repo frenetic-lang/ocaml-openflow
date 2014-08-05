@@ -187,4 +187,11 @@ type instruction =
 type switchCapabilities = { flow_stats : bool; table_stats : bool;
                       port_stats : bool; group_stats : bool; ip_reasm : 
                       bool; queue_stats : bool; port_blocked : bool }
-                      
+
+type switchFlags = 
+  | NormalFrag
+  | DropFrag
+  | ReasmFrag
+  | MaskFrag
+
+type switchConfig = {flags : switchFlags; miss_send_len : int16 }
