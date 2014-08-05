@@ -2520,6 +2520,66 @@ module SwitchFeatures = struct
 
 end
 
+module SwitchConfig = struct
+
+  cstruct ofp_switch_config {
+    uint16_t flags;
+    uint16_t miss_send_len
+  } as big_endian
+
+  module Flags = struct
+
+    cenum ofp_config_flags {
+      OFPC_FRAG_NORMAL = 0;
+      OFPC_FRAG_DROP = 1;
+      OFPC_FRAG_REASM = 2;
+      OFPC_FRAG_MASK = 3
+    } as uint16_t
+
+    let to_string (flags : switchFlags) : string = 
+      match flags with
+        | NormalFrag -> "NormalHandling"
+        | DropFrag -> "DropFragments"
+        | ReasmFrag -> "Reasemble"
+        | MaskFrag -> "MaskFrag"
+
+    let marshal (flags : switchFlags) : int = 
+      match flags with
+        | NormalFrag -> ofp_config_flags_to_int OFPC_FRAG_NORMAL
+        | DropFrag -> ofp_config_flags_to_int OFPC_FRAG_DROP
+        | ReasmFrag -> ofp_config_flags_to_int OFPC_FRAG_REASM
+        | MaskFrag -> ofp_config_flags_to_int OFPC_FRAG_MASK
+
+    let parse t : switchFlags = 
+      match int_to_ofp_config_flags t with
+        | Some OFPC_FRAG_NORMAL -> NormalFrag
+        | Some OFPC_FRAG_DROP -> DropFrag
+        | Some OFPC_FRAG_REASM -> ReasmFrag
+        | Some OFPC_FRAG_MASK -> MaskFrag
+        | None -> raise (Unparsable (sprintf "Malformed flags"))
+  end
+
+  type t = switchConfig
+
+  let sizeof (sc : switchConfig) : int =
+    sizeof_ofp_switch_config
+
+  let to_string (sc : switchConfig) : string = 
+    Format.sprintf "{ flags = %s; miss_send_length = %u }"
+    (Flags.to_string sc.flags)
+    sc.miss_send_len
+
+  let marshal (buf : Cstruct.t) (sc : switchConfig) : int =
+    set_ofp_switch_config_flags buf (Flags.marshal sc.flags);
+    set_ofp_switch_config_miss_send_len buf sc.miss_send_len;
+    sizeof_ofp_switch_config
+
+  let parse (bits : Cstruct.t) : switchConfig = 
+    let flags = Flags.parse (get_ofp_switch_config_flags bits) in
+    let miss_send_len = get_ofp_switch_config_miss_send_len bits in 
+    { flags; miss_send_len }
+    
+end
 
 module Message = struct
 
@@ -2527,9 +2587,12 @@ module Message = struct
     | Hello
     | EchoRequest of bytes
     | EchoReply of bytes
-    | Experimenter of experimenter
+    | Experimenter of Experimenter.t
     | FeaturesRequest
     | FeaturesReply of SwitchFeatures.t
+    | GetConfigRequestMsg of SwitchConfig.t
+    | GetConfigReplyMsg of SwitchConfig.t
+    | SetConfigMsg of SwitchConfig.t
 
   let string_of_msg_code (msg : msg_code) : string = match msg with
     | HELLO -> "HELLO"
@@ -2576,6 +2639,9 @@ module Message = struct
     | Experimenter _ -> EXPERIMENTER
     | FeaturesRequest -> FEATURES_REQ
     | FeaturesReply _ -> FEATURES_RESP
+    | GetConfigRequestMsg _ -> GET_CONFIG_REQ
+    | GetConfigReplyMsg _ -> GET_CONFIG_RESP
+    | SetConfigMsg _ -> SET_CONFIG
 
   let sizeof (msg : t) : int = match msg with
     | Hello -> Header.size
@@ -2584,6 +2650,9 @@ module Message = struct
     | Experimenter exp -> Header.size + (Experimenter.sizeof exp)
     | FeaturesRequest -> Header.size
     | FeaturesReply f -> Header.size + (SwitchFeatures.sizeof f)
+    | GetConfigRequestMsg conf -> Header.size + SwitchConfig.sizeof conf
+    | GetConfigReplyMsg conf -> Header.size + SwitchConfig.sizeof conf
+    | SetConfigMsg conf -> Header.size + SwitchConfig.sizeof conf
 
   let to_string (msg : t) : string = match msg with
     | Hello -> "Hello"
@@ -2592,6 +2661,9 @@ module Message = struct
     | Experimenter _ -> "Experimenter"
     | FeaturesRequest -> "FeaturesRequest"
     | FeaturesReply _ -> "FeaturesReply"
+    | GetConfigRequestMsg _ -> "GetConfigRequest"
+    | GetConfigReplyMsg _ -> "GetConfigReply"
+    | SetConfigMsg _ -> "SetConfig"
 
   (* let marshal (buf : Cstruct.t) (msg : message) : int = *)
   (*   let buf2 = (Cstruct.shift buf Header.size) in *)
@@ -2613,6 +2685,12 @@ module Message = struct
         Header.size
       | FeaturesReply fr ->
         Header.size + SwitchFeatures.marshal out fr
+      | GetConfigRequestMsg conf ->
+        Header.size + SwitchConfig.marshal out conf
+      | GetConfigReplyMsg conf ->
+        Header.size + SwitchConfig.marshal out conf
+      | SetConfigMsg conf ->
+        Header.size + SwitchConfig.marshal out conf
       
   let header_of xid msg =
     let open Header in
@@ -2642,6 +2720,9 @@ module Message = struct
       | ECHO_RESP -> EchoReply body_bits
       | EXPERIMENTER -> Experimenter (Experimenter.parse body_bits)
       | FEATURES_RESP -> FeaturesReply (SwitchFeatures.parse body_bits)
+      | GET_CONFIG_REQ -> GetConfigRequestMsg (SwitchConfig.parse body_bits)
+      | GET_CONFIG_RESP -> GetConfigReplyMsg (SwitchConfig.parse body_bits)
+      | SET_CONFIG -> SetConfigMsg (SwitchConfig.parse body_bits)
       | code -> raise (Unparsable (Printf.sprintf "unexpected message type %s" (string_of_msg_code typ))) in
     (hdr.Header.xid, msg)
 end

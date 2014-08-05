@@ -188,15 +188,32 @@ module SwitchFeatures : sig
 
 end
 
+module SwitchConfig : sig
+
+  type t = switchConfig
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+end
+
 module Message : sig
 
   type t =
     | Hello
     | EchoRequest of bytes
     | EchoReply of bytes
-    | Experimenter of experimenter
+    | Experimenter of Experimenter.t
     | FeaturesRequest
     | FeaturesReply of SwitchFeatures.t
+    | GetConfigRequestMsg of SwitchConfig.t
+    | GetConfigReplyMsg of SwitchConfig.t
+    | SetConfigMsg of SwitchConfig.t
 
   val sizeof : t -> int
 
