@@ -2084,6 +2084,8 @@ end
 
 module Action = struct
 
+  type t = action
+
   type sequence = OpenFlow0x04_Core.actionSequence
     
   let sizeof (act : action) : int = match act with

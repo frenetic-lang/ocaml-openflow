@@ -82,6 +82,8 @@ end
 
 module Action : sig
 
+  type t = action
+
   type sequence = OpenFlow0x04_Core.actionSequence
 
   val sizeof : action -> int
