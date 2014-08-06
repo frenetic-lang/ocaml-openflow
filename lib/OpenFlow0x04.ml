@@ -2606,6 +2606,8 @@ end
 
 module Instructions = struct
 
+  type t = instruction list
+
   let sizeof (inss : instruction list) : int =
     sum (map Instruction.sizeof inss)
 
