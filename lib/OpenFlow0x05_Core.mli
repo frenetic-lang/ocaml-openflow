@@ -150,4 +150,3 @@ type switchFlags =
   | ReasmFrag
   | MaskFrag
 
-type switchConfig = {flags : switchFlags; miss_send_len : int16 }

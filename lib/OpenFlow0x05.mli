@@ -212,7 +212,7 @@ end
 
 module SwitchConfig : sig
 
-  type t = switchConfig
+  type t = OpenFlow0x04_Core.switchConfig
 
   val sizeof : t -> int
 

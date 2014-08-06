@@ -1824,66 +1824,7 @@ end
 
 module SwitchFeatures = OpenFlow0x04.SwitchFeatures
 
-module SwitchConfig = struct
-
-  cstruct ofp_switch_config {
-    uint16_t flags;
-    uint16_t miss_send_len
-  } as big_endian
-
-  module Flags = struct
-
-    cenum ofp_config_flags {
-      OFPC_FRAG_NORMAL = 0;
-      OFPC_FRAG_DROP = 1;
-      OFPC_FRAG_REASM = 2;
-      OFPC_FRAG_MASK = 3
-    } as uint16_t
-
-    let to_string (flags : switchFlags) : string = 
-      match flags with
-        | NormalFrag -> "NormalHandling"
-        | DropFrag -> "DropFragments"
-        | ReasmFrag -> "Reasemble"
-        | MaskFrag -> "MaskFrag"
-
-    let marshal (flags : switchFlags) : int = 
-      match flags with
-        | NormalFrag -> ofp_config_flags_to_int OFPC_FRAG_NORMAL
-        | DropFrag -> ofp_config_flags_to_int OFPC_FRAG_DROP
-        | ReasmFrag -> ofp_config_flags_to_int OFPC_FRAG_REASM
-        | MaskFrag -> ofp_config_flags_to_int OFPC_FRAG_MASK
-
-    let parse t : switchFlags = 
-      match int_to_ofp_config_flags t with
-        | Some OFPC_FRAG_NORMAL -> NormalFrag
-        | Some OFPC_FRAG_DROP -> DropFrag
-        | Some OFPC_FRAG_REASM -> ReasmFrag
-        | Some OFPC_FRAG_MASK -> MaskFrag
-        | None -> raise (Unparsable (sprintf "Malformed flags"))
-  end
-
-  type t = switchConfig
-
-  let sizeof (sc : switchConfig) : int =
-    sizeof_ofp_switch_config
-
-  let to_string (sc : switchConfig) : string = 
-    Format.sprintf "{ flags = %s; miss_send_length = %u }"
-    (Flags.to_string sc.flags)
-    sc.miss_send_len
-
-  let marshal (buf : Cstruct.t) (sc : switchConfig) : int =
-    set_ofp_switch_config_flags buf (Flags.marshal sc.flags);
-    set_ofp_switch_config_miss_send_len buf sc.miss_send_len;
-    sizeof_ofp_switch_config
-
-  let parse (bits : Cstruct.t) : switchConfig = 
-    let flags = Flags.parse (get_ofp_switch_config_flags bits) in
-    let miss_send_len = get_ofp_switch_config_miss_send_len bits in 
-    { flags; miss_send_len }
-    
-end
+module SwitchConfig = OpenFlow0x04.SwitchConfig
 
 module Message = struct
 

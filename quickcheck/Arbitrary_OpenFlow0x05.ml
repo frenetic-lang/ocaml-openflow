@@ -546,25 +546,4 @@ module SwitchFeatures = struct
   let size_of = SwitchFeatures.sizeof
 end
 
-module SwitchConfig = struct
-  open Gen
-  type t = SwitchConfig.t
-
-  let arbitrary = 
-    let open Gen in 
-    let arbitrary_flags =
-      oneof [
-        ret_gen NormalFrag;
-        ret_gen DropFrag;
-        ret_gen ReasmFrag;
-        ret_gen MaskFrag
-      ] in
-    arbitrary_flags >>= fun flags ->
-    arbitrary_uint16 >>= fun miss_send_len ->
-    ret_gen { flags; miss_send_len}
-
-  let marshal = SwitchConfig.marshal
-  let parse = SwitchConfig.parse
-  let to_string = SwitchConfig.to_string
-  let size_of = SwitchConfig.sizeof
-end
+module SwitchConfig = Arbitrary_OpenFlow0x04.SwitchConfig
