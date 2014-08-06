@@ -52,7 +52,7 @@ Library async
   Path: async
   Build$: flag(async)
   BuildDepends:
-    async >= 111.25.00,
+    async,
     openflow,
     cstruct.async,
     threads,
