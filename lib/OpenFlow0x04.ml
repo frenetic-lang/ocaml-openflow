@@ -2485,6 +2485,8 @@ end
 
 module Instruction = struct
 
+  type t = instruction
+
   let to_string ins =
     match ins with
       | GotoTable t -> Format.sprintf "Go to Table = %u" t

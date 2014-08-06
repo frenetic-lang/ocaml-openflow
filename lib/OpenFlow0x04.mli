@@ -143,13 +143,15 @@ end
 
 module Instruction : sig
 
-  val to_string : instruction -> string
+  type t = instruction
 
-  val sizeof : instruction -> int
+  val to_string : t -> string
 
-  val marshal : Cstruct.t -> instruction -> int
+  val sizeof : t -> int
 
-  val parse : Cstruct.t ->  instruction
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t ->  t
 
 end
 
