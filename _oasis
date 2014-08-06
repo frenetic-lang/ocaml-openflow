@@ -33,8 +33,6 @@ Library openflow
     Misc,
     VInt,
     ModComposition,
-    GroupTable0x04,
-    SDN_OpenFlow0x04,
     HighLevelSwitch_common    
   Modules:
     OpenFlow_Header,
@@ -46,6 +44,8 @@ Library openflow
     OpenFlow0x05,
     OpenFlow0x05_Core,
     SDN_OpenFlow0x01,
+    SDN_OpenFlow0x04,
+    GroupTable0x04,
     SDN_Types    
 
 Library async
@@ -118,6 +118,20 @@ Test all_tests
 Executable learning_switch
   Path: examples
   MainIs: Learning_Switch.ml
+  Build$: flag(async)
+  Install: false
+  BuildDepends:
+    threads,
+    core,
+    async,
+    packet,
+    cstruct.async,
+    openflow,
+    openflow.async
+
+Executable learning_switch0x04
+  Path: examples
+  MainIs: Learning_Switch0x04.ml
   Build$: flag(async)
   Install: false
   BuildDepends:

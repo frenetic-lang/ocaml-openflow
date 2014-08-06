@@ -31,6 +31,14 @@ type tableId = int8
 
 type bufferId = int32
 
+type switchFlags = 
+  | NormalFrag
+  | DropFrag
+  | ReasmFrag
+  | MaskFrag
+
+type switchConfig = {flags : switchFlags; miss_send_len : int16 }
+
 type helloFailed = 
  | HelloIncompatible
  | HelloPermError
@@ -369,6 +377,17 @@ let delete_all_flows =
   ; mfOfp_match = match_all
   ; mfInstructions = [] }
 
+let parse_payload = function
+  | Buffered (_, b)
+  | NotBuffered b -> 
+    Packet.parse b
+
+let marshal_payload buffer pkt =
+  let payload = Packet.marshal pkt in
+  match buffer with
+    | Some b -> Buffered (b, payload)
+    | None -> NotBuffered payload
+
 type packetInReason =
 | NoMatch
 | ExplicitSend
@@ -418,6 +437,9 @@ type portDesc = { port_no : portId;
                   curr_speed : int32;
                   max_speed : int32}
 
+type portMod = { mpPortNo : portId; mpHw_addr : int48; mpConfig : portConfig;
+                 mpMask : portConfig; mpAdvertise : portState }
+
 type portReason =
   | PortAdd 
   | PortDelete
@@ -442,7 +464,15 @@ type meterBand =
   | DscpRemark of (rate*burst*int8)
   | ExpMeter of (rate*burst*experimenterId)
 
+type meterCommand = 
+  | AddMeter
+  | ModifyMeter
+  | DeleteMeter
+
 type meterFlags = { kbps : bool; pktps : bool; burst : bool; stats : bool}
+
+type meterMod = { command : meterCommand; flags : meterFlags; meter_id : int32;
+                  bands : meterBand list}
 
 type flowRequest = {fr_table_id : tableId; fr_out_port : portId; 
                     fr_out_group : portId; fr_cookie : int64 mask;
@@ -583,6 +613,37 @@ type multipartReply = {mpreply_typ : multipartReplyTyp; mpreply_flags : bool}
 
 type tableMod = { table_id : tableId; config : tableConfig }
 
+type rateQueue = 
+  | Rate of int
+  | Disabled  
+
+type queueProp = 
+  | MinRateProp of rateQueue
+  | MaxRateProp of rateQueue
+  | ExperimenterProp of int32
+
+type queueDesc = { queue_id : int32; port : portId; len : int16; properties : queueProp list }
+
+type queueConfReq = { port : portId }
+
+type queueConfReply = { port : portId; queues : queueDesc list }
+ 
+type controllerRole = 
+  | NoChangeRole
+  | EqualRole
+  | MasterRole
+  | SlaveRole
+
+type roleRequest = { role : controllerRole; generation_id : int64 }
+
+type supportedList = int list
+ 
+type element = 
+  | VersionBitMap of supportedList
+
+type helloElement = element list
+
 type asyncConfig = { packet_in : packetInReason asyncMask; 
                      port_status : portReason asyncMask;
                      flow_removed : flowReason asyncMask }
+
