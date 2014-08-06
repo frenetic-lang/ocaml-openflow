@@ -128,17 +128,6 @@ type oxmMatch = oxm list
 
 let match_all = []
 
-type pseudoPort =
-  | PhysicalPort of portId
-  | InPort
-  | Table
-  | Normal
-  | Flood
-  | AllPorts
-  | Controller of int16
-  | Local
-  | Any
-
 type actionTyp = 
  | Output
  | CopyTTLOut
@@ -157,40 +146,7 @@ type actionTyp =
  | PushPBB
  | PopPBB
  | Experimenter
-  
-type action =
-| Output of pseudoPort
-| Group of groupId
-| PopVlan
-| PushVlan
-| PopMpls
-| PushMpls
-| SetField of oxm
-| CopyTtlOut
-| CopyTtlIn
-| SetNwTtl of int8
-| DecNwTtl
-| PushPbb
-| PopPbb
-| SetMplsTtl of int8
-| DecMplsTtl
-| SetQueue of int32
-| Experimenter of int32
 
-type actionSequence = action list
-
-type instruction =
-| GotoTable of tableId
-| ApplyActions of actionSequence
-| WriteActions of actionSequence
-| WriteMetadata of int64 mask
-| Clear
-| Meter of int32
-| Experimenter of int32
-
-type switchCapabilities = { flow_stats : bool; table_stats : bool;
-                      port_stats : bool; group_stats : bool; ip_reasm : 
-                      bool; queue_stats : bool; port_blocked : bool }
 
 type switchFlags = 
   | NormalFrag

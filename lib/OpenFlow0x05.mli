@@ -124,7 +124,7 @@ end
 
 module PseudoPort : sig
 
-  type t = pseudoPort
+  type t = OpenFlow0x04_Core.pseudoPort
 
   val size_of : t -> int
 
@@ -138,9 +138,9 @@ end
 
 module Action : sig
 
-  type sequence = OpenFlow0x05_Core.actionSequence
+  type sequence = OpenFlow0x04_Core.actionSequence
 
-  type t = action
+  type t = OpenFlow0x04_Core.action
 
   val sizeof : t -> int
 
@@ -156,7 +156,7 @@ end
 
 module Instruction : sig
 
-  type t = instruction
+  type t = OpenFlow0x04_Core.instruction
 
   val to_string : t -> string
 
@@ -170,7 +170,7 @@ end
 
 module Instructions : sig
 
-  type t = instruction list
+  type t = OpenFlow0x04_Core.instruction list
 
   val sizeof : t -> int
 
@@ -198,9 +198,7 @@ end
 
 module SwitchFeatures : sig
 
-  type t = { datapath_id : int64; num_buffers : int32;
-             num_tables : int8; aux_id : int8;
-             supported_capabilities : switchCapabilities }
+  type t = OpenFlow0x04.SwitchFeatures.t
 
   val sizeof : t -> int
 

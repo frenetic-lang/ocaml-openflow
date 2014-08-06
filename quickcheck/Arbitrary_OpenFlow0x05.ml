@@ -492,134 +492,11 @@ module OfpMatch = struct
     let size_of = OfpMatch.sizeof
 end
 
-module PseudoPort = struct
-  type s = int * (int option)
-  type t = PseudoPort.t
+module PseudoPort = Arbitrary_OpenFlow0x04.PseudoPort
 
-  let arbitrary =
-    let open Gen in
-    let open OpenFlow0x05_Core in
-      oneof [
-        arbitrary_uint32 >>= (fun p -> ret_gen (PhysicalPort p));
-        ret_gen InPort;
-        ret_gen Table;
-        ret_gen Normal;
-        ret_gen Flood;
-        ret_gen AllPorts;
-        arbitrary_uint >>= (fun l -> ret_gen (Controller l));
-        ret_gen Local;
-        ret_gen Any
-      ]
+module Action = Arbitrary_OpenFlow0x04.Action
 
-  (* Use in cases where a `Controller` port is invalid input *)
-  let arbitrary_nc =
-    let open Gen in
-    let open OpenFlow0x05_Core in
-      oneof [
-        arbitrary_uint32 >>= (fun p -> ret_gen (PhysicalPort p));
-        ret_gen InPort;
-        ret_gen Table;
-        ret_gen Normal;
-        ret_gen Flood;
-        ret_gen AllPorts;
-        ret_gen Local;
-        ret_gen Any
-      ]
-
-  let to_string = PseudoPort.to_string
-
-  let parse (p, l) =
-    let l' = match l with
-             | None   -> 0
-             | Some i -> i
-      in PseudoPort.make p l'
-
-  let marshal p =
-    let open OpenFlow0x05_Core in
-    let l = match p with
-            | Controller i -> Some i
-            | _            -> None
-      in (PseudoPort.marshal p, l)
-  let size_of = PseudoPort.size_of
-end
-
-module Action = struct
-  type t = Action.t
-
-  let arbitrary =
-    let open Gen in
-    let open OpenFlow0x05_Core in
-    oneof [
-      PseudoPort.arbitrary >>= (fun p -> ret_gen (Output p));
-      arbitrary_uint32 >>= (fun p -> ret_gen (Group p));
-      ret_gen PopVlan;
-      ret_gen PushVlan;
-      ret_gen PopMpls;
-      ret_gen PushMpls;
-      ret_gen CopyTtlOut;
-      ret_gen CopyTtlIn;
-      ret_gen DecNwTtl;
-      ret_gen PushPbb;
-      ret_gen PopPbb;
-      ret_gen DecMplsTtl;
-      arbitrary_uint8 >>= (fun p -> ret_gen (SetNwTtl p));
-      arbitrary_uint8 >>= (fun p -> ret_gen (SetMplsTtl p));
-      arbitrary_uint32 >>= (fun p -> ret_gen (SetQueue p));
-      OfpMatch.Oxm.arbitrary >>= (fun p -> ret_gen (SetField p))
-    ]
-
-  let to_string = Action.to_string
-
-  let marshal = Action.marshal
-  let parse = Action.parse
-
-  let size_of = Action.sizeof
-
-end
-
-module Instructions = struct
-  open Gen
-  type t = Instructions.t
-  
-  module Instruction = struct
-    type t = Instruction.t
-    
-    let arbitrary = 
-      let open Gen in
-      let open Instruction in
-      arbitrary_uint8 >>= fun tableid ->
-      arbitrary_uint32 >>= fun meter ->
-      arbitrary_uint32 >>= fun exp ->
-      arbitrary_masked arbitrary_uint64 arbitrary_64mask >>= fun wrMeta ->
-      arbitrary_list Action.arbitrary >>= fun wrAction ->
-      arbitrary_list Action.arbitrary >>= fun appAction ->
-      oneof [
-        ret_gen (GotoTable tableid);
-        ret_gen (WriteMetadata wrMeta);
-        ret_gen (WriteActions wrAction);
-        ret_gen (ApplyActions appAction);
-        ret_gen Clear;
-        ret_gen (Meter meter);
-        ret_gen (Experimenter exp);
-      ]
-
-    let marshal = Instruction.marshal
-    let parse = Instruction.parse
-    let to_string = Instruction.to_string
-    let size_of = Instruction.sizeof
-  end
-    
-  let arbitrary =
-    let open Gen in
-    let open Instructions in
-    arbitrary_list Instruction.arbitrary >>= fun ins ->
-    ret_gen ins
-  
-  let marshal = Instructions.marshal
-  let parse = Instructions.parse
-  let to_string = Instructions.to_string
-  let size_of = Instructions.sizeof    
-end
+module Instructions = Arbitrary_OpenFlow0x04.Instructions
 
 module Experimenter = struct
   open Gen
@@ -645,8 +522,9 @@ module SwitchFeatures = struct
 
   let arbitrary = 
     let open Gen in
-    let open SwitchFeatures in
+    let open OpenFlow0x04.SwitchFeatures in
     let arbitrary_capabilities = 
+      let open OpenFlow0x04_Core in
       arbitrary_bool >>= fun flow_stats ->
       arbitrary_bool >>= fun table_stats ->
       arbitrary_bool >>= fun port_stats ->
