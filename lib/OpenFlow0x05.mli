@@ -307,6 +307,20 @@ module GroupMod : sig
 
 end
 
+module PortMod : sig
+
+  type t = portMod
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+end
+
 module Message : sig
 
   type t =

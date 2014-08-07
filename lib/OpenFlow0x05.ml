@@ -324,7 +324,7 @@ module PortDesc = struct
         ; use_freq = Bits.test_bit 3 bits }
 
       let to_string (optFeat : opticalFeatures) : string =
-        Format.sprintf "{ rx_tune : %B; tx_tune : %B; tw_pwr : %B; use_freq : %B }"
+        Format.sprintf "{ rx_tune : %B; tx_tune : %B; tx_pwr : %B; use_freq : %B }"
         optFeat.rx_tune
         optFeat.tx_tune
         optFeat.tx_pwr
@@ -381,7 +381,7 @@ module PortDesc = struct
 
     let length_func (buf : Cstruct.t) : int option =
       if Cstruct.len buf < sizeof_ofp_port_desc_prop_header then None
-      else Some (get_ofp_port_desc_prop_ethernet_len buf)
+      else Some (get_ofp_port_desc_prop_header_len buf)
 
     let sizeof (prop : t) : int =
       match prop with
@@ -2267,6 +2267,197 @@ end
 module Bucket = OpenFlow0x04.Bucket
 
 module GroupMod = OpenFlow0x04.GroupMod
+
+module PortMod = struct
+
+  cstruct ofp_port_mod {
+    uint32_t port_no;
+    uint8_t pad[4];
+    uint8_t hw_addr[6];
+    uint8_t pad2[2];
+    uint32_t config;
+    uint32_t mask;
+  } as big_endian
+
+  module Properties = struct
+
+    cenum ofp_port_mod_prop_type {
+      OFPPMPT_ETHERNET = 0;
+      OFPPMPT_OPTICAL = 1;
+      OFPPMPT_EXPERIMENTER = 0xffff
+    } as uint16_t
+
+    module Ethernet = struct
+      cstruct ofp_port_mod_prop_ethernet {
+        uint16_t typ;
+        uint16_t len;
+        uint32_t advertise
+      } as big_endian
+
+      type t = portModPropEthernet
+
+      let to_string = PortDesc.State.to_string
+
+      let sizeof (t : portState) = 
+        sizeof_ofp_port_mod_prop_ethernet
+
+      let marshal (buf : Cstruct.t) (t : portState) : int =
+        set_ofp_port_mod_prop_ethernet_typ buf (ofp_port_mod_prop_type_to_int OFPPMPT_ETHERNET);
+        set_ofp_port_mod_prop_ethernet_len buf sizeof_ofp_port_mod_prop_ethernet;
+        set_ofp_port_mod_prop_ethernet_advertise buf (PortDesc.State.marshal t);
+        sizeof_ofp_port_mod_prop_ethernet
+
+      let parse (bits : Cstruct.t) : t =
+        PortDesc.State.parse (get_ofp_port_mod_prop_ethernet_advertise bits)
+
+    end
+
+    module Optical = struct
+      cstruct ofp_port_mod_prop_optical {
+        uint16_t typ;
+        uint16_t len;
+        uint32_t configure;
+        uint32_t freq_lmda;
+        int32_t fl_offset;
+        uint32_t grid_span;
+        uint32_t tx_pwr
+      } as big_endian
+
+      type t = portModPropOptical
+
+      let sizeof (_ : t) =
+        sizeof_ofp_port_mod_prop_optical
+
+      let to_string (t : t) = 
+        Format.sprintf "{ configure = %s; freq_lmda = %lu; fl_offset = %lu; 
+                          grid_span = %lu; tx_pwr = %lu }"
+        (PortDesc.Properties.OptFeatures.to_string t.configure)
+        t.freq_lmda
+        t.fl_offset
+        t.grid_span
+        t.tx_pwr
+
+      let marshal (buf : Cstruct.t) (t : t) : int =
+        set_ofp_port_mod_prop_optical_typ buf (ofp_port_mod_prop_type_to_int OFPPMPT_OPTICAL);
+        set_ofp_port_mod_prop_optical_len buf sizeof_ofp_port_mod_prop_optical;
+        set_ofp_port_mod_prop_optical_configure buf (PortDesc.Properties.OptFeatures.marshal t.configure);
+        set_ofp_port_mod_prop_optical_freq_lmda buf t.freq_lmda;
+        set_ofp_port_mod_prop_optical_fl_offset buf t.fl_offset;
+        set_ofp_port_mod_prop_optical_grid_span buf t.grid_span;
+        set_ofp_port_mod_prop_optical_tx_pwr buf t.tx_pwr;
+        sizeof_ofp_port_mod_prop_optical
+
+      let parse (bits : Cstruct.t) : t =
+        { configure = PortDesc.Properties.OptFeatures.parse (get_ofp_port_mod_prop_optical_configure bits)
+        ; freq_lmda = get_ofp_port_mod_prop_optical_freq_lmda bits
+        ; fl_offset = get_ofp_port_mod_prop_optical_fl_offset bits
+        ; grid_span = get_ofp_port_mod_prop_optical_grid_span bits
+        ; tx_pwr = get_ofp_port_mod_prop_optical_tx_pwr bits }
+
+    end
+
+    module Experimenter = struct
+
+      cstruct ofp_port_mod_prop_experimenter {
+        uint16_t typ;
+        uint16_t len;
+        uint32_t experimenter;
+        uint32_t exp_typ
+      } as big_endian
+
+      type t = experimenter
+
+      let to_string (t : t) : string =
+        Format.sprintf "{ experimenter : %lu; exp_typ : %lu }"
+         t.experimenter
+         t.exp_typ
+
+      let sizeof ( _ : t ) =
+        sizeof_ofp_port_mod_prop_experimenter
+
+      let marshal (buf : Cstruct.t) (t : t) : int =
+        set_ofp_port_mod_prop_experimenter_typ buf (ofp_port_mod_prop_type_to_int OFPPMPT_EXPERIMENTER);
+        set_ofp_port_mod_prop_experimenter_len buf sizeof_ofp_port_mod_prop_experimenter;
+        set_ofp_port_mod_prop_experimenter_experimenter buf t.experimenter;
+        set_ofp_port_mod_prop_experimenter_exp_typ buf t.exp_typ;
+        sizeof_ofp_port_mod_prop_experimenter
+
+      let parse (bits : Cstruct.t) : t =
+        { experimenter = get_ofp_port_mod_prop_experimenter_experimenter bits
+        ; exp_typ = get_ofp_port_mod_prop_experimenter_exp_typ bits}
+
+    end
+
+    cstruct ofp_port_mod_prop_header {
+      uint16_t typ;
+      uint16_t len;
+    } as big_endian
+
+    type t = portModPropt
+
+    let sizeof (t : t) : int =
+      match t with 
+        | PortModPropEthernet p -> Ethernet.sizeof p
+        | PortModPropOptical p -> Optical.sizeof p
+        | PortModPropExperiment p -> Experimenter.sizeof p
+
+    let to_string (t : t) : string = 
+      match t with 
+        | PortModPropEthernet p -> Format.sprintf "Ethernet : %s" (Ethernet.to_string p)
+        | PortModPropOptical p -> Format.sprintf "Optical : %s" (Optical.to_string p)
+        | PortModPropExperiment p -> Format.sprintf "Experimenter : %s" (Experimenter.to_string p)
+
+    let length_func (buf : Cstruct.t) : int option =
+      if Cstruct.len buf < sizeof_ofp_port_mod_prop_header then None
+      else Some (get_ofp_port_mod_prop_header_len buf)
+
+    let marshal (buf : Cstruct.t) (t : t) =
+      match t with
+        | PortModPropEthernet p -> Ethernet.marshal buf p
+        | PortModPropOptical p -> Optical.marshal buf p
+        | PortModPropExperiment p -> Experimenter.marshal buf p
+
+    let parse (bits : Cstruct.t) : t =
+      let typ = match int_to_ofp_port_mod_prop_type (get_ofp_port_mod_prop_header_typ bits) with
+        | Some v -> v
+        | None -> raise (Unparsable (sprintf "malformed prop typ")) in
+      match typ with 
+        | OFPPMPT_ETHERNET -> PortModPropEthernet (Ethernet.parse bits)
+        | OFPPMPT_OPTICAL -> PortModPropOptical (Optical.parse bits)
+        | OFPPMPT_EXPERIMENTER -> PortModPropExperiment (Experimenter.parse bits)
+
+
+  end
+
+  type t = portMod
+
+  let sizeof pm : int =
+    sizeof_ofp_port_mod + sum (map Properties.sizeof pm.mpProp)
+
+  let to_string (pm : t) : string =
+    Format.sprintf "{ port_no = %lu; hw_addr = %s; config = %s; mask = %s; properties = %s }"
+    pm.mpPortNo
+    (string_of_mac pm.mpHw_addr)
+    (PortDesc.Config.to_string pm.mpConfig)
+    (PortDesc.Config.to_string pm.mpMask)
+    ("[ " ^ (String.concat "; " (map Properties.to_string pm.mpProp)) ^ " ]")
+    
+  let marshal (buf : Cstruct.t) (pm : t) : int =
+    set_ofp_port_mod_port_no buf pm.mpPortNo;
+    set_ofp_port_mod_hw_addr (bytes_of_mac pm.mpHw_addr) 0 buf;
+    set_ofp_port_mod_config buf (PortDesc.Config.marshal pm.mpConfig);
+    set_ofp_port_mod_mask buf (PortDesc.Config.marshal pm.mpMask);
+    sizeof_ofp_port_mod + marshal_fields (Cstruct.shift buf sizeof_ofp_port_mod) pm.mpProp Properties.marshal
+
+  let parse (bits : Cstruct.t) : t =
+    let mpPortNo = get_ofp_port_mod_port_no bits in
+    let mpHw_addr = mac_of_bytes (copy_ofp_port_mod_hw_addr bits) in
+    let mpConfig = PortDesc.Config.parse (get_ofp_port_mod_config bits) in
+    let mpMask = PortDesc.Config.parse (get_ofp_port_mod_mask bits) in
+    let mpProp = parse_fields (Cstruct.shift bits sizeof_ofp_port_mod) Properties.parse Properties.length_func in
+    { mpPortNo; mpHw_addr; mpConfig; mpMask; mpProp}
+
+end
 
 module Message = struct
 

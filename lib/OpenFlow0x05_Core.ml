@@ -190,3 +190,16 @@ type flowMod = { mfCookie : int64 mask; mfTable_id : tableId;
                  mfOut_port : pseudoPort option;
                  mfOut_group : groupId option; mfFlags : flowModFlags; mfImportance : int16;
                  mfOfp_match : oxmMatch; mfInstructions : instruction list }
+
+type portModPropEthernet = portState
+
+type portModPropOptical =  { configure : opticalFeatures; freq_lmda : int32; 
+                             fl_offset : int32; grid_span : int32; tx_pwr : int32 }
+
+type portModPropt = 
+  | PortModPropEthernet of portModPropEthernet
+  | PortModPropOptical of portModPropOptical
+  | PortModPropExperiment of experimenter
+
+type portMod = { mpPortNo : portId; mpHw_addr : int48; mpConfig : portConfig;
+                 mpMask : portConfig; mpProp : portModPropt list }
