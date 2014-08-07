@@ -319,6 +319,9 @@ module Message : sig
     | GetConfigRequestMsg of SwitchConfig.t
     | GetConfigReplyMsg of SwitchConfig.t
     | SetConfigMsg of SwitchConfig.t
+    | FlowModMsg of FlowMod.t
+    | GroupModMsg of GroupMod.t
+    | TableModMsg of TableMod.t
 
   val sizeof : t -> int
 

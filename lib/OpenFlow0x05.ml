@@ -2280,6 +2280,9 @@ module Message = struct
     | GetConfigRequestMsg of SwitchConfig.t
     | GetConfigReplyMsg of SwitchConfig.t
     | SetConfigMsg of SwitchConfig.t
+    | FlowModMsg of FlowMod.t
+    | GroupModMsg of GroupMod.t
+    | TableModMsg of TableMod.t
 
   let string_of_msg_code (msg : msg_code) : string = match msg with
     | HELLO -> "HELLO"
@@ -2329,6 +2332,9 @@ module Message = struct
     | GetConfigRequestMsg _ -> GET_CONFIG_REQ
     | GetConfigReplyMsg _ -> GET_CONFIG_RESP
     | SetConfigMsg _ -> SET_CONFIG
+    | FlowModMsg _ -> FLOW_MOD
+    | GroupModMsg _ -> GROUP_MOD
+    | TableModMsg _ -> TABLE_MOD
 
   let sizeof (msg : t) : int = match msg with
     | Hello -> Header.size
@@ -2340,6 +2346,9 @@ module Message = struct
     | GetConfigRequestMsg conf -> Header.size + SwitchConfig.sizeof conf
     | GetConfigReplyMsg conf -> Header.size + SwitchConfig.sizeof conf
     | SetConfigMsg conf -> Header.size + SwitchConfig.sizeof conf
+    | FlowModMsg flow -> Header.size + FlowMod.sizeof flow
+    | GroupModMsg group -> Header.size + GroupMod.sizeof group
+    | TableModMsg table -> Header.size + TableMod.sizeof table
 
   let to_string (msg : t) : string = match msg with
     | Hello -> "Hello"
@@ -2351,6 +2360,9 @@ module Message = struct
     | GetConfigRequestMsg _ -> "GetConfigRequest"
     | GetConfigReplyMsg _ -> "GetConfigReply"
     | SetConfigMsg _ -> "SetConfig"
+    | FlowModMsg _ -> "FlowMod"
+    | GroupModMsg _ -> "GroupMod"
+    | TableModMsg _ -> "TableMod"
 
   (* let marshal (buf : Cstruct.t) (msg : message) : int = *)
   (*   let buf2 = (Cstruct.shift buf Header.size) in *)
@@ -2378,7 +2390,13 @@ module Message = struct
         Header.size + SwitchConfig.marshal out conf
       | SetConfigMsg conf ->
         Header.size + SwitchConfig.marshal out conf
-      
+      | FlowModMsg flow ->
+        Header.size + FlowMod.marshal out flow
+      | GroupModMsg group ->
+        Header.size + GroupMod.marshal out group
+      | TableModMsg table ->
+        Header.size + TableMod.marshal out table
+
   let header_of xid msg =
     let open Header in
     { version = 0x05; type_code = msg_code_to_int (msg_code_of_message msg);
@@ -2410,6 +2428,9 @@ module Message = struct
       | GET_CONFIG_REQ -> GetConfigRequestMsg (SwitchConfig.parse body_bits)
       | GET_CONFIG_RESP -> GetConfigReplyMsg (SwitchConfig.parse body_bits)
       | SET_CONFIG -> SetConfigMsg (SwitchConfig.parse body_bits)
+      | FLOW_MOD -> FlowModMsg (FlowMod.parse body_bits)
+      | GROUP_MOD -> GroupModMsg (GroupMod.parse body_bits)
+      | TABLE_MOD -> TableModMsg (TableMod.parse body_bits)
       | code -> raise (Unparsable (Printf.sprintf "unexpected message type %s" (string_of_msg_code typ))) in
     (hdr.Header.xid, msg)
 end
