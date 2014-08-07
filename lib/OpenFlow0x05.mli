@@ -252,6 +252,20 @@ module TableMod : sig
 
 end
 
+module FlowMod : sig
+
+  type t = flowMod
+
+  val sizeof : t -> int
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+  val to_string : t -> string
+
+end
+
 module Message : sig
 
   type t =

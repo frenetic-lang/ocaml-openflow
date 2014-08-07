@@ -19,6 +19,19 @@ type uint24 = int32
 type uint12 = uint16
 type switchId = OpenFlow0x05_Core.switchId
 
+let ofpp_in_port = 0xfffffff8l
+let ofpp_flood = 0xfffffffbl
+let ofpp_all = 0xfffffffcl
+let ofpp_controller = 0xfffffffdl
+let ofpp_any = 0xffffffffl
+
+let ofp_no_buffer = 0xffffffffl
+
+(* Not in the spec, comes from C headers. :rolleyes: *)
+let ofpg_all = 0xfffffffcl
+let ofpg_any = 0xffffffffl
+let ofp_eth_alen = 6          (* Bytes in an Ethernet address. *)
+
 let rec marshal_fields (buf: Cstruct.t) (fields : 'a list) (marshal_func : Cstruct.t -> 'a -> int ): int =
   if (fields = []) then 0
   else let size = marshal_func buf (List.hd fields) in
@@ -2037,6 +2050,219 @@ module TableMod = struct
 
 end
 
+module FlowMod = struct
+  cstruct ofp_flow_mod {
+    uint64_t cookie;             (* Opaque controller-issued identifier. *)
+    uint64_t cookie_mask;        (* Mask used to restrict the cookie bits
+                                    that must match when the command is
+                                    OFPFC_MODIFY* or OFPFC_DELETE*. A value
+                                    of 0 indicates no restriction. *)
+
+    (* Flow actions. *)
+    uint8_t table_id;             (* ID of the table to put the flow in.
+                                     For OFPFC_DELETE_* commands, OFPTT_ALL
+                                     can also be used to delete matching
+                                     flows from all tables. *)
+    uint8_t command;              (* One of OFPFC_*. *)
+    uint16_t idle_timeout;        (* Idle time before discarding (seconds). *)
+    uint16_t hard_timeout;        (* Max time before discarding (seconds). *)
+    uint16_t priority;            (* Priority level of flow entry. *)
+    uint32_t buffer_id;           (* Buffered packet to apply to, or
+                                     OFP_NO_BUFFER.
+                                     Not meaningful for OFPFC_DELETE*. *)
+    uint32_t out_port;            (* For OFPFC_DELETE* commands, require
+                                     matching entries to include this as an
+                                     output port.  A value of OFPP_ANY
+                                     indicates no restriction. *)
+    uint32_t out_group;           (* For OFPFC_DELETE* commands, require
+                                     matching entries to include this as an
+                                     output group.  A value of OFPG_ANY
+                                     indicates no restriction. *)
+    uint16_t flags;               (* One of OFPFF_*. *)
+    uint16_t importance
+  } as big_endian
+
+  module FlowModCommand = struct
+    cenum ofp_flow_mod_command {
+      OFPFC_ADD            = 0; (* New flow. *)
+      OFPFC_MODIFY         = 1; (* Modify all matching flows. *)
+      OFPFC_MODIFY_STRICT  = 2; (* Modify entry strictly matching wildcards and
+                                  priority. *)
+      OFPFC_DELETE         = 3; (* Delete all matching flows. *)
+      OFPFC_DELETE_STRICT  = 4  (* Delete entry strictly matching wildcards and
+                                  priority. *)
+  } as uint8_t
+  
+    type t = flowModCommand
+
+    let n = ref 0L
+    
+    let sizeof _ = 1
+
+    let marshal (t : t) : int = match t with
+      | AddFlow -> n := Int64.succ !n; ofp_flow_mod_command_to_int OFPFC_ADD
+      | ModFlow -> ofp_flow_mod_command_to_int OFPFC_MODIFY
+      | ModStrictFlow -> ofp_flow_mod_command_to_int OFPFC_MODIFY_STRICT
+      | DeleteFlow -> ofp_flow_mod_command_to_int OFPFC_DELETE
+      | DeleteStrictFlow -> ofp_flow_mod_command_to_int OFPFC_DELETE_STRICT
+
+    let parse bits : flowModCommand = 
+      match (int_to_ofp_flow_mod_command bits) with
+        | Some OFPFC_ADD -> AddFlow
+        | Some OFPFC_MODIFY -> ModFlow
+        | Some OFPFC_MODIFY_STRICT -> ModStrictFlow
+        | Some OFPFC_DELETE -> DeleteFlow
+        | Some OFPFC_DELETE_STRICT -> DeleteStrictFlow
+        | None -> raise (Unparsable (sprintf "malformed command"))
+
+    let to_string t = 
+     match t with
+      | AddFlow -> "Add"
+      | ModFlow -> "Modify"
+      | ModStrictFlow -> "ModifyStrict"
+      | DeleteFlow -> "Delete"
+      | DeleteStrictFlow -> "DeleteStrict"
+  end
+
+  type t = flowMod
+
+  let sizeof (fm : flowMod) =
+    sizeof_ofp_flow_mod + (OfpMatch.sizeof fm.mfOfp_match) + (Instructions.sizeof fm.mfInstructions)
+
+  module Flags = struct
+    
+    let marshal (f : flowModFlags) =
+      (if f.fmf_send_flow_rem then 1 lsl 0 else 0) lor
+        (if f.fmf_check_overlap then 1 lsl 1 else 0) lor
+          (if f.fmf_reset_counts then 1 lsl 2 else 0) lor
+            (if f.fmf_no_pkt_counts then 1 lsl 3 else 0) lor
+              (if f.fmf_no_byt_counts then 1 lsl 4 else 0)
+
+    let parse bits : flowModFlags =
+      { fmf_send_flow_rem = test_bit16  0 bits
+      ; fmf_check_overlap = test_bit16  1 bits
+      ; fmf_reset_counts = test_bit16  2 bits
+      ; fmf_no_pkt_counts = test_bit16  3 bits
+      ; fmf_no_byt_counts = test_bit16  4 bits
+      }
+
+    let to_string f =
+      Format.sprintf "{ send_flow_rem = %B; check_overlap = %B; reset_counts = %B; \
+                     no_pkt_counts = %B; no_byt_counts = %B }"
+                     f.fmf_send_flow_rem
+                     f.fmf_check_overlap
+                     f.fmf_reset_counts
+                     f.fmf_no_pkt_counts
+                     f.fmf_no_byt_counts
+
+  end 
+
+  let marshal (buf : Cstruct.t) (fm : flowMod) : int =
+    set_ofp_flow_mod_cookie buf fm.mfCookie.m_value;
+    set_ofp_flow_mod_cookie_mask buf (
+      match fm.mfCookie.m_mask with
+        | None -> 0L
+        | Some mask -> mask);
+    set_ofp_flow_mod_table_id buf fm.mfTable_id;
+    set_ofp_flow_mod_command buf (FlowModCommand.marshal fm.mfCommand);
+    set_ofp_flow_mod_idle_timeout buf
+      (match fm.mfIdle_timeout with
+        | Permanent -> 0
+        | ExpiresAfter value -> value);
+    set_ofp_flow_mod_hard_timeout buf
+      (match fm.mfHard_timeout with
+        | Permanent -> 0
+        | ExpiresAfter value -> value);
+    set_ofp_flow_mod_priority buf fm.mfPriority;
+    set_ofp_flow_mod_buffer_id buf
+      (match fm.mfBuffer_id with
+        | None -> ofp_no_buffer
+        | Some bid -> bid);
+    set_ofp_flow_mod_out_port buf
+      (match fm.mfOut_port with
+        | None -> 0l
+        | Some port -> PseudoPort.marshal port);
+    set_ofp_flow_mod_out_group buf
+      (match fm.mfOut_group with
+        | None -> 0l
+        | Some gid -> gid);
+    set_ofp_flow_mod_flags buf (Flags.marshal fm.mfFlags);
+    set_ofp_flow_mod_importance buf fm.mfImportance;
+    let size = sizeof_ofp_flow_mod +
+        OfpMatch.marshal 
+         (Cstruct.sub buf sizeof_ofp_flow_mod (OfpMatch.sizeof fm.mfOfp_match))
+         fm.mfOfp_match in
+      size + Instructions.marshal (Cstruct.shift buf size) fm.mfInstructions
+
+  let parse (bits : Cstruct.t) : flowMod =
+    let mfMask = get_ofp_flow_mod_cookie_mask bits in
+    let mfCookie =
+      if mfMask <> 0L then
+        {m_value = get_ofp_flow_mod_cookie bits;
+        m_mask = (Some (get_ofp_flow_mod_cookie_mask bits))}
+    else {m_value = get_ofp_flow_mod_cookie bits;
+        m_mask = None}
+      in
+    let mfTable_id = get_ofp_flow_mod_table_id bits in
+    let mfCommand = FlowModCommand.parse (get_ofp_flow_mod_command bits) in
+    let mfIdle_timeout = match (get_ofp_flow_mod_idle_timeout bits) with
+                         | 0 -> Permanent 
+                         | n -> ExpiresAfter n in
+    let mfHard_timeout = match (get_ofp_flow_mod_hard_timeout bits) with
+                         | 0 -> Permanent 
+                         | n -> ExpiresAfter n in
+    let mfPriority = get_ofp_flow_mod_priority bits in
+    let mfBuffer_id = match (get_ofp_flow_mod_buffer_id bits) with
+        | 0xffffffffl -> None
+        | n -> Some n in
+    let mfOut_port = match (get_ofp_flow_mod_out_port bits) with
+        | 0l -> None
+        | _ -> Some (PseudoPort.make (get_ofp_flow_mod_out_port bits) 0) in
+    let mfOut_group = match (get_ofp_flow_mod_out_group bits) with
+        | 0l -> None
+        | n -> Some n in
+    let mfFlags = Flags.parse (get_ofp_flow_mod_flags bits) in
+    let mfImportance = get_ofp_flow_mod_importance bits in
+    let mfOfp_match,instructionsBits = OfpMatch.parse (Cstruct.shift bits sizeof_ofp_flow_mod) in
+    let mfInstructions = Instructions.parse instructionsBits in
+    { mfCookie; mfTable_id;
+      mfCommand; mfIdle_timeout;
+      mfHard_timeout; mfPriority;
+      mfBuffer_id;
+      mfOut_port;
+      mfOut_group; mfFlags; mfImportance;
+      mfOfp_match; mfInstructions}
+  
+  let to_string (flow : flowMod) =
+    Format.sprintf "{ cookie = %s; table = %u; command = %s; idle_timeout = %s; \
+                      hard_timeout = %s; priority = %u; bufferId = %s; out_port = %s; \
+                      out_group = %s; flags = %s; importance = %u; match = %s; instructions = %s }"
+    (match flow.mfCookie.m_mask with
+        | None -> Int64.to_string flow.mfCookie.m_value
+        | Some m -> Format.sprintf "%LX/%LX" flow.mfCookie.m_value m)
+    flow.mfTable_id
+    (FlowModCommand.to_string flow.mfCommand)
+    (match flow.mfIdle_timeout with
+        | Permanent -> "Permanent"
+        | ExpiresAfter t-> string_of_int t)
+    (match flow.mfHard_timeout with
+        | Permanent -> "Permanent"
+        | ExpiresAfter t-> string_of_int t)
+    flow.mfPriority
+    (match flow.mfBuffer_id with
+        | None -> "None"
+        | Some t -> Int32.to_string t)
+    (match flow.mfOut_port with
+        | None -> "None"
+        | Some t -> PseudoPort.to_string t)
+    (match flow.mfOut_group with
+        | None -> "None"
+        | Some t -> Int32.to_string t)
+    (Flags.to_string flow.mfFlags)
+    flow.mfImportance
+    (OfpMatch.to_string flow.mfOfp_match)
+    (Instructions.to_string flow.mfInstructions)
+end
 module Message = struct
 
   type t =

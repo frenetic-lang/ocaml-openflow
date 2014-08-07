@@ -32,6 +32,8 @@ type tableId = int8
 
 type bufferId = int32
 
+type pseudoPort = OpenFlow0x04_Core.pseudoPort
+
 type timeout =
 | Permanent
 | ExpiresAfter of int16
@@ -147,6 +149,9 @@ type actionTyp =
  | PopPBB
  | Experimenter
 
+type action = OpenFlow0x04_Core.action
+
+type instruction = OpenFlow0x04_Core.instruction
 
 type switchFlags = 
   | NormalFrag
@@ -166,3 +171,22 @@ type tableProperties =
 type tableConfig = { eviction : bool; vacancyEvent : bool }
 
 type tableMod = { table_id : tableId; config : tableConfig; properties : tableProperties list}
+
+type flowModCommand =
+| AddFlow
+| ModFlow
+| ModStrictFlow
+| DeleteFlow
+| DeleteStrictFlow
+
+type flowModFlags = { fmf_send_flow_rem : bool; fmf_check_overlap : bool;
+                      fmf_reset_counts : bool; fmf_no_pkt_counts : bool;
+                      fmf_no_byt_counts : bool }
+
+type flowMod = { mfCookie : int64 mask; mfTable_id : tableId;
+                 mfCommand : flowModCommand; mfIdle_timeout : timeout;
+                 mfHard_timeout : timeout; mfPriority : int16;
+                 mfBuffer_id : bufferId option;
+                 mfOut_port : pseudoPort option;
+                 mfOut_group : groupId option; mfFlags : flowModFlags; mfImportance : int16;
+                 mfOfp_match : oxmMatch; mfInstructions : instruction list }
