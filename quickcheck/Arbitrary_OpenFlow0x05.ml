@@ -602,3 +602,75 @@ module TableMod = struct
   let size_of = TableMod.sizeof
 
 end
+
+module FlowMod = struct
+    open Gen
+    module FlowModCommand = struct
+        type t = FlowMod.FlowModCommand.t
+
+        let arbitrary =
+            let open Gen in
+            oneof [
+                        ret_gen AddFlow;
+                        ret_gen ModFlow;
+                        ret_gen ModStrictFlow;
+                        ret_gen DeleteFlow;
+                        ret_gen DeleteStrictFlow;
+                    ]
+        let to_string = FlowMod.FlowModCommand.to_string
+        let marshal = FlowMod.FlowModCommand.marshal
+        let parse = FlowMod.FlowModCommand.parse
+    end
+    type t = FlowMod.t
+
+    let arbitrary_flags =
+        arbitrary_bool >>= fun fmf_send_flow_rem ->
+        arbitrary_bool >>= fun fmf_check_overlap ->
+        arbitrary_bool >>= fun fmf_reset_counts ->
+        arbitrary_bool >>= fun fmf_no_pkt_counts ->
+        arbitrary_bool >>= fun fmf_no_byt_counts ->
+        ret_gen {
+            fmf_send_flow_rem;
+            fmf_check_overlap;
+            fmf_reset_counts;
+            fmf_no_pkt_counts;
+            fmf_no_byt_counts
+        }
+
+    let arbitrary_buffer_id = 
+        arbitrary_uint32 >>= fun bid ->
+        oneof [
+            ret_gen None;
+            ret_gen (Some bid)
+        ]
+
+    let arbitrary = 
+        arbitrary_masked arbitrary_uint64 arbitrary_64mask >>= fun mfCookie ->
+        arbitrary_uint8 >>= fun mfTable_id ->
+        arbitrary_timeout >>= fun mfIdle_timeout ->
+        arbitrary_timeout >>= fun mfHard_timeout ->
+        arbitrary_uint16 >>= fun mfPriority ->
+        arbitrary_flags >>= fun mfFlags ->
+        arbitrary_buffer_id >>= fun mfBuffer_id ->
+        FlowModCommand.arbitrary >>= fun mfCommand ->
+        PseudoPort.arbitrary_nc >>= fun mfPort ->
+        oneof [ ret_gen None; ret_gen (Some mfPort)] >>= fun mfOut_port ->
+        arbitrary_uint32 >>= fun mfGroup ->
+        oneof [ ret_gen None; ret_gen (Some mfGroup)] >>= fun mfOut_group ->
+        arbitrary_uint16 >>= fun mfImportance ->
+        OfpMatch.arbitrary >>= fun mfOfp_match ->
+        Instructions.arbitrary >>= fun mfInstructions ->
+        ret_gen {
+            mfCookie; mfTable_id;
+            mfCommand; mfIdle_timeout;
+            mfHard_timeout; mfPriority;
+            mfBuffer_id;
+            mfOut_port;
+            mfOut_group; mfFlags; mfImportance;
+            mfOfp_match; mfInstructions}
+        
+    let marshal = FlowMod.marshal
+    let parse = FlowMod.parse
+    let to_string = FlowMod.to_string
+    let size_of = FlowMod.sizeof
+end    

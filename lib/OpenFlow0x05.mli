@@ -254,6 +254,20 @@ end
 
 module FlowMod : sig
 
+  module FlowModCommand : sig
+      
+    type t = flowModCommand
+
+    val sizeof : t -> int
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    val to_string : t -> string
+
+  end
+
   type t = flowMod
 
   val sizeof : t -> int
