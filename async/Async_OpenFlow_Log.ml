@@ -29,7 +29,7 @@ let label_severity msg =
     [ prefix
     ; Log.Message.message msg ]
 
-let make_filtered_output (tags : (string * string) list) 
+let make_filtered_output (tags : (string * string) list)
   : Log.Output.t =
   let filter = filter_by_tags tags in
   Log.Output.create
@@ -56,24 +56,28 @@ let add_output outputs =
   current_outputs := outputs;
   set_output outputs
 
-let raw ?(tags=[]) fmt = Log.raw (Lazy.force log) ~tags fmt
+let raw ?(time = (Time.now ())) ?(tags=[]) fmt =
+  Log.raw (Lazy.force log) ~time ~tags fmt
 
-let info ?(tags=[]) fmt = Log.info (Lazy.force log) ~tags fmt
+let info ?(time = (Time.now ())) ?(tags=[]) fmt =
+  Log.info (Lazy.force log) ~time ~tags fmt
 
-let error ?(tags=[]) fmt = Log.error (Lazy.force log) ~tags fmt
+let error ?(time = (Time.now ())) ?(tags=[]) fmt =
+  Log.error (Lazy.force log) ~time ~tags fmt
 
-let debug ?(tags=[]) fmt = Log.debug (Lazy.force log) ~tags fmt
+let debug ?(time = (Time.now ())) ?(tags=[]) fmt =
+  Log.debug (Lazy.force log) ~time ~tags fmt
 
 let flushed () =
   Log.flushed (Lazy.force log)
 
-let printf ?(tags=[]) ?(level=`Debug) fmt =
-  Log.printf (Lazy.force log) ~tags ~level fmt
+let printf ?(level=`Debug) ?(time = (Time.now ())) ?(tags=[]) fmt =
+  Log.printf (Lazy.force log) ~time ~tags ~level fmt
 
-let of_lazy ?(tags=[]) ?(level=`Debug) lazy_str =
-  Log.of_lazy (Lazy.force log) ~tags ~level lazy_str
+let string ?(level=`Debug) ?(time = (Time.now ())) ?(tags=[]) str =
+  Log.string (Lazy.force log) ~time ~tags ~level str
 
-let sexp ?(tags=[]) ?(level=`Debug) msg =
-    Log.sexp (Lazy.force log) ~tags ~level msg
+let sexp ?(level=`Debug) ?(time = (Time.now ())) ?(tags=[]) msg =
+    Log.sexp (Lazy.force log) ~time ~tags ~level msg
 
 let message = Log.message (Lazy.force log)
