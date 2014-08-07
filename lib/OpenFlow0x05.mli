@@ -280,6 +280,33 @@ module FlowMod : sig
 
 end
 
+module Bucket : sig
+
+  type t = OpenFlow0x04_Core.bucket
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t  
+end
+
+module GroupMod : sig
+
+  type t = OpenFlow0x04_Core.groupMod
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+end
+
 module Message : sig
 
   type t =

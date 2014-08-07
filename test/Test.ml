@@ -579,6 +579,16 @@ module RoundTripping = struct
       (openflow_quickCheck GenFlowMod.arbitrary
           GenFlowMod.to_string GenFlowMod.parse GenFlowMod.marshal)
 
+  TEST "OpenFlow0x05 Bucket RoundTrip" =
+      let module GenBucket = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.Bucket) in
+      (openflow_quickCheck GenBucket.arbitrary
+          GenBucket.to_string GenBucket.parse GenBucket.marshal)
+
+  TEST "OpenFlow0x05 GroupMod RoundTrip" =
+      let module GenGroupMod = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.GroupMod) in
+      (openflow_quickCheck GenGroupMod.arbitrary
+          GenGroupMod.to_string GenGroupMod.parse GenGroupMod.marshal)
+
   TEST "OpenFlow Hello Test 1" = 
     let open Message in 
     let bs = Cstruct.create 101 in

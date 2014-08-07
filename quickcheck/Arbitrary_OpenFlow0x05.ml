@@ -674,3 +674,8 @@ module FlowMod = struct
     let to_string = FlowMod.to_string
     let size_of = FlowMod.sizeof
 end    
+
+module Bucket = Arbitrary_OpenFlow0x04.Bucket
+
+module GroupMod = Arbitrary_OpenFlow0x04.GroupMod
+

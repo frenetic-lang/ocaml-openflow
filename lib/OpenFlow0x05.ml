@@ -2263,6 +2263,11 @@ module FlowMod = struct
     (OfpMatch.to_string flow.mfOfp_match)
     (Instructions.to_string flow.mfInstructions)
 end
+
+module Bucket = OpenFlow0x04.Bucket
+
+module GroupMod = OpenFlow0x04.GroupMod
+
 module Message = struct
 
   type t =
