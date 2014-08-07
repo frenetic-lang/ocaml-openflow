@@ -547,3 +547,58 @@ module SwitchFeatures = struct
 end
 
 module SwitchConfig = Arbitrary_OpenFlow0x04.SwitchConfig
+
+module TableMod = struct
+  open Gen
+  open OpenFlow0x05_Core
+
+  module Properties = struct
+    open Gen
+    open OpenFlow0x05_Core
+
+    type t = TableMod.Properties.t
+
+    let arbitrary_eviction =
+      arbitrary_bool >>= fun other ->
+      arbitrary_bool >>= fun importance ->
+      arbitrary_bool >>= fun lifetime ->
+      ret_gen { other; importance; lifetime }
+
+    let arbitrary_vacancy =
+      arbitrary_uint8 >>= fun vacancy_down ->
+      arbitrary_uint8 >>= fun vacancy_up ->
+      arbitrary_uint8 >>= fun vacancy ->
+      ret_gen { vacancy_down; vacancy_up; vacancy }
+
+    let arbitrary = 
+      arbitrary_eviction >>= fun e ->
+      arbitrary_vacancy >>= fun v ->
+      oneof [
+         ret_gen (Eviction e);
+         ret_gen (Vacancy v)
+      ]
+
+    let marshal = TableMod.Properties.marshal
+    let parse = TableMod.Properties.parse
+    let to_string = TableMod.Properties.to_string
+    let size_of = TableMod.Properties.sizeof
+  end
+  type t = TableMod.t
+
+  let arbitrary_config =
+    arbitrary_bool >>= fun eviction ->
+    arbitrary_bool >>= fun vacancyEvent ->
+    ret_gen { eviction; vacancyEvent }
+
+  let arbitrary = 
+    arbitrary_uint8 >>= fun table_id ->
+    arbitrary_config >>= fun config ->
+    arbitrary_list Properties.arbitrary >>= fun properties ->
+    ret_gen { table_id; config ; properties }
+
+  let marshal = TableMod.marshal
+  let parse = TableMod.parse
+  let to_string = TableMod.to_string
+  let size_of = TableMod.sizeof
+
+end

@@ -153,3 +153,16 @@ type switchFlags =
   | DropFrag
   | ReasmFrag
   | MaskFrag
+
+type tableEviction = { other : bool; importance : bool; lifetime : bool }
+
+type tableVacancy = { vacancy_down : int8; vacancy_up : int8; vacancy : int8 }
+
+type tableProperties = 
+  | Eviction of tableEviction
+  | Vacancy of tableVacancy
+  | Experimenter of experimenter
+  
+type tableConfig = { eviction : bool; vacancyEvent : bool }
+
+type tableMod = { table_id : tableId; config : tableConfig; properties : tableProperties list}

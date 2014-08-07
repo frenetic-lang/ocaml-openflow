@@ -553,6 +553,17 @@ module RoundTripping = struct
       let module GenSwitchConfig = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.SwitchConfig) in
       (openflow_quickCheck GenSwitchConfig.arbitrary
           GenSwitchConfig.to_string GenSwitchConfig.parse GenSwitchConfig.marshal)
+
+  TEST "OpenFlow0x05 TableMod.Properties RoundTrip" =
+      let module GenTableProperties = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.TableMod.Properties) in
+      (openflow_quickCheck GenTableProperties.arbitrary
+          GenTableProperties.to_string GenTableProperties.parse GenTableProperties.marshal)
+
+  TEST "OpenFlow0x05 TableMod RoundTrip" =
+      let module GenTableMod = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.TableMod) in
+      (openflow_quickCheck GenTableMod.arbitrary
+          GenTableMod.to_string GenTableMod.parse GenTableMod.marshal)
+
   TEST "OpenFlow Hello Test 1" = 
     let open Message in 
     let bs = Cstruct.create 101 in

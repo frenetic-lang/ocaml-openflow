@@ -1826,6 +1826,217 @@ module SwitchFeatures = OpenFlow0x04.SwitchFeatures
 
 module SwitchConfig = OpenFlow0x04.SwitchConfig
 
+module TableMod = struct
+
+  module Properties = struct
+
+  cstruct ofp_table_mod_prop_header {
+    uint16_t typ;
+    uint16_t len
+  } as  big_endian
+
+  cenum ofp_table_mod_prop_type {
+    OFPTMPT_EVICTION = 0x2;
+    OFPTMPT_VACANCY = 0x3;
+    OFPTMPT_EXPERIMENTER   = 0xffff
+  } as uint16_t
+
+    module Eviction = struct 
+
+      cstruct ofp_table_mod_prop_eviction {
+        uint16_t typ;
+        uint16_t len;
+        uint32_t flags
+      } as  big_endian
+
+      module Flags = struct
+
+        type t = tableEviction
+
+        let marshal (t : t) : int32 =
+         Int32.logor (if t.other then (Int32.shift_left 1l 0) else 0l)  
+          (Int32.logor (if t.importance then (Int32.shift_left 1l 1) else 0l)
+           (if t.lifetime then (Int32.shift_left 1l 2) else 0l))
+
+        let parse (bits : int32) : t =
+          { other = Bits.test_bit 0 bits
+          ; importance = Bits.test_bit 1 bits
+          ; lifetime = Bits.test_bit 2 bits }
+
+      end
+
+      type t = tableEviction
+
+      let sizeof (_ : t) : int =
+        sizeof_ofp_table_mod_prop_eviction
+
+      let to_string (t : t) : string =
+        Format.sprintf "{ other = %B; importance = %B; lifetime = %B }"
+        t.other
+        t.importance
+        t.lifetime
+
+      let marshal (buf : Cstruct.t) (t : t) : int = 
+        set_ofp_table_mod_prop_eviction_typ buf (ofp_table_mod_prop_type_to_int OFPTMPT_EVICTION);
+        set_ofp_table_mod_prop_eviction_len buf (sizeof t);
+        set_ofp_table_mod_prop_eviction_flags buf (Flags.marshal t);
+        sizeof_ofp_table_mod_prop_eviction
+
+      let parse (bits : Cstruct.t) : t =
+        Flags.parse (get_ofp_table_mod_prop_eviction_flags bits)
+
+    end
+
+    module Vacancy = struct 
+
+      cstruct ofp_table_mod_prop_vacancy {
+        uint16_t typ;
+        uint16_t len;
+        uint8_t vacancy_down;
+        uint8_t vacancy_up;
+        uint8_t vacancy;
+        uint8_t pad
+      } as  big_endian  
+
+      type t = tableVacancy
+
+      let sizeof (_ : t) : int =
+        sizeof_ofp_table_mod_prop_vacancy
+
+      let to_string (t : t) : string = 
+        Format.sprintf "{ vacancy_down = %u; vacancy_up = %u; vacancy = %u }"
+        t.vacancy_down
+        t.vacancy_up
+        t.vacancy
+
+      let marshal (buf : Cstruct.t) (t : t) : int = 
+        set_ofp_table_mod_prop_vacancy_typ buf (ofp_table_mod_prop_type_to_int OFPTMPT_VACANCY);
+        set_ofp_table_mod_prop_vacancy_len buf (sizeof t);
+        set_ofp_table_mod_prop_vacancy_vacancy_down buf t.vacancy_down;
+        set_ofp_table_mod_prop_vacancy_vacancy_up buf t.vacancy_up;
+        set_ofp_table_mod_prop_vacancy_vacancy buf t.vacancy;
+        sizeof_ofp_table_mod_prop_vacancy
+
+      let parse (bits : Cstruct.t) : t =
+        { vacancy_down = get_ofp_table_mod_prop_vacancy_vacancy_down bits
+        ; vacancy_up = get_ofp_table_mod_prop_vacancy_vacancy_up bits
+        ; vacancy = get_ofp_table_mod_prop_vacancy_vacancy bits}
+
+    end
+
+    module Experimenter = struct 
+
+      cstruct ofp_table_mod_prop_experimenter {
+        uint16_t typ;
+        uint16_t len;
+        uint32_t experimenter;
+        uint32_t exp_typ
+      } as  big_endian  
+
+      type t = experimenter
+
+      let sizeof (_ : t) : int =
+        sizeof_ofp_table_mod_prop_experimenter
+
+      let to_string (t : t) : string = 
+        Format.sprintf "{ experimenter = %lu; exp_typ = %lu}"
+        t.experimenter
+        t.exp_typ
+
+      let marshal (buf : Cstruct.t) (t : t) : int = 
+        set_ofp_table_mod_prop_experimenter_typ buf (ofp_table_mod_prop_type_to_int OFPTMPT_EXPERIMENTER);
+        set_ofp_table_mod_prop_experimenter_len buf (sizeof t);
+        set_ofp_table_mod_prop_experimenter_experimenter buf t.experimenter;
+        set_ofp_table_mod_prop_experimenter_exp_typ buf t.exp_typ;
+        sizeof_ofp_table_mod_prop_experimenter
+
+      let parse (bits : Cstruct.t) : t =
+        { experimenter = get_ofp_table_mod_prop_experimenter_experimenter bits
+        ; exp_typ = get_ofp_table_mod_prop_experimenter_exp_typ bits}
+    end
+
+    type t = tableProperties
+
+    let sizeof (t : t) : int = 
+      match t with
+        | Eviction e -> Eviction.sizeof e
+        | Vacancy v -> Vacancy.sizeof v
+        | Experimenter e -> Experimenter.sizeof e
+
+    let to_string (t : t) : string = 
+      match t with
+        | Eviction e -> Format.sprintf "Eviction = %s " (Eviction.to_string e)
+        | Vacancy e -> Format.sprintf "Vacancy = %s " (Vacancy.to_string e)
+        | Experimenter e -> Format.sprintf "Experimenter = %s " (Experimenter.to_string e)
+
+    let marshal (buf : Cstruct.t) (t : t) : int =
+      match t with 
+        | Eviction e -> Eviction.marshal buf e
+        | Vacancy v -> Vacancy.marshal buf v
+        | Experimenter e -> Experimenter.marshal buf e
+
+    let parse (bits : Cstruct.t) : t = 
+      match int_to_ofp_table_mod_prop_type (get_ofp_table_mod_prop_header_typ bits) with
+        | Some OFPTMPT_EVICTION -> Eviction (Eviction.parse bits)
+        | Some OFPTMPT_VACANCY -> Vacancy (Vacancy.parse bits)
+        | Some OFPTMPT_EXPERIMENTER -> Experimenter (Experimenter.parse bits)
+        | None -> raise (Unparsable (sprintf "Malformed table mod prop type"))
+
+    let length_func (buf : Cstruct.t) : int option =
+      if Cstruct.len buf < sizeof_ofp_table_mod_prop_header then None
+      else Some (get_ofp_table_mod_prop_header_len buf)
+  end
+
+  module TableConfig = struct
+
+    type t = tableConfig
+
+    let marshal (t : t) : int32 =
+     Int32.logor (if t.eviction then (Int32.shift_left 1l 2) else 0l)  
+      (if t.vacancyEvent then (Int32.shift_left 1l 3) else 0l)
+
+    (* don't care about deprecated bits (0 and 1) *)
+    let parse (bits : int32) : t =
+      { eviction = Bits.test_bit 2 bits
+      ; vacancyEvent = Bits.test_bit 3 bits }
+
+    let to_string tc =
+      Format.sprintf "{ eviction = %B; vacancyEvent = %B }"
+      tc.eviction
+      tc.vacancyEvent
+
+  end
+
+  cstruct ofp_table_mod {
+    uint8_t table_id;
+    uint8_t pad[3];
+    uint32_t config
+  } as big_endian
+
+  type t = tableMod
+
+  let sizeof (tab : tableMod) : int =
+    sizeof_ofp_table_mod + sum (map Properties.sizeof tab.properties)
+
+  let to_string (tab : tableMod) : string =
+    Format.sprintf "{ tabled_id = %u; config = %s; properties = %s }"
+    tab.table_id
+    (TableConfig.to_string tab.config)
+    ("[ " ^ (String.concat "; " (map Properties.to_string tab.properties))^ " ]")
+
+  let marshal (buf : Cstruct.t) (tab : tableMod) : int =
+    set_ofp_table_mod_table_id buf tab.table_id;
+    set_ofp_table_mod_config buf (TableConfig.marshal tab.config);
+    sizeof_ofp_table_mod + (marshal_fields (Cstruct.shift buf sizeof_ofp_table_mod) tab.properties Properties.marshal)
+
+  let parse (bits : Cstruct.t) : tableMod =
+    let table_id = get_ofp_table_mod_table_id bits in
+    let config = TableConfig.parse (get_ofp_table_mod_config bits) in
+    let properties = parse_fields (Cstruct.shift bits sizeof_ofp_table_mod) Properties.parse Properties.length_func in
+    { table_id; config; properties }
+
+end
+
 module Message = struct
 
   type t =

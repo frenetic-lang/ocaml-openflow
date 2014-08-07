@@ -224,6 +224,34 @@ module SwitchConfig : sig
 
 end
 
+module TableMod : sig
+
+  module Properties : sig
+
+    type t = tableProperties
+
+    val sizeof : t -> int
+
+    val to_string : t -> string
+
+    val marshal : Cstruct.t -> t -> int
+
+    val parse : Cstruct.t -> t
+
+  end
+
+  type t = tableMod
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+end
+
 module Message : sig
 
   type t =
