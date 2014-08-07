@@ -309,6 +309,20 @@ end
 
 module PortMod : sig
 
+  module Properties : sig
+
+    type t = portModPropt
+
+    val sizeof : t -> int
+
+    val to_string : t -> string
+
+    val marshal : Cstruct.t -> t -> int
+
+    val parse : Cstruct.t -> t
+  
+  end
+
   type t = portMod
 
   val sizeof : t -> int

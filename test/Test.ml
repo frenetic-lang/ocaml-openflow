@@ -589,6 +589,15 @@ module RoundTripping = struct
       (openflow_quickCheck GenGroupMod.arbitrary
           GenGroupMod.to_string GenGroupMod.parse GenGroupMod.marshal)
 
+  TEST "OpenFlow0x05 PortMod.Properties RoundTrip" =
+      let module GenProperties = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.PortMod.Properties) in
+      (openflow_quickCheck GenProperties.arbitrary
+          GenProperties.to_string GenProperties.parse GenProperties.marshal)
+
+  TEST "OpenFlow0x05 PortMod RoundTrip" =
+      let module GenPortMod = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.PortMod) in
+      (openflow_quickCheck GenPortMod.arbitrary
+          GenPortMod.to_string GenPortMod.parse GenPortMod.marshal)
   TEST "OpenFlow Hello Test 1" = 
     let open Message in 
     let bs = Cstruct.create 101 in

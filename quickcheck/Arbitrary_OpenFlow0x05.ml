@@ -679,3 +679,52 @@ module Bucket = Arbitrary_OpenFlow0x04.Bucket
 
 module GroupMod = Arbitrary_OpenFlow0x04.GroupMod
 
+module PortMod = struct
+  open Gen
+
+  module Properties = struct
+    open Gen
+    type t = portModPropt
+
+    let arbitrary = 
+      oneof [
+        (PortDesc.State.arbitrary >>= fun a ->
+         ret_gen (PortModPropEthernet a));
+        (PortDesc.Properties.OptFeatures.arbitrary >>= fun configure ->
+         arbitrary_uint32 >>= fun freq_lmda ->
+         arbitrary_uint32 >>= fun fl_offset ->
+         arbitrary_uint32 >>= fun grid_span ->
+         arbitrary_uint32 >>= fun tx_pwr ->
+        ret_gen (PortModPropOptical {configure; freq_lmda; fl_offset; grid_span; tx_pwr}))
+      ]
+  
+    let to_string = PortMod.Properties.to_string
+    let marshal = PortMod.Properties.marshal
+    let parse = PortMod.Properties.parse
+    let size_of = PortMod.Properties.sizeof
+  end
+
+  type t = PortMod.t
+
+  let arbitrary = 
+    arbitrary_uint32 >>= fun mpPortNo ->
+    arbitrary_uint48 >>= fun mpHw_addr ->
+    PortDesc.Config.arbitrary >>= fun mpConfig ->
+    PortDesc.Config.arbitrary >>= fun mpMask ->
+    list1 Properties.arbitrary >>= fun mpProp ->
+    ret_gen { mpPortNo; mpHw_addr; mpConfig; mpMask; mpProp}
+    
+
+  let marshal = PortMod.marshal
+  let parse = PortMod.parse
+  let to_string = PortMod.to_string
+  let size_of = PortMod.sizeof
+
+  let marshal = PortMod.marshal
+  let parse = PortMod.parse
+  let to_string = PortMod.to_string
+  let size_of = PortMod.sizeof
+
+end
+
+
