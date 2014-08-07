@@ -2459,6 +2459,8 @@ module PortMod = struct
 
 end
 
+module MeterMod = OpenFlow0x04.MeterMod
+
 module Message = struct
 
   type t =
@@ -2475,6 +2477,7 @@ module Message = struct
     | GroupModMsg of GroupMod.t
     | TableModMsg of TableMod.t
     | PortModMsg of PortMod.t
+    | MeterModMsg of MeterMod.t
 
   let string_of_msg_code (msg : msg_code) : string = match msg with
     | HELLO -> "HELLO"
@@ -2528,6 +2531,7 @@ module Message = struct
     | GroupModMsg _ -> GROUP_MOD
     | TableModMsg _ -> TABLE_MOD
     | PortModMsg _ -> PORT_MOD
+    | MeterModMsg _ -> METER_MOD
 
   let sizeof (msg : t) : int = match msg with
     | Hello -> Header.size
@@ -2543,6 +2547,7 @@ module Message = struct
     | GroupModMsg group -> Header.size + GroupMod.sizeof group
     | TableModMsg table -> Header.size + TableMod.sizeof table
     | PortModMsg port -> Header.size + PortMod.sizeof port
+    | MeterModMsg meter -> Header.size + MeterMod.sizeof meter
 
   let to_string (msg : t) : string = match msg with
     | Hello -> "Hello"
@@ -2558,6 +2563,7 @@ module Message = struct
     | GroupModMsg _ -> "GroupMod"
     | TableModMsg _ -> "TableMod"
     | PortModMsg _ -> "PortMod"
+    | MeterModMsg _ -> "MeterMod"
 
   (* let marshal (buf : Cstruct.t) (msg : message) : int = *)
   (*   let buf2 = (Cstruct.shift buf Header.size) in *)
@@ -2593,6 +2599,8 @@ module Message = struct
         Header.size + TableMod.marshal out table
       | PortModMsg port ->
         Header.size + PortMod.marshal out port
+      | MeterModMsg meter ->
+        Header.size + MeterMod.marshal out meter
 
   let header_of xid msg =
     let open Header in
@@ -2629,6 +2637,7 @@ module Message = struct
       | GROUP_MOD -> GroupModMsg (GroupMod.parse body_bits)
       | TABLE_MOD -> TableModMsg (TableMod.parse body_bits)
       | PORT_MOD -> PortModMsg (PortMod.parse body_bits)
+      | METER_MOD -> MeterModMsg (MeterMod.parse body_bits)
       | code -> raise (Unparsable (Printf.sprintf "unexpected message type %s" (string_of_msg_code typ))) in
     (hdr.Header.xid, msg)
 end

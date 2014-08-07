@@ -335,6 +335,20 @@ module PortMod : sig
 
 end
 
+module MeterMod : sig
+
+  type t = OpenFlow0x04_Core.meterMod
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+end
+
 module Message : sig
 
   type t =
@@ -351,6 +365,7 @@ module Message : sig
     | GroupModMsg of GroupMod.t
     | TableModMsg of TableMod.t
     | PortModMsg of PortMod.t
+    | MeterModMsg of MeterMod.t
 
   val sizeof : t -> int
 
