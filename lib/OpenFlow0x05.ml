@@ -2474,6 +2474,7 @@ module Message = struct
     | FlowModMsg of FlowMod.t
     | GroupModMsg of GroupMod.t
     | TableModMsg of TableMod.t
+    | PortModMsg of PortMod.t
 
   let string_of_msg_code (msg : msg_code) : string = match msg with
     | HELLO -> "HELLO"
@@ -2526,6 +2527,7 @@ module Message = struct
     | FlowModMsg _ -> FLOW_MOD
     | GroupModMsg _ -> GROUP_MOD
     | TableModMsg _ -> TABLE_MOD
+    | PortModMsg _ -> PORT_MOD
 
   let sizeof (msg : t) : int = match msg with
     | Hello -> Header.size
@@ -2540,6 +2542,7 @@ module Message = struct
     | FlowModMsg flow -> Header.size + FlowMod.sizeof flow
     | GroupModMsg group -> Header.size + GroupMod.sizeof group
     | TableModMsg table -> Header.size + TableMod.sizeof table
+    | PortModMsg port -> Header.size + PortMod.sizeof port
 
   let to_string (msg : t) : string = match msg with
     | Hello -> "Hello"
@@ -2554,6 +2557,7 @@ module Message = struct
     | FlowModMsg _ -> "FlowMod"
     | GroupModMsg _ -> "GroupMod"
     | TableModMsg _ -> "TableMod"
+    | PortModMsg _ -> "PortMod"
 
   (* let marshal (buf : Cstruct.t) (msg : message) : int = *)
   (*   let buf2 = (Cstruct.shift buf Header.size) in *)
@@ -2587,6 +2591,8 @@ module Message = struct
         Header.size + GroupMod.marshal out group
       | TableModMsg table ->
         Header.size + TableMod.marshal out table
+      | PortModMsg port ->
+        Header.size + PortMod.marshal out port
 
   let header_of xid msg =
     let open Header in
@@ -2622,6 +2628,7 @@ module Message = struct
       | FLOW_MOD -> FlowModMsg (FlowMod.parse body_bits)
       | GROUP_MOD -> GroupModMsg (GroupMod.parse body_bits)
       | TABLE_MOD -> TableModMsg (TableMod.parse body_bits)
+      | PORT_MOD -> PortModMsg (PortMod.parse body_bits)
       | code -> raise (Unparsable (Printf.sprintf "unexpected message type %s" (string_of_msg_code typ))) in
     (hdr.Header.xid, msg)
 end

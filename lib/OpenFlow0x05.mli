@@ -350,6 +350,7 @@ module Message : sig
     | FlowModMsg of FlowMod.t
     | GroupModMsg of GroupMod.t
     | TableModMsg of TableMod.t
+    | PortModMsg of PortMod.t
 
   val sizeof : t -> int
 
