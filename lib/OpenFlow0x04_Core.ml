@@ -258,7 +258,7 @@ type pseudoPort =
   | Any
 
 type actionTyp = 
- | Output
+ | OutputAct
  | CopyTTLOut
  | CopyTTLIn
  | SetMPLSTTL
@@ -267,14 +267,14 @@ type actionTyp =
  | PopVLAN
  | PushMPLS
  | PopMPLS
- | SetQueue
- | Group
+ | SetQueueAct
+ | GroupAct
  | SetNWTTL
  | DecNWTTL
- | SetField
+ | SetFieldAct
  | PushPBB
  | PopPBB
- | Experimenter
+ | ExperimenterAct of int32
   
 type action =
 | Output of pseudoPort
@@ -296,6 +296,15 @@ type action =
 | Experimenter of int32
 
 type actionSequence = action list
+
+type instructionTyp = 
+ | GotoTableTyp
+ | ApplyActionsTyp
+ | WriteActionsTyp
+ | WriteMetadataTyp
+ | ClearTyp
+ | MeterTyp
+ | ExperimenterTyp of int32
 
 type instruction =
 | GotoTable of tableId
@@ -486,14 +495,14 @@ type queueRequest = {port_number : portId; queue_id : int32}
 type experimenter = {exp_id : int32; exp_type : int32}
 
 type tableFeatureProp =
-  | TfpInstruction of instruction list 
-  | TfpInstructionMiss of instruction list
+  | TfpInstruction of instructionTyp list 
+  | TfpInstructionMiss of instructionTyp list
   | TfpNextTable of tableId list
   | TfpNextTableMiss of tableId list
-  | TfpWriteAction of action list
-  | TfpWriteActionMiss of action list
-  | TfpApplyAction of action list
-  | TfpApplyActionMiss of action list
+  | TfpWriteAction of actionTyp list
+  | TfpWriteActionMiss of actionTyp list
+  | TfpApplyAction of actionTyp list
+  | TfpApplyActionMiss of actionTyp list
   | TfpMatch of oxm list
   | TfpWildcard of oxm list
   | TfpWriteSetField of oxm list
@@ -508,7 +517,7 @@ type tableConfig = Deprecated
 type tableFeatures = {length : int16;table_id : tableId; name : string;
                       metadata_match : int64; metadata_write : int64;
                       config : tableConfig; max_entries: int32;
-                      feature_prop : tableFeatureProp}
+                      feature_prop : tableFeatureProp list}
 
 type multipartType =
   | SwitchDescReq
