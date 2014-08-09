@@ -200,3 +200,31 @@ type portModPropt =
 
 type portMod = { mpPortNo : portId; mpHw_addr : int48; mpConfig : portConfig;
                  mpMask : portConfig; mpProp : portModPropt list }
+                 
+type flowRequest = OpenFlow0x04_Core.flowRequest
+
+type queueStatsProp = 
+  | ExperimenterQueueStats of experimenter
+
+type queueRequest = {port_number : portId; queue_id : int32; properties : queueStatsProp list}
+
+type tableFeatures = OpenFlow0x04_Core.tableFeatures
+
+type multipartType =
+  | SwitchDescReq
+  | PortsDescReq 
+  | FlowStatsReq of flowRequest
+  | AggregFlowStatsReq of flowRequest
+  | TableStatsReq
+  | PortStatsReq of portId
+  | QueueStatsReq of queueRequest
+  | GroupStatsReq of int32
+  | GroupDescReq
+  | GroupFeatReq
+  | MeterStatsReq of int32
+  | MeterConfReq of int32
+  | MeterFeatReq
+  | TableFeatReq of (tableFeatures list) option
+  | ExperimentReq of experimenter  
+
+type multipartRequest = { mpr_type : multipartType; mpr_flags : bool }

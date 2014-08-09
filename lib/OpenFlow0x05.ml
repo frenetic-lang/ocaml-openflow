@@ -2461,6 +2461,306 @@ end
 
 module MeterMod = OpenFlow0x04.MeterMod
 
+(* Multipart Messages*)
+
+module FlowRequest = OpenFlow0x04.FlowRequest
+
+module TableFeatures = OpenFlow0x04.TableFeatures
+
+cenum ofp_multipart_types {
+  OFPMP_DESC = 0;
+  OFPMP_FLOW = 1;
+  OFPMP_AGGREGATE = 2;
+  OFPMP_TABLE = 3;
+  OFPMP_PORT_STATS = 4;
+  OFPMP_QUEUE = 5;
+  OFPMP_GROUP = 6;
+  OFPMP_GROUP_DESC = 7;
+  OFPMP_GROUP_FEATURES = 8;
+  OFPMP_METER = 9;
+  OFPMP_METER_CONFIG = 10;
+  OFPMP_METER_FEATURES = 11;
+  OFPMP_TABLE_FEATURES = 12;
+  OFPMP_PORT_DESC = 13;
+  OFPMP_TABLE_DESC = 14;
+  OFPMP_QUEUE_DESC = 15;
+  OFPMP_FLOW_MONITOR = 16;
+  OFPMP_EXPERIMENTER = 0xffff
+} as uint16_t
+
+module QueueRequest = struct
+
+  cstruct ofp_queue_stats_request {
+    uint32_t port_no;
+    uint32_t queue_id
+  } as big_endian
+
+  module Properties = struct
+
+    cstruct ofp_queue_stats_prop_header {
+      uint16_t typ;
+      uint16_t len
+    } as big_endian
+
+    cenum ofp_queue_stats_prop_type {
+      OFPQSPT_EXPERIMENTER = 0xffff
+    } as uint16_t
+
+    module Experimenter = struct
+      cstruct ofp_queue_stats_prop_experimenter {
+        uint16_t typ;
+        uint16_t len;
+        uint32_t experimenter;
+        uint32_t exp_typ
+      } as big_endian
+
+      type t = experimenter
+
+      let to_string (t : t) : string =
+        Format.sprintf "{ experimenter : %lu; exp_typ : %lu }"
+         t.experimenter
+         t.exp_typ
+
+      let sizeof ( _ : t ) =
+        sizeof_ofp_queue_stats_prop_experimenter
+
+      let marshal (buf : Cstruct.t) (t : t) : int =
+        set_ofp_queue_stats_prop_experimenter_typ buf (ofp_queue_stats_prop_type_to_int OFPQSPT_EXPERIMENTER);
+        set_ofp_queue_stats_prop_experimenter_len buf sizeof_ofp_queue_stats_prop_experimenter;
+        set_ofp_queue_stats_prop_experimenter_experimenter buf t.experimenter;
+        set_ofp_queue_stats_prop_experimenter_exp_typ buf t.exp_typ;
+        sizeof_ofp_queue_stats_prop_experimenter
+
+      let parse (bits : Cstruct.t) : t =
+        { experimenter = get_ofp_queue_stats_prop_experimenter_experimenter bits
+        ; exp_typ = get_ofp_queue_stats_prop_experimenter_exp_typ bits}
+
+      end
+
+    type t = queueStatsProp
+
+    let sizeof (t : t) : int =
+      match t with 
+        | ExperimenterQueueStats e -> Experimenter.sizeof e
+
+    let to_string (t : t) : string = 
+      match t with 
+        | ExperimenterQueueStats e -> Format.sprintf "Experimenter : %s" (Experimenter.to_string e)
+
+    let length_func (buf : Cstruct.t) : int option =
+      if Cstruct.len buf < sizeof_ofp_queue_stats_prop_header then None
+      else Some (get_ofp_queue_stats_prop_header_len buf)
+
+    let marshal (buf : Cstruct.t) (t : t) =
+      match t with
+        | ExperimenterQueueStats e -> Experimenter.marshal buf e
+
+    let parse (bits : Cstruct.t) : t =
+      let typ = match int_to_ofp_queue_stats_prop_type (get_ofp_queue_stats_prop_header_typ bits) with
+        | Some v -> v
+        | None -> raise (Unparsable (sprintf "malformed prop typ")) in
+      match typ with 
+        | OFPQSPT_EXPERIMENTER -> ExperimenterQueueStats (Experimenter.parse bits)
+
+  end
+
+  type t = queueRequest
+
+  let marshal (buf : Cstruct.t) (qr : t) : int =
+    set_ofp_queue_stats_request_port_no buf qr.port_number;
+    set_ofp_queue_stats_request_queue_id buf qr.queue_id;
+    sizeof_ofp_queue_stats_request + marshal_fields (Cstruct.shift buf sizeof_ofp_queue_stats_request) qr.properties Properties.marshal
+
+  let parse (bits : Cstruct.t) : t = 
+    let portNumber = get_ofp_queue_stats_request_port_no bits in
+    let queueId = get_ofp_queue_stats_request_queue_id bits in
+    let properties = parse_fields (Cstruct.shift bits sizeof_ofp_queue_stats_request) Properties.parse Properties.length_func in
+    { port_number = portNumber
+    ; queue_id = queueId
+    ; properties = properties}
+
+  let sizeof _ = 
+      sizeof_ofp_queue_stats_request
+
+  let to_string qr =
+      Format.sprintf "{ port_no = %lu; queue_id = %lu }" qr.port_number qr.queue_id
+
+end
+
+module MultipartReq = struct
+
+  cstruct ofp_multipart_request {
+    uint16_t typ; (* One of the OFPMP_* constants. *)
+    uint16_t flags; (* OFPMPF_REQ_* flags. *)
+    uint8_t pad0;
+    uint8_t pad1;
+    uint8_t pad2;
+    uint8_t pad3
+  } as big_endian
+
+  cenum ofp_multipart_request_flags {
+    OFPMPF_REQ_MORE = 1 (* More requests to follow. *)
+  } as uint16_t
+
+  cstruct ofp_experimenter_multipart_header {
+    uint32_t experimenter;
+    uint32_t exp_type
+  } as big_endian
+
+  cstruct ofp_port_stats_request {
+    uint32_t port_no;
+    uint8_t pad[4]
+  } as big_endian
+
+  cstruct ofp_group_stats_request {
+    uint32_t group_id;
+    uint8_t pad[4]
+  } as big_endian
+
+  cstruct ofp_meter_multipart_request {
+    uint32_t meter_id;
+    uint8_t pad[4]
+  } as big_endian
+  type t = multipartRequest
+
+  let msg_code_of_request mpr = match mpr with
+    | SwitchDescReq -> OFPMP_DESC
+    | PortsDescReq -> OFPMP_PORT_DESC
+    | FlowStatsReq _ -> OFPMP_FLOW
+    | AggregFlowStatsReq _ -> OFPMP_AGGREGATE
+    | TableStatsReq -> OFPMP_TABLE
+    | PortStatsReq _ -> OFPMP_PORT_STATS
+    | QueueStatsReq _ -> OFPMP_QUEUE
+    | GroupStatsReq _ -> OFPMP_GROUP
+    | GroupDescReq -> OFPMP_GROUP_DESC
+    | GroupFeatReq -> OFPMP_GROUP_FEATURES
+    | MeterStatsReq _ -> OFPMP_METER
+    | MeterConfReq _ -> OFPMP_METER_CONFIG
+    | MeterFeatReq -> OFPMP_METER_FEATURES
+    | TableFeatReq _ -> OFPMP_TABLE_FEATURES
+    | ExperimentReq _ -> OFPMP_EXPERIMENTER
+
+  let sizeof (mpr : multipartRequest) =
+    sizeof_ofp_multipart_request + 
+    (match mpr.mpr_type with 
+       | SwitchDescReq | PortsDescReq | TableStatsReq | MeterFeatReq | GroupDescReq
+       | GroupFeatReq -> 0
+       | FlowStatsReq fr -> FlowRequest.sizeof fr 
+       | AggregFlowStatsReq fr -> FlowRequest.sizeof fr
+       | PortStatsReq _ -> sizeof_ofp_port_stats_request 
+       | QueueStatsReq q -> QueueRequest.sizeof q
+       | GroupStatsReq _ -> sizeof_ofp_group_stats_request 
+       | MeterStatsReq _  | MeterConfReq _ -> sizeof_ofp_meter_multipart_request
+       | TableFeatReq tfr -> (match tfr with
+          | None -> 0
+          | Some t -> TableFeatures.sizeof t)
+       | ExperimentReq _ -> sizeof_ofp_experimenter_multipart_header)
+
+  let to_string (mpr : multipartRequest) : string =
+    Format.sprintf "{ more = %B; typ = %s }"
+    mpr.mpr_flags
+    (match mpr.mpr_type with
+      | SwitchDescReq -> "SwitchDesc Req"
+      | PortsDescReq -> "PortDesc Req"
+      | FlowStatsReq f -> 
+          Format.sprintf "FlowStats Req %s" (FlowRequest.to_string f)
+      | AggregFlowStatsReq f -> 
+          Format.sprintf "AggregFlowStats %s Req" (FlowRequest.to_string f)
+      | TableStatsReq -> "TableStats Req"
+      | PortStatsReq p -> 
+          Format.sprintf "PortStats Req %lu" p
+      | QueueStatsReq q -> 
+          Format.sprintf "QueueStats Req %s" (QueueRequest.to_string q)
+      | GroupStatsReq g -> Format.sprintf "GroupStats Req %lu" g
+      | GroupDescReq -> "GroupDesc Req"
+      | GroupFeatReq -> "GroupFeat Req"
+      | MeterStatsReq m -> Format.sprintf "MeterStats Req %lu " m
+      | MeterConfReq m -> Format.sprintf "MeterConf Req %lu" m
+      | MeterFeatReq -> "MeterFeat Req"
+      | TableFeatReq t-> Format.sprintf "TableFeat Req %s" (match t with
+        | Some v -> TableFeatures.to_string v
+        | None -> "None" )
+      | ExperimentReq e-> Format.sprintf "Experimenter Req: id: %lu; type: %lu" e.experimenter e.exp_typ)
+
+  let marshal (buf : Cstruct.t) (mpr : multipartRequest) : int =
+    let size = sizeof_ofp_multipart_request in
+    set_ofp_multipart_request_typ buf (ofp_multipart_types_to_int (msg_code_of_request mpr.mpr_type));
+    set_ofp_multipart_request_flags buf (
+      match mpr.mpr_flags with
+        | true -> ofp_multipart_request_flags_to_int OFPMPF_REQ_MORE
+        | false -> 0);
+    set_ofp_multipart_request_pad0 buf 0;
+    set_ofp_multipart_request_pad1 buf 0;
+    set_ofp_multipart_request_pad2 buf 0;
+    set_ofp_multipart_request_pad3 buf 0;
+    let pay_buf = Cstruct.shift buf sizeof_ofp_multipart_request in
+    match mpr.mpr_type with
+      | SwitchDescReq
+      | PortsDescReq -> size
+      | FlowStatsReq f -> size + (FlowRequest.marshal pay_buf f)
+      | AggregFlowStatsReq f -> size + (FlowRequest.marshal pay_buf f)
+      | TableStatsReq -> size
+      | PortStatsReq p -> set_ofp_port_stats_request_port_no pay_buf p;
+                          size + sizeof_ofp_port_stats_request
+      | QueueStatsReq q -> size + (QueueRequest.marshal pay_buf q)
+      | GroupStatsReq g -> set_ofp_port_stats_request_port_no pay_buf g;
+                           size + sizeof_ofp_port_stats_request
+      | GroupDescReq
+      | GroupFeatReq -> size
+      | MeterStatsReq m -> set_ofp_meter_multipart_request_meter_id pay_buf m;
+                           size + sizeof_ofp_meter_multipart_request
+      | MeterConfReq m -> set_ofp_meter_multipart_request_meter_id pay_buf m;
+                          size + sizeof_ofp_meter_multipart_request
+      | MeterFeatReq -> size
+      | TableFeatReq t -> 
+        (match t with
+          | None -> 0
+          | Some v -> size + (TableFeatures.marshal pay_buf v))
+      | ExperimentReq _ -> size
+
+  let parse (bits : Cstruct.t) : multipartRequest =
+    let mprType = int_to_ofp_multipart_types (get_ofp_multipart_request_typ bits) in
+    let mpr_flags = (
+      match int_to_ofp_multipart_request_flags (get_ofp_multipart_request_flags bits) with
+        | Some OFPMPF_REQ_MORE -> true
+        | _ -> false) in
+    let mpr_type = match mprType with
+      | Some OFPMP_DESC -> SwitchDescReq
+      | Some OFPMP_PORT_DESC -> PortsDescReq
+      | Some OFPMP_FLOW -> FlowStatsReq (
+        FlowRequest.parse (Cstruct.shift bits sizeof_ofp_multipart_request))
+      | Some OFPMP_AGGREGATE -> AggregFlowStatsReq (
+        FlowRequest.parse (Cstruct.shift bits sizeof_ofp_multipart_request))
+      | Some OFPMP_TABLE -> TableStatsReq
+      | Some OFPMP_PORT_STATS -> PortStatsReq (
+        get_ofp_port_stats_request_port_no (Cstruct.shift bits sizeof_ofp_multipart_request))
+      | Some OFPMP_QUEUE -> QueueStatsReq (
+        QueueRequest.parse (Cstruct.shift bits sizeof_ofp_multipart_request))
+      | Some OFPMP_GROUP -> GroupStatsReq (
+        get_ofp_group_stats_request_group_id (Cstruct.shift bits sizeof_ofp_multipart_request))
+      | Some OFPMP_GROUP_DESC -> GroupDescReq
+      | Some OFPMP_GROUP_FEATURES -> GroupFeatReq
+      | Some OFPMP_METER -> MeterStatsReq (
+        get_ofp_meter_multipart_request_meter_id (Cstruct.shift bits sizeof_ofp_multipart_request))
+      | Some OFPMP_METER_CONFIG -> MeterConfReq (
+        get_ofp_meter_multipart_request_meter_id (Cstruct.shift bits sizeof_ofp_multipart_request))
+      | Some OFPMP_METER_FEATURES -> MeterFeatReq
+      | Some OFPMP_TABLE_FEATURES -> TableFeatReq (
+      if Cstruct.len bits <= sizeof_ofp_multipart_request then None
+      else Some (
+        TableFeatures.parse (Cstruct.shift bits sizeof_ofp_multipart_request)
+      ))
+      | Some OFPMP_EXPERIMENTER -> ExperimentReq (
+      let exp_bits = Cstruct.shift bits sizeof_ofp_multipart_request in
+      let exp_id = get_ofp_experimenter_multipart_header_experimenter exp_bits in
+      let exp_type = get_ofp_experimenter_multipart_header_exp_type exp_bits in
+      {experimenter = exp_id; exp_typ = exp_type})
+      | _ -> raise (Unparsable (sprintf "bad ofp_multipart_types number"))
+    in {mpr_type; mpr_flags}
+
+
+end
+
 module Message = struct
 
   type t =
