@@ -2639,12 +2639,14 @@ module MultipartReq = struct
     | MeterFeatReq -> OFPMP_METER_FEATURES
     | TableFeatReq _ -> OFPMP_TABLE_FEATURES
     | ExperimentReq _ -> OFPMP_EXPERIMENTER
+    | TableDescReq -> OFPMP_TABLE_DESC
 
   let sizeof (mpr : multipartRequest) =
     sizeof_ofp_multipart_request + 
     (match mpr.mpr_type with 
        | SwitchDescReq | PortsDescReq | TableStatsReq | MeterFeatReq | GroupDescReq
-       | GroupFeatReq -> 0
+       | GroupFeatReq
+       | TableDescReq -> 0
        | FlowStatsReq fr -> FlowRequest.sizeof fr 
        | AggregFlowStatsReq fr -> FlowRequest.sizeof fr
        | PortStatsReq _ -> sizeof_ofp_port_stats_request 
@@ -2654,7 +2656,7 @@ module MultipartReq = struct
        | TableFeatReq tfr -> (match tfr with
           | None -> 0
           | Some t -> TableFeatures.sizeof t)
-       | ExperimentReq _ -> sizeof_ofp_experimenter_multipart_header)
+       | ExperimentReq _ -> sizeof_ofp_experimenter_multipart_header )
 
   let to_string (mpr : multipartRequest) : string =
     Format.sprintf "{ more = %B; typ = %s }"
@@ -2680,7 +2682,8 @@ module MultipartReq = struct
       | TableFeatReq t-> Format.sprintf "TableFeat Req %s" (match t with
         | Some v -> TableFeatures.to_string v
         | None -> "None" )
-      | ExperimentReq e-> Format.sprintf "Experimenter Req: id: %lu; type: %lu" e.experimenter e.exp_typ)
+      | ExperimentReq e-> Format.sprintf "Experimenter Req: id: %lu; type: %lu" e.experimenter e.exp_typ
+      | TableDescReq -> "TableDesc Req" )
 
   let marshal (buf : Cstruct.t) (mpr : multipartRequest) : int =
     let size = sizeof_ofp_multipart_request in
@@ -2717,6 +2720,7 @@ module MultipartReq = struct
           | None -> 0
           | Some v -> size + (TableFeatures.marshal pay_buf v))
       | ExperimentReq _ -> size
+      | TableDescReq -> size
 
   let parse (bits : Cstruct.t) : multipartRequest =
     let mprType = int_to_ofp_multipart_types (get_ofp_multipart_request_typ bits) in
@@ -2755,6 +2759,7 @@ module MultipartReq = struct
       let exp_id = get_ofp_experimenter_multipart_header_experimenter exp_bits in
       let exp_type = get_ofp_experimenter_multipart_header_exp_type exp_bits in
       {experimenter = exp_id; exp_typ = exp_type})
+      | Some OFPMP_TABLE_DESC -> TableDescReq
       | _ -> raise (Unparsable (sprintf "bad ofp_multipart_types number"))
     in {mpr_type; mpr_flags}
 

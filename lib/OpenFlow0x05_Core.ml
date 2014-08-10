@@ -228,6 +228,7 @@ type multipartType =
   | MeterConfReq of int32
   | MeterFeatReq
   | TableFeatReq of (tableFeatures list) option
-  | ExperimentReq of experimenter  
+  | ExperimentReq of experimenter
+  | TableDescReq  
 
 type multipartRequest = { mpr_type : multipartType; mpr_flags : bool }
