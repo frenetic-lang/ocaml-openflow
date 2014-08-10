@@ -213,6 +213,8 @@ type queueRequest = {port_number : portId; queue_id : int32; properties : queueS
 
 type tableFeatures = OpenFlow0x04_Core.tableFeatures
 
+type queueDescRequest = { port_no : pseudoPort; queue_id : int32 }
+
 type multipartType =
   | SwitchDescReq
   | PortsDescReq 
@@ -230,5 +232,6 @@ type multipartType =
   | TableFeatReq of (tableFeatures list) option
   | ExperimentReq of experimenter
   | TableDescReq  
+  | QueueDescReq of queueDescRequest
 
 type multipartRequest = { mpr_type : multipartType; mpr_flags : bool }

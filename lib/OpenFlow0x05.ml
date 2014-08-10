@@ -2587,6 +2587,35 @@ module QueueRequest = struct
 
 end
 
+module QueueDescReq = struct
+
+  cstruct ofp_queue_desc_request {
+    uint32_t port_no;
+    uint32_t queue_id
+  } as big_endian
+  
+  type t = queueDescRequest
+
+  let sizeof ( _ : t) =
+    sizeof_ofp_queue_desc_request
+
+  let to_string (t : t) = 
+    Format.sprintf "{ port_no = %s; queue_id = %lu }"
+    (PseudoPort.to_string t.port_no)
+    t.queue_id
+
+  let marshal (buf : Cstruct.t) (t : t) : int =
+    set_ofp_queue_desc_request_port_no buf (PseudoPort.marshal t.port_no);
+    set_ofp_queue_desc_request_queue_id buf t.queue_id;
+    sizeof_ofp_queue_desc_request
+
+  let parse (bits : Cstruct.t) : t =
+    let port_no = PseudoPort.make (get_ofp_queue_desc_request_port_no bits) 0 in
+    let queue_id = get_ofp_queue_desc_request_queue_id bits in 
+    {port_no; queue_id}
+
+end
+
 module MultipartReq = struct
 
   cstruct ofp_multipart_request {
@@ -2640,6 +2669,7 @@ module MultipartReq = struct
     | TableFeatReq _ -> OFPMP_TABLE_FEATURES
     | ExperimentReq _ -> OFPMP_EXPERIMENTER
     | TableDescReq -> OFPMP_TABLE_DESC
+    | QueueDescReq _ -> OFPMP_QUEUE_DESC
 
   let sizeof (mpr : multipartRequest) =
     sizeof_ofp_multipart_request + 
@@ -2653,6 +2683,7 @@ module MultipartReq = struct
        | QueueStatsReq q -> QueueRequest.sizeof q
        | GroupStatsReq _ -> sizeof_ofp_group_stats_request 
        | MeterStatsReq _  | MeterConfReq _ -> sizeof_ofp_meter_multipart_request
+       | QueueDescReq q -> QueueDescReq.sizeof q
        | TableFeatReq tfr -> (match tfr with
           | None -> 0
           | Some t -> TableFeatures.sizeof t)
@@ -2683,7 +2714,8 @@ module MultipartReq = struct
         | Some v -> TableFeatures.to_string v
         | None -> "None" )
       | ExperimentReq e-> Format.sprintf "Experimenter Req: id: %lu; type: %lu" e.experimenter e.exp_typ
-      | TableDescReq -> "TableDesc Req" )
+      | TableDescReq -> "TableDesc Req" 
+      | QueueDescReq q -> QueueDescReq.to_string q)
 
   let marshal (buf : Cstruct.t) (mpr : multipartRequest) : int =
     let size = sizeof_ofp_multipart_request in
@@ -2721,6 +2753,7 @@ module MultipartReq = struct
           | Some v -> size + (TableFeatures.marshal pay_buf v))
       | ExperimentReq _ -> size
       | TableDescReq -> size
+      | QueueDescReq q -> size + (QueueDescReq.marshal pay_buf q)
 
   let parse (bits : Cstruct.t) : multipartRequest =
     let mprType = int_to_ofp_multipart_types (get_ofp_multipart_request_typ bits) in
@@ -2760,6 +2793,7 @@ module MultipartReq = struct
       let exp_type = get_ofp_experimenter_multipart_header_exp_type exp_bits in
       {experimenter = exp_id; exp_typ = exp_type})
       | Some OFPMP_TABLE_DESC -> TableDescReq
+      | Some OFPMP_QUEUE_DESC -> QueueDescReq (QueueDescReq.parse (Cstruct.shift bits sizeof_ofp_multipart_request))
       | _ -> raise (Unparsable (sprintf "bad ofp_multipart_types number"))
     in {mpr_type; mpr_flags}
 
