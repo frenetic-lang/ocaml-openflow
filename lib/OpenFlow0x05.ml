@@ -2616,6 +2616,113 @@ module QueueDescReq = struct
 
 end
 
+module FlowMonitorRequest = struct
+
+  cstruct ofp_flow_monitor_request {
+    uint32_t monitor_id;
+    uint32_t out_port;
+    uint32_t out_group;
+    uint16_t flags;
+    uint8_t table_id;
+    uint8_t command
+  } as big_endian
+
+  module Command = struct
+
+    cenum ofp_flow_monitor_command {
+      OFPFMC_ADD = 0;
+      OFPFMC_MODIFY = 1;
+      OFPFMC_DELETE = 2
+    } as uint8_t
+
+    let to_string (t : flowMonitorCommand) =
+      match t with
+        | FMonAdd -> "Add"
+        | FMonModify -> "Modify"
+        | FMonDelete -> "Delete"
+
+    let marshal (t : flowMonitorCommand) = 
+      match t with
+        | FMonAdd -> ofp_flow_monitor_command_to_int OFPFMC_ADD
+        | FMonModify -> ofp_flow_monitor_command_to_int OFPFMC_MODIFY
+        | FMonDelete -> ofp_flow_monitor_command_to_int OFPFMC_DELETE
+
+    let parse bits : flowMonitorCommand = 
+      match int_to_ofp_flow_monitor_command bits with
+        | Some OFPFMC_ADD -> FMonAdd
+        | Some OFPFMC_MODIFY -> FMonModify
+        | Some OFPFMC_DELETE -> FMonDelete
+        | None -> raise (Unparsable (sprintf "malformed command"))
+
+  end
+
+  module Flags = struct
+    let marshal (f : flowMonitorFlags) = 
+      (if f.fmInitial then 1 lsl 0 else 0) lor
+        (if f.fmAdd then 1 lsl 1 else 0) lor
+         (if f.fmRemoved then 1 lsl 2 else 0) lor
+          (if f.fmModify then 1 lsl 3 else 0) lor
+           (if f.fmInstructions then 1 lsl 4 else 0) lor
+            (if f.fmNoAbvrev then 1 lsl 5 else 0) lor
+             (if f.fmOnlyOwn then 1 lsl 6 else 0)
+
+    let parse bits : flowMonitorFlags = 
+      { fmInitial = test_bit16 0 bits
+      ; fmAdd = test_bit16 1 bits
+      ; fmRemoved = test_bit16 2 bits
+      ; fmModify = test_bit16 3 bits
+      ; fmInstructions = test_bit16 4 bits
+      ; fmNoAbvrev = test_bit16 5 bits
+      ; fmOnlyOwn = test_bit16 6 bits}
+
+    let to_string (f : flowMonitorFlags) = 
+      Format.sprintf "{ initial = %B; add = %B; removed = %B; modify = %B; instructions = %B\
+                        no_abbrev = %B; only_own = %B }"
+      f.fmInitial
+      f.fmAdd
+      f.fmRemoved
+      f.fmModify
+      f.fmInstructions
+      f.fmNoAbvrev
+      f.fmOnlyOwn
+  end
+  
+  type t = flowMonitorReq
+
+  let sizeof (t : t) = 
+    sizeof_ofp_flow_monitor_request +  (OfpMatch.sizeof t.fmMatch)
+
+  let to_string (t : t) = 
+    Format.sprintf "{ monitor_id = %lu; out_port = %s; out_group = %lu; flags = %s\
+                      table_id = %u; command = %s; match = %s }"
+    t.fmMonitor_id
+    (PseudoPort.to_string t.fmOut_port)
+    t.fmOut_group
+    (Flags.to_string t.fmFlags)
+    t.fmTable_id
+    (Command.to_string t.fmCommand)
+    (OfpMatch.to_string t.fmMatch)
+
+  let marshal (buf : Cstruct.t) (t : t) : int =
+    set_ofp_flow_monitor_request_monitor_id buf t.fmMonitor_id;
+    set_ofp_flow_monitor_request_out_port buf (PseudoPort.marshal t.fmOut_port);
+    set_ofp_flow_monitor_request_out_group buf t.fmOut_group;
+    set_ofp_flow_monitor_request_flags buf (Flags.marshal t.fmFlags);
+    set_ofp_flow_monitor_request_table_id buf t.fmTable_id;
+    set_ofp_flow_monitor_request_command buf (Command.marshal t.fmCommand);
+    sizeof_ofp_flow_monitor_request + (OfpMatch.marshal (Cstruct.shift buf sizeof_ofp_flow_monitor_request) t.fmMatch)
+
+  let parse (bits : Cstruct.t) : t = 
+    { fmMonitor_id = get_ofp_flow_monitor_request_monitor_id bits
+    ; fmOut_port = PseudoPort.make (get_ofp_flow_monitor_request_out_port bits) 0
+    ; fmOut_group = get_ofp_flow_monitor_request_out_group bits
+    ; fmFlags = Flags.parse (get_ofp_flow_monitor_request_flags bits)
+    ; fmTable_id = get_ofp_flow_monitor_request_table_id bits
+    ; fmCommand = Command.parse (get_ofp_flow_monitor_request_command bits)
+    ; fmMatch = (let ret,_ = OfpMatch.parse (Cstruct.shift bits sizeof_ofp_flow_monitor_request) in ret)
+    }
+end
+
 module MultipartReq = struct
 
   cstruct ofp_multipart_request {
@@ -2670,6 +2777,7 @@ module MultipartReq = struct
     | ExperimentReq _ -> OFPMP_EXPERIMENTER
     | TableDescReq -> OFPMP_TABLE_DESC
     | QueueDescReq _ -> OFPMP_QUEUE_DESC
+    | FlowMonitorReq _ -> OFPMP_FLOW_MONITOR
 
   let sizeof (mpr : multipartRequest) =
     sizeof_ofp_multipart_request + 
@@ -2687,6 +2795,7 @@ module MultipartReq = struct
        | TableFeatReq tfr -> (match tfr with
           | None -> 0
           | Some t -> TableFeatures.sizeof t)
+       | FlowMonitorReq f -> FlowMonitorRequest.sizeof f
        | ExperimentReq _ -> sizeof_ofp_experimenter_multipart_header )
 
   let to_string (mpr : multipartRequest) : string =
@@ -2715,7 +2824,8 @@ module MultipartReq = struct
         | None -> "None" )
       | ExperimentReq e-> Format.sprintf "Experimenter Req: id: %lu; type: %lu" e.experimenter e.exp_typ
       | TableDescReq -> "TableDesc Req" 
-      | QueueDescReq q -> QueueDescReq.to_string q)
+      | QueueDescReq q -> QueueDescReq.to_string q
+      | FlowMonitorReq f -> FlowMonitorRequest.to_string f)
 
   let marshal (buf : Cstruct.t) (mpr : multipartRequest) : int =
     let size = sizeof_ofp_multipart_request in
@@ -2754,6 +2864,7 @@ module MultipartReq = struct
       | ExperimentReq _ -> size
       | TableDescReq -> size
       | QueueDescReq q -> size + (QueueDescReq.marshal pay_buf q)
+      | FlowMonitorReq f -> size + (FlowMonitorRequest.marshal pay_buf f)
 
   let parse (bits : Cstruct.t) : multipartRequest =
     let mprType = int_to_ofp_multipart_types (get_ofp_multipart_request_typ bits) in
@@ -2794,6 +2905,7 @@ module MultipartReq = struct
       {experimenter = exp_id; exp_typ = exp_type})
       | Some OFPMP_TABLE_DESC -> TableDescReq
       | Some OFPMP_QUEUE_DESC -> QueueDescReq (QueueDescReq.parse (Cstruct.shift bits sizeof_ofp_multipart_request))
+      | Some OFPMP_FLOW_MONITOR -> FlowMonitorReq (FlowMonitorRequest.parse (Cstruct.shift bits sizeof_ofp_multipart_request))
       | _ -> raise (Unparsable (sprintf "bad ofp_multipart_types number"))
     in {mpr_type; mpr_flags}
 

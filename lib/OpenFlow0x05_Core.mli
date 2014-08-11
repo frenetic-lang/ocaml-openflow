@@ -212,6 +212,18 @@ type tableFeatures = OpenFlow0x04_Core.tableFeatures
 
 type queueDescRequest = { port_no : pseudoPort; queue_id : int32 }
 
+type flowMonitorFlags = { fmInitial : bool; fmAdd : bool; fmRemoved : bool; fmModify : bool;
+                          fmInstructions : bool; fmNoAbvrev : bool; fmOnlyOwn : bool }
+
+type flowMonitorCommand =
+  | FMonAdd
+  | FMonModify
+  | FMonDelete
+
+type flowMonitorReq = { fmMonitor_id : int32; fmOut_port : pseudoPort; fmOut_group : int32;
+                        fmFlags : flowMonitorFlags; fmTable_id : int16; fmCommand : 
+                        flowMonitorCommand; fmMatch : oxmMatch}
+
 type multipartType =
   | SwitchDescReq
   | PortsDescReq 
@@ -230,5 +242,6 @@ type multipartType =
   | ExperimentReq of experimenter
   | TableDescReq
   | QueueDescReq of queueDescRequest
+  | FlowMonitorReq of flowMonitorReq
 
 type multipartRequest = { mpr_type : multipartType; mpr_flags : bool }
