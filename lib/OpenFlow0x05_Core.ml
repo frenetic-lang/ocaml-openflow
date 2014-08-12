@@ -296,6 +296,51 @@ type meterConfig = OpenFlow0x04_Core.meterConfig
 
 type meterFeaturesStats = OpenFlow0x04_Core.meterFeaturesStats
 
+type tableDescReply = tableMod
+
+type rateQueue =
+  | Rate of int16
+  | Disabled
+
+type queueDescProp = 
+  | QueueDescPropMinRate of rateQueue
+  | QueueDescPropMaxRate of rateQueue
+  | QueueDescPropExperimenter of experimenter
+
+type queueDescReply = { port_no : portId; queue_id : int32; properties : queueDescProp list } 
+
+type updateEvent =
+  | InitialUpdate
+  | AddedUpdate
+  | RemovedUpdate
+  | ModifiedUpdate
+
+type flowReason = 
+  | FlowIdleTimeout
+  | FlowHardTiemout
+  | FlowDelete
+  | FlowGroupDelete
+  | FlowMeterDelete
+  | FlowEviction
+
+type flowRemoved = { cookie : int64; priority : int16; reason : flowReason;
+                     table_id : tableId; duration_sec : int32; duration_nsec : int32;
+                     idle_timeout : timeout; hard_timeout : timeout; packet_count : int64;
+                     byte_count : int64; oxm : oxmMatch }
+
+type fmUpdateFull = { event : updateEvent; table_id : tableId; reason : flowReason; 
+                      idle_timeout : timeout; hard_timeout : timeout; priority : int16;
+                      cookie : int64; updateMatch : oxmMatch; instructions : instruction list}
+
+type pauseEvent = 
+  | Pause
+  | Resume
+
+type flowMonitorReply = 
+  | FmUpdateFull of fmUpdateFull
+  | FmAbbrev of int32
+  | FmPaused of pauseEvent
+
 type multipartReplyTyp = 
   | PortsDescReply of portDesc list
   | SwitchDescReply of switchDesc
@@ -311,5 +356,8 @@ type multipartReplyTyp =
   | MeterReply of meterStats list
   | MeterConfig of meterConfig list
   | MeterFeaturesReply of meterFeaturesStats
+  | TableDescReply of tableDescReply list
+  | QueueDescReply of queueDescReply list
+  | FlowMonitorReply of flowMonitorReply list
 
 type multipartReply = {mpreply_typ : multipartReplyTyp; mpreply_flags : bool}

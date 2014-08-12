@@ -2461,6 +2461,131 @@ end
 
 module MeterMod = OpenFlow0x04.MeterMod
 
+
+module FlowRemoved = struct
+
+  module Reason = struct
+
+    cenum ofp_flow_removed_reason {
+      OFPRR_IDLE_TIMEOUT = 0;
+      OFPRR_HARD_TIMEOUT = 1;
+      OFPRR_DELETE = 2;
+      OFPRR_GROUP_DELETE = 3;
+      OFPRR_METER_DELETE = 4;
+      OFPRR_EVICTION = 5
+    } as uint8_t
+
+    type t = flowReason
+
+    let to_string (t : flowReason) : string =
+      match t with
+        | FlowIdleTimeout -> "IDLE_TIMEOUT"
+        | FlowHardTiemout -> "HARD_TIMEOUT"
+        | FlowDelete -> "DELETE"
+        | FlowGroupDelete -> "GROUP_DELETE"
+        | FlowMeterDelete -> "METER_DELETE"
+        | FlowEviction -> "EVICTION"
+
+    let marshal (t : flowReason) : int8 =
+      match t with
+        | FlowIdleTimeout -> ofp_flow_removed_reason_to_int OFPRR_IDLE_TIMEOUT
+        | FlowHardTiemout -> ofp_flow_removed_reason_to_int OFPRR_HARD_TIMEOUT
+        | FlowDelete -> ofp_flow_removed_reason_to_int OFPRR_DELETE
+        | FlowGroupDelete -> ofp_flow_removed_reason_to_int OFPRR_GROUP_DELETE
+        | FlowMeterDelete -> ofp_flow_removed_reason_to_int OFPRR_METER_DELETE
+        | FlowEviction -> ofp_flow_removed_reason_to_int OFPRR_EVICTION
+
+    let parse bits : flowReason =
+      match (int_to_ofp_flow_removed_reason bits) with
+        | Some OFPRR_IDLE_TIMEOUT -> FlowIdleTimeout
+        | Some OFPRR_HARD_TIMEOUT -> FlowHardTiemout
+        | Some OFPRR_DELETE -> FlowDelete
+        | Some OFPRR_GROUP_DELETE -> FlowGroupDelete
+        | Some OFPRR_METER_DELETE -> FlowMeterDelete
+        | Some OFPRR_EVICTION -> FlowEviction
+        | None -> raise (Unparsable (sprintf "malformed reason"))
+  
+  end
+
+  cstruct ofp_flow_removed {
+    uint64_t cookie;
+    uint16_t priority;
+    uint8_t reason;
+    uint8_t table_id;
+    uint32_t duration_sec;
+    uint32_t duration_nsec;
+    uint16_t idle_timeout;
+    uint16_t hard_timeout;
+    uint64_t packet_count;
+    uint64_t byte_count
+  } as big_endian
+
+  type t = flowRemoved
+
+  let sizeof (f : flowRemoved) : int =
+    sizeof_ofp_flow_removed + (OfpMatch.sizeof f.oxm)
+
+  let to_string (f : flowRemoved) : string =
+   Format.sprintf "{ cookie = %Lu; priotity = %u; reason = %s; table_id = %u;\
+   duration s/ns = %lu/%lu; idle_timeout = %s; hard_timeout = %s; packet_count = %Lu;\
+   byte_count = %Lu; match = %s }"
+   f.cookie
+   f.priority
+   (Reason.to_string f.reason)
+   f.table_id
+   f.duration_sec
+   f.duration_nsec
+   (match f.idle_timeout with
+      | Permanent -> "Permanent"
+      | ExpiresAfter t-> string_of_int t)
+   (match f.hard_timeout with
+      | Permanent -> "Permanent"
+      | ExpiresAfter t-> string_of_int t)
+   f.packet_count
+   f.byte_count
+   (OfpMatch.to_string f.oxm)
+
+   let marshal (buf : Cstruct.t) (f : flowRemoved) : int =
+     set_ofp_flow_removed_cookie buf f.cookie;
+     set_ofp_flow_removed_priority buf f.priority;
+     set_ofp_flow_removed_reason buf (Reason.marshal f.reason);
+     set_ofp_flow_removed_table_id buf f.table_id;
+     set_ofp_flow_removed_duration_sec buf f.duration_sec;
+     set_ofp_flow_removed_duration_nsec buf f.duration_nsec;
+     set_ofp_flow_removed_idle_timeout buf (match f.idle_timeout with
+                                              | Permanent -> 0
+                                              | ExpiresAfter v -> v);
+     set_ofp_flow_removed_hard_timeout buf (match f.hard_timeout with
+                                              | Permanent -> 0
+                                              | ExpiresAfter v -> v);
+     set_ofp_flow_removed_packet_count buf f.packet_count;
+     set_ofp_flow_removed_byte_count buf f.byte_count;
+     let oxm_buf = Cstruct.shift buf sizeof_ofp_flow_removed in
+     sizeof_ofp_flow_removed + (OfpMatch.marshal oxm_buf f.oxm)
+
+   let parse (bits : Cstruct.t) : flowRemoved = 
+     let cookie = get_ofp_flow_removed_cookie bits in
+     let priority = get_ofp_flow_removed_priority bits in
+     let reason = Reason.parse (get_ofp_flow_removed_reason bits) in
+     let table_id = get_ofp_flow_removed_table_id bits in
+     let duration_sec = get_ofp_flow_removed_duration_sec bits in
+     let duration_nsec = get_ofp_flow_removed_duration_nsec bits in
+     let idle_timeout = match (get_ofp_flow_removed_idle_timeout bits) with
+                         | 0 -> Permanent 
+                         | n -> ExpiresAfter n in
+     let hard_timeout = match (get_ofp_flow_removed_hard_timeout bits) with
+                         | 0 -> Permanent 
+                         | n -> ExpiresAfter n in
+     let packet_count = get_ofp_flow_removed_packet_count bits in
+     let byte_count = get_ofp_flow_removed_byte_count bits in
+     let oxm,_ = OfpMatch.parse (Cstruct.shift bits sizeof_ofp_flow_removed) in
+     { cookie; priority; reason; table_id; duration_sec; duration_nsec; idle_timeout;
+       hard_timeout; packet_count; byte_count; oxm }
+     
+
+end
+
+
 (* Multipart Messages*)
 
 module FlowRequest = OpenFlow0x04.FlowRequest
@@ -2723,7 +2848,7 @@ module MultipartReq = struct
       | MeterStatsReq m -> Format.sprintf "MeterStats Req %lu " m
       | MeterConfReq m -> Format.sprintf "MeterConf Req %lu" m
       | MeterFeatReq -> "MeterFeat Req"
-      | TableFeatReq t-> Format.sprintf "TableFeat Req %s" (match t with
+      | TableFeatReq t -> Format.sprintf "TableFeat Req %s" (match t with
         | Some v -> TableFeatures.to_string v
         | None -> "None" )
       | ExperimentReq e-> Format.sprintf "Experimenter Req: id: %lu; type: %lu" e.experimenter e.exp_typ
@@ -3262,6 +3387,431 @@ module MeterFeaturesStats = OpenFlow0x04.MeterFeaturesStats
 
 module SwitchDescriptionReply = OpenFlow0x04.SwitchDescriptionReply
 
+module TableDescReply = struct
+
+  cstruct ofp_table_desc {
+    uint16_t len;
+    uint8_t table_id;
+    uint8_t pad;
+    uint32_t config
+  } as big_endian
+
+  type t = tableDescReply
+
+  let sizeof (tab : t) : int =
+    sizeof_ofp_table_desc + sum (map TableMod.Properties.sizeof tab.properties)
+
+  let to_string (tab : t) : string =
+    Format.sprintf "{ tabled_id = %u; config = %s; properties = %s }"
+    tab.table_id
+    (TableMod.TableConfig.to_string tab.config)
+    ("[ " ^ (String.concat "; " (map TableMod.Properties.to_string tab.properties))^ " ]")
+
+  let marshal (buf : Cstruct.t) (tab : t) : int =
+    set_ofp_table_desc_table_id buf tab.table_id;
+    set_ofp_table_desc_config buf (TableMod.TableConfig.marshal tab.config);
+    sizeof_ofp_table_desc + (marshal_fields (Cstruct.shift buf sizeof_ofp_table_desc) tab.properties TableMod.Properties.marshal)
+
+  let parse (bits : Cstruct.t) : t =
+    let table_id = get_ofp_table_desc_table_id bits in
+    let config = TableMod.TableConfig.parse (get_ofp_table_desc_config bits) in
+    let properties = parse_fields (Cstruct.shift bits sizeof_ofp_table_desc) TableMod.Properties.parse TableMod.Properties.length_func in
+    { table_id; config; properties }
+
+  let length_func (buf : Cstruct.t) : int option =
+    if Cstruct.len buf < sizeof_ofp_table_desc then None
+    else Some (get_ofp_table_desc_len buf)
+
+end
+
+module QueueDescReply  = struct
+
+  module Properties = struct
+
+    cenum ofp_queue_desc_prop_type {
+      OFPQDPT_MIN_RATE = 1;
+      OFPQDPT_MAX_RATE = 2;
+      OFPQDPT_EXPERIMENTER = 0xffff
+    } as uint16_t
+
+    module MinRate = struct
+
+      cstruct ofp_queue_desc_prop_min_rate {
+        uint16_t typ;
+        uint16_t len;
+        uint16_t rate;
+        uint8_t pad[2]
+      } as big_endian
+
+      type t = rateQueue
+
+      let sizeof (_ : t) =
+        sizeof_ofp_queue_desc_prop_min_rate
+
+      let to_string (t : t) = 
+        match t with
+          | Rate n -> string_of_int n
+          | Disabled -> "Disabled"
+
+      let marshal (buf : Cstruct.t) (t : t) =
+        set_ofp_queue_desc_prop_min_rate_typ buf (ofp_queue_desc_prop_type_to_int OFPQDPT_MIN_RATE);
+        set_ofp_queue_desc_prop_min_rate_len buf sizeof_ofp_queue_desc_prop_min_rate;
+        set_ofp_queue_desc_prop_min_rate_rate buf (
+          match t with 
+            | Rate n -> n
+            | Disabled -> 0xffff);
+        sizeof_ofp_queue_desc_prop_min_rate
+
+      let parse (bits : Cstruct.t) : t = 
+        let rate = get_ofp_queue_desc_prop_min_rate_rate bits in
+        if rate > 1000 then Disabled
+        else Rate rate
+
+    end
+
+    module MaxRate = struct
+
+      cstruct ofp_queue_desc_prop_max_rate {
+        uint16_t typ;
+        uint16_t len;
+        uint16_t rate;
+        uint8_t pad[2]
+      } as big_endian
+
+      type t = rateQueue
+
+      let sizeof (_ : t) =
+        sizeof_ofp_queue_desc_prop_max_rate
+
+      let to_string (t : t) = 
+        match t with
+          | Rate n -> string_of_int n
+          | Disabled -> "Disabled"
+
+      let marshal (buf : Cstruct.t) (t : t) =
+        set_ofp_queue_desc_prop_max_rate_typ buf (ofp_queue_desc_prop_type_to_int OFPQDPT_MAX_RATE);
+        set_ofp_queue_desc_prop_max_rate_len buf sizeof_ofp_queue_desc_prop_max_rate;
+        set_ofp_queue_desc_prop_max_rate_rate buf (
+          match t with 
+            | Rate n -> n
+            | Disabled -> 0xffff);
+        sizeof_ofp_queue_desc_prop_max_rate
+
+      let parse (bits : Cstruct.t) : t = 
+        let rate = get_ofp_queue_desc_prop_max_rate_rate bits in
+        if rate > 1000 then Disabled
+        else Rate rate
+
+    end
+
+    module Experimenter = struct
+
+      cstruct ofp_queue_desc_prop_experimenter {
+        uint16_t typ;
+        uint16_t len;
+        uint32_t experimenter;
+        uint32_t exp_typ      
+      } as big_endian
+
+      type t = experimenter
+
+      let sizeof (_ : t) : int =
+        sizeof_ofp_queue_desc_prop_experimenter
+
+      let to_string (t : t) : string = 
+        Format.sprintf "{ experimenter = %lu; exp_typ = %lu }"
+        t.experimenter
+        t.exp_typ
+
+      let marshal (buf : Cstruct.t) (t : t) : int = 
+        set_ofp_queue_desc_prop_experimenter_typ buf (ofp_queue_desc_prop_type_to_int OFPQDPT_EXPERIMENTER);
+        set_ofp_queue_desc_prop_experimenter_len buf (sizeof t);
+        set_ofp_queue_desc_prop_experimenter_experimenter buf t.experimenter;
+        set_ofp_queue_desc_prop_experimenter_exp_typ buf t.exp_typ;
+        sizeof_ofp_queue_desc_prop_experimenter
+
+      let parse (bits : Cstruct.t) : t =
+        { experimenter = get_ofp_queue_desc_prop_experimenter_experimenter bits
+        ; exp_typ = get_ofp_queue_desc_prop_experimenter_exp_typ bits}
+
+    end
+    cstruct ofp_queue_desc_prop_header {
+      uint16_t typ;
+      uint16_t len;
+    } as  big_endian
+
+    type t = queueDescProp
+
+    let sizeof (t : t) =
+      match t with
+        | QueueDescPropMinRate r -> MinRate.sizeof r
+        | QueueDescPropMaxRate r -> MaxRate.sizeof r
+        | QueueDescPropExperimenter e -> Experimenter.sizeof e
+
+    let to_string (t : t) = 
+      match t with
+        | QueueDescPropMinRate r -> Format.sprintf "MinRate : %s" (MinRate.to_string r)
+        | QueueDescPropMaxRate r -> Format.sprintf "MaxRate : %s" (MaxRate.to_string r)
+        | QueueDescPropExperimenter e -> Format.sprintf "Experimenter : %s" (Experimenter.to_string e)
+
+    let marshal (buf : Cstruct.t) (t : t) : int =
+      match t with
+        | QueueDescPropMinRate r -> MinRate.marshal buf r
+        | QueueDescPropMaxRate r -> MaxRate.marshal buf r
+        | QueueDescPropExperimenter e -> Experimenter.marshal buf e
+
+    let parse (bits : Cstruct.t) : t =
+      match int_to_ofp_queue_desc_prop_type (get_ofp_queue_desc_prop_header_typ bits) with
+        | Some OFPQDPT_MIN_RATE -> QueueDescPropMinRate (MinRate.parse bits)
+        | Some OFPQDPT_MAX_RATE -> QueueDescPropMaxRate (MaxRate.parse bits)
+        | Some OFPQDPT_EXPERIMENTER -> QueueDescPropExperimenter (Experimenter.parse bits)
+        | None -> raise (Unparsable (sprintf "Malformed queue desc prop typ"))
+
+    let length_func (buf : Cstruct.t) : int option =
+      if Cstruct.len buf < sizeof_ofp_queue_desc_prop_header then None
+      else Some (get_ofp_queue_desc_prop_header_len buf)
+
+  end
+
+  cstruct ofp_queue_desc {
+    uint32_t port_no;
+    uint32_t queue_id;
+    uint16_t len;
+    uint8_t pad[6]
+  } as big_endian
+
+  type t = queueDescReply
+
+  let sizeof (t : t) =
+    sizeof_ofp_queue_desc + sum (map Properties.sizeof t.properties)
+
+  let to_string (t : t) = 
+    Format.sprintf "{ port_no = %lu; queue_id = %lu; properties = %s }"
+    t.port_no
+    t.queue_id
+    ("[ " ^ (String.concat "; " (map Properties.to_string t.properties)) ^ " ]")
+
+  let marshal (buf : Cstruct.t) (t : t) : int =
+    set_ofp_queue_desc_port_no buf t.port_no;
+    set_ofp_queue_desc_queue_id buf t.queue_id;
+    set_ofp_queue_desc_len buf (sizeof t);
+    sizeof_ofp_queue_desc + marshal_fields (Cstruct.shift buf sizeof_ofp_queue_desc) t.properties Properties.marshal
+
+  let parse (bits : Cstruct.t) : t =
+    { port_no = get_ofp_queue_desc_port_no bits
+    ; queue_id = get_ofp_queue_desc_queue_id bits
+    ; properties = parse_fields (Cstruct.shift bits sizeof_ofp_queue_desc) Properties.parse Properties.length_func
+    }
+
+  let length_func (buf : Cstruct.t) : int option =
+    if Cstruct.len buf < sizeof_ofp_queue_desc then None
+    else Some (get_ofp_queue_desc_len buf)
+end
+
+module FlowMonitorReply = struct
+
+  cenum ofp_flow_update_event {
+    OFPFME_INITIAL = 0;
+    OFPFME_ADDED = 1;
+    OFPFME_REMOVED = 2;
+    OFPFME_MODIFIED = 3;
+    OFPFME_ABBREV = 4;
+    OFPFME_PAUSED = 5;
+    OFPFME_RESUMED = 6
+  } as uint16_t
+
+  module UpdateFull = struct
+
+    cstruct ofp_flow_update_full {
+      uint16_t length;
+      uint16_t event;
+      uint8_t table_id;
+      uint8_t reason;
+      uint16_t idle_timeout;
+      uint16_t hard_timeout;
+      uint16_t priority;
+      uint8_t zeros[4];
+      uint64_t cookie;
+    } as big_endian
+
+    type t = fmUpdateFull
+
+    let sizeof (t : t) =
+      sizeof_ofp_flow_update_full + (OfpMatch.sizeof t.updateMatch)+ (Instructions.sizeof t.instructions)
+
+    let to_string (t : t) = 
+      Format.sprintf "{ event = %s; table_id = %u; reason = %s; idle_timeout = %s; hard_timeout = %s\
+                        cookie = %Lu; match = %s; instructions = %s }"
+      (match t.event with
+        | InitialUpdate -> "Initial"
+        | AddedUpdate -> "Added"
+        | RemovedUpdate -> "Remove"
+        | ModifiedUpdate -> "Modified")
+      t.table_id
+      (FlowRemoved.Reason.to_string t.reason)
+      (match t.idle_timeout with
+       | Permanent -> "Permanent"
+       | ExpiresAfter v -> string_of_int v)
+      (match t.hard_timeout with
+       | Permanent -> "Permanent"
+       | ExpiresAfter v -> string_of_int v)
+      t.cookie
+      (OfpMatch.to_string t.updateMatch)
+      (Instructions.to_string t.instructions)
+
+    let marshal (buf : Cstruct.t) (t : t) =
+      set_ofp_flow_update_full_length buf (sizeof t);
+      set_ofp_flow_update_full_event buf (
+        match t.event with
+          | InitialUpdate -> ofp_flow_update_event_to_int OFPFME_INITIAL
+          | AddedUpdate -> ofp_flow_update_event_to_int OFPFME_ADDED
+          | RemovedUpdate -> ofp_flow_update_event_to_int OFPFME_REMOVED
+          | ModifiedUpdate -> ofp_flow_update_event_to_int OFPFME_MODIFIED);
+      set_ofp_flow_update_full_table_id buf t.table_id;
+      set_ofp_flow_update_full_reason buf (FlowRemoved.Reason.marshal t.reason);
+      set_ofp_flow_update_full_idle_timeout buf (
+        match t.idle_timeout with
+          | Permanent -> 0
+          | ExpiresAfter n -> n);
+      set_ofp_flow_update_full_hard_timeout buf (
+        match t.hard_timeout with
+          | Permanent -> 0
+          | ExpiresAfter n -> n);
+      set_ofp_flow_update_full_cookie buf t.cookie;
+      let size = sizeof_ofp_flow_update_full +
+        OfpMatch.marshal 
+         (Cstruct.sub buf sizeof_ofp_flow_update_full (OfpMatch.sizeof t.updateMatch))
+         t.updateMatch in
+      size + Instructions.marshal (Cstruct.shift buf size) t.instructions
+
+    let parse (bits : Cstruct.t) (e : updateEvent): t =
+      let event = e in
+      let table_id = get_ofp_flow_update_full_table_id bits in
+      let reason = FlowRemoved.Reason.parse (get_ofp_flow_update_full_reason bits) in
+      let idle_timeout = (
+        match get_ofp_flow_update_full_idle_timeout bits with 
+          | 0 -> Permanent
+          | n -> ExpiresAfter n) in
+      let hard_timeout = (
+        match get_ofp_flow_update_full_hard_timeout bits with
+          | 0 -> Permanent
+          | n -> ExpiresAfter n) in
+      let priority = get_ofp_flow_update_full_priority bits in
+      let cookie = get_ofp_flow_update_full_cookie bits in
+      let updateMatch,instructionsBits = OfpMatch.parse (Cstruct.shift bits sizeof_ofp_flow_update_full) in
+      let instructions = Instructions.parse instructionsBits in
+      { event; table_id; reason; idle_timeout; hard_timeout; priority; cookie; updateMatch; instructions }
+
+    let length_func (buf : Cstruct.t) : int option = 
+      if Cstruct.len buf < sizeof_ofp_flow_update_full then None
+      else Some (get_ofp_flow_update_full_length buf)
+
+  end
+
+  module Abbrev = struct
+
+    cstruct ofp_flow_update_abbrev {
+      uint16_t len;
+      uint16_t event;
+      uint32_t xid
+    } as big_endian
+
+    type t = int32 
+
+    let sizeof _ =
+      sizeof_ofp_flow_update_abbrev
+
+    let to_string t = 
+      Format.sprintf "{ xid = %lu }" t
+
+    let marshal (buf : Cstruct.t) (t : t) =
+      set_ofp_flow_update_abbrev_len buf sizeof_ofp_flow_update_abbrev;
+      set_ofp_flow_update_abbrev_event buf (ofp_flow_update_event_to_int OFPFME_ABBREV);
+      set_ofp_flow_update_abbrev_xid buf t;
+      sizeof_ofp_flow_update_abbrev
+
+    let parse (bits : Cstruct.t) : t =
+      get_ofp_flow_update_abbrev_xid bits
+
+    let length_func (buf : Cstruct.t) : int option =
+      if Cstruct.len buf < sizeof_ofp_flow_update_abbrev then None
+      else Some sizeof_ofp_flow_update_abbrev
+
+  end
+
+  module Paused = struct
+
+    cstruct ofp_flow_update_paused {
+      uint16_t len;
+      uint16_t event;
+      uint8_t zeros[4]
+    } as big_endian
+
+    type t = pauseEvent
+
+    let sizeof _ =
+      sizeof_ofp_flow_update_paused
+
+    let to_string t =
+      match t with
+        | Pause -> "Pause"
+        | Resume -> "Resume"
+
+    let marshal (buf : Cstruct.t) (t : t) =
+      set_ofp_flow_update_paused_len buf sizeof_ofp_flow_update_paused;
+      set_ofp_flow_update_paused_event buf (
+        match t with
+          | Pause -> ofp_flow_update_event_to_int OFPFME_PAUSED
+          | Resume -> ofp_flow_update_event_to_int OFPFME_RESUMED);
+      sizeof_ofp_flow_update_paused
+
+    let length_func (buf : Cstruct.t) : int option =
+      if Cstruct.len buf < sizeof_ofp_flow_update_paused then None
+      else Some (get_ofp_flow_update_paused_len buf)
+
+  end
+
+  cstruct ofp_flow_update_header {
+    uint16_t len;
+    uint16_t event;
+  } as big_endian
+
+  type t = flowMonitorReply
+
+  let sizeof (t : t) =
+    match t with
+      | FmUpdateFull u -> UpdateFull.sizeof u
+      | FmAbbrev a -> Abbrev.sizeof a
+      | FmPaused p -> Paused.sizeof p
+
+  let to_string (t : t) = 
+    match t with
+      | FmUpdateFull u -> UpdateFull.to_string u
+      | FmAbbrev a -> Format.sprintf "Abbrev : %s" (Abbrev.to_string a)
+      | FmPaused p -> Paused.to_string p
+
+  let marshal (buf : Cstruct.t) (t : t) = 
+    match t with
+      | FmUpdateFull u -> UpdateFull.marshal buf u
+      | FmAbbrev a -> Abbrev.marshal buf a
+      | FmPaused p -> Paused.marshal buf p
+
+  let parse (bits : Cstruct.t) : t =
+    match int_to_ofp_flow_update_event (get_ofp_flow_update_header_event bits) with
+      | Some OFPFME_INITIAL -> FmUpdateFull (UpdateFull.parse bits InitialUpdate)
+      | Some OFPFME_ADDED -> FmUpdateFull (UpdateFull.parse bits AddedUpdate)
+      | Some OFPFME_REMOVED -> FmUpdateFull (UpdateFull.parse bits RemovedUpdate)
+      | Some OFPFME_MODIFIED -> FmUpdateFull (UpdateFull.parse bits ModifiedUpdate)
+      | Some OFPFME_ABBREV -> FmAbbrev (Abbrev.parse bits)
+      | Some OFPFME_PAUSED -> FmPaused Pause
+      | Some OFPFME_RESUMED -> FmPaused Resume
+      | None -> raise (Unparsable (sprintf "malformed event"))
+
+  let length_func (buf : Cstruct.t) : int option =
+    if Cstruct.len buf < sizeof_ofp_flow_update_header then None
+    else Some (get_ofp_flow_update_header_len buf)
+end
+
 module MultipartReply = struct
 
   cstruct ofp_multipart_reply {
@@ -3294,6 +3844,9 @@ module MultipartReply = struct
       | MeterReply mr -> sum (map MeterStats.sizeof mr)
       | MeterConfig mc -> sum (map MeterConfig.sizeof mc)
       | MeterFeaturesReply mf -> MeterFeaturesStats.sizeof mf
+      | TableDescReply t -> sum (map TableDescReply.sizeof t)
+      | QueueDescReply q -> sum (map QueueDescReply.sizeof q)
+      | FlowMonitorReply f -> sum (map FlowMonitorReply.sizeof f)
 
   let to_string (mpr : multipartReply) =
     match mpr.mpreply_typ with
@@ -3311,6 +3864,9 @@ module MultipartReply = struct
       | MeterReply mr -> Format.sprintf "MeterStats { %s }" (String.concat "; " (map MeterStats.to_string mr))
       | MeterConfig mc -> Format.sprintf "MeterConfig { %s }" (String.concat "; " (map MeterConfig.to_string mc))
       | MeterFeaturesReply mf -> Format.sprintf "MeterFeaturesStats %s" (MeterFeaturesStats.to_string mf)
+      | TableDescReply t -> Format.sprintf "TableDescReply { %s }" (String.concat "; " (map TableDescReply.to_string t))
+      | QueueDescReply q -> Format.sprintf "QueueDescReply { %s }" (String.concat "; " (map QueueDescReply.to_string q))
+      | FlowMonitorReply f -> Format.sprintf "FlowMonitorReply { %s }" (String.concat "; " (map FlowMonitorReply.to_string f))
 
   let marshal (buf : Cstruct.t) (mpr : multipartReply) : int =
     let ofp_body_bits = Cstruct.shift buf sizeof_ofp_multipart_reply in
@@ -3361,6 +3917,15 @@ module MultipartReply = struct
       | MeterFeaturesReply mfr ->
           set_ofp_multipart_reply_typ buf (ofp_multipart_types_to_int OFPMP_METER_FEATURES);
           MeterFeaturesStats.marshal ofp_body_bits mfr
+      | TableDescReply t ->
+          set_ofp_multipart_reply_typ buf (ofp_multipart_types_to_int OFPMP_TABLE_DESC);
+          marshal_fields ofp_body_bits t TableDescReply.marshal
+      | QueueDescReply q ->
+          set_ofp_multipart_reply_typ buf (ofp_multipart_types_to_int OFPMP_QUEUE_DESC);
+          marshal_fields ofp_body_bits q QueueDescReply.marshal
+      | FlowMonitorReply f ->
+          set_ofp_multipart_reply_typ buf (ofp_multipart_types_to_int OFPMP_FLOW_MONITOR);
+          marshal_fields ofp_body_bits f FlowMonitorReply.marshal
           )
     
   let parse (bits : Cstruct.t) : multipartReply =
@@ -3394,6 +3959,12 @@ module MultipartReply = struct
           MeterConfig (parse_fields ofp_body_bits MeterConfig.parse MeterConfig.length_func)
       | Some OFPMP_METER_FEATURES ->
           MeterFeaturesReply (MeterFeaturesStats.parse ofp_body_bits)
+      | Some OFPMP_QUEUE_DESC ->
+          QueueDescReply (parse_fields ofp_body_bits QueueDescReply.parse QueueDescReply.length_func)
+      | Some OFPMP_TABLE_DESC ->
+          TableDescReply (parse_fields ofp_body_bits TableDescReply.parse TableDescReply.length_func)
+      | Some OFPMP_FLOW_MONITOR ->
+          FlowMonitorReply (parse_fields ofp_body_bits FlowMonitorReply.parse FlowMonitorReply.length_func)
       | _ -> raise (Unparsable (sprintf "NYI: can't parse this multipart reply"))) in
     let flags = (
       match int_to_ofp_multipart_reply_flags (get_ofp_multipart_reply_flags bits) with
