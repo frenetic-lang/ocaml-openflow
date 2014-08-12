@@ -203,10 +203,7 @@ type portMod = { mpPortNo : portId; mpHw_addr : int48; mpConfig : portConfig;
                  
 type flowRequest = OpenFlow0x04_Core.flowRequest
 
-type queueStatsProp = 
-  | ExperimenterQueueStats of experimenter
-
-type queueRequest = {port_number : portId; queue_id : int32; properties : queueStatsProp list}
+type queueRequest = OpenFlow0x04_Core.queueRequest
 
 type tableFeatures = OpenFlow0x04_Core.tableFeatures
 
@@ -245,3 +242,70 @@ type multipartType =
   | FlowMonitorReq of flowMonitorReq
 
 type multipartRequest = { mpr_type : multipartType; mpr_flags : bool }
+
+type switchDesc = OpenFlow0x04_Core.switchDesc
+
+type flowStats = OpenFlow0x04_Core.flowStats
+
+type aggregStats = OpenFlow0x04_Core.aggregStats
+
+type tableStats = OpenFlow0x04_Core.tableStats
+
+type portStatsPropEthernet = { rx_frame_err : int64; rx_over_err : int64; rx_crc_err : int64;
+                               collisions : int64 }
+
+type portStatsOpticalFlag = { rx_tune : bool; tx_tune : bool; tx_pwr : bool; rx_pwr : bool;
+                              tx_bias : bool; tx_temp : bool }
+
+type portStatsPropOptical = { flags : portStatsOpticalFlag; tx_freq_lmda : int32;
+                              tx_offset : int32; tx_grid_span : int32; rx_freq_lmda : int32;
+                              rx_offset : int32; rx_grid_span : int32; tx_pwr : int16; rx_pwr : int16;
+                              bias_current : int16; temperature : int16 }
+
+type portStatsProp = 
+  | PortStatsPropEthernet of portStatsPropEthernet
+  | PortStatsPropOptical of portStatsPropOptical
+  | PortStatsPropExperimenter of experimenter
+
+type portStats = { psPort_no : portId; duration_sec : int32; duration_nsec : int32 ;
+                   rx_packets : int64; tx_packets : int64; 
+                   rx_bytes : int64; tx_bytes : int64; rx_dropped : int64; 
+                   tx_dropped : int64; rx_errors : int64; tx_errors : int64;
+                   properties : portStatsProp list}
+
+type queueStatsProp = 
+  | ExperimenterQueueStats of experimenter
+
+type queueStats = { qsPort_no : portId; queue_id : int32; tx_bytes : int64; tx_packets : int64;
+                    tx_errors : int64; duration_sec : int32; duration_nsec : int32;
+                    properties : queueStatsProp list }
+
+type groupStats = OpenFlow0x04_Core.groupStats
+
+type groupDesc = OpenFlow0x04_Core.groupDesc
+
+type groupFeatures = OpenFlow0x04_Core.groupFeatures
+
+type meterStats = OpenFlow0x04_Core.meterStats
+
+type meterConfig = OpenFlow0x04_Core.meterConfig
+
+type meterFeaturesStats = OpenFlow0x04_Core.meterFeaturesStats
+
+type multipartReplyTyp = 
+  | PortsDescReply of portDesc list
+  | SwitchDescReply of switchDesc
+  | FlowStatsReply of flowStats list
+  | AggregateReply of aggregStats
+  | TableReply of tableStats list
+  | TableFeaturesReply of tableFeatures list
+  | PortStatsReply of portStats list
+  | QueueStatsReply of queueStats list
+  | GroupStatsReply of groupStats list
+  | GroupDescReply of groupDesc list
+  | GroupFeaturesReply of groupFeatures
+  | MeterReply of meterStats list
+  | MeterConfig of meterConfig list
+  | MeterFeaturesReply of meterFeaturesStats
+
+type multipartReply = {mpreply_typ : multipartReplyTyp; mpreply_flags : bool}
