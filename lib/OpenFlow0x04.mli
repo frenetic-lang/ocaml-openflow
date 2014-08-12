@@ -480,6 +480,9 @@ module GroupStats : sig
   val marshal : Cstruct.t ->  groupStats -> int
 
   val parse : Cstruct.t ->  groupStats
+
+  val length_func : Cstruct.t -> int option
+
 end
 
 module SwitchDescriptionReply : sig
@@ -509,6 +512,8 @@ module FlowStats : sig
 
   val parse : Cstruct.t -> flowStats
 
+  val length_func : Cstruct.t -> int option
+
 end
 
 
@@ -537,6 +542,8 @@ module TableStats : sig
   val marshal : Cstruct.t -> tableStats -> int
 
   val parse : Cstruct.t -> tableStats
+
+  val length_func : Cstruct.t -> int option
 
 end
 
@@ -580,6 +587,8 @@ module GroupDesc : sig
 
   val parse : Cstruct.t -> groupDesc
 
+  val length_func : Cstruct.t -> int option
+
 end
 
 module GroupFeatures : sig
@@ -608,6 +617,8 @@ module MeterStats : sig
 
   val parse : Cstruct.t -> meterStats
 
+  val length_func : Cstruct.t -> int option
+
 end
 
 module MeterConfig : sig
@@ -621,6 +632,8 @@ module MeterConfig : sig
   val marshal : Cstruct.t -> meterConfig -> int
 
   val parse : Cstruct.t -> meterConfig
+
+  val length_func : Cstruct.t -> int option
 
 end
 
