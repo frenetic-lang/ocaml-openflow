@@ -106,6 +106,24 @@ module OpenFlow0x05_Unsize(ArbC : OpenFlow0x05_ArbitraryCstruct) = struct
       in ignore (ArbC.marshal bytes m); bytes
 end
 
+module Experimenter = struct
+  open Gen
+  type t = Experimenter.t
+
+  let arbitrary = 
+    let open Gen in 
+    let open Experimenter in 
+    arbitrary_uint32 >>= fun experimenter ->
+    arbitrary_uint32 >>= fun exp_typ -> 
+    ret_gen { experimenter; exp_typ }
+
+  let marshal = Experimenter.marshal
+  let parse = Experimenter.parse
+  let to_string = Experimenter.to_string
+  let size_of = Experimenter.sizeof
+
+end
+
 module PortDesc = struct
 
   module Properties = struct
@@ -191,7 +209,9 @@ module PortDesc = struct
          arbitrary_uint16 >>= fun tx_pwr_max ->
          ret_gen (PropOptical {supported; tx_min_freq_lmda; tx_max_freq_lmda; tx_grid_freq_lmda;
                                rx_min_freq_lmda; rx_max_freq_lmda; rx_grid_freq_lmda;
-                               tx_pwr_min; tx_pwr_max} ))
+                               tx_pwr_min; tx_pwr_max} ));
+        (Experimenter.arbitrary >>= fun experimenter ->
+         ret_gen (PropExp experimenter))
       ]
 
 
@@ -498,24 +518,6 @@ module Action = Arbitrary_OpenFlow0x04.Action
 
 module Instructions = Arbitrary_OpenFlow0x04.Instructions
 
-module Experimenter = struct
-  open Gen
-  type t = Experimenter.t
-
-  let arbitrary = 
-    let open Gen in 
-    let open Experimenter in 
-    arbitrary_uint32 >>= fun experimenter ->
-    arbitrary_uint32 >>= fun exp_typ -> 
-    ret_gen { experimenter; exp_typ }
-
-  let marshal = Experimenter.marshal
-  let parse = Experimenter.parse
-  let to_string = Experimenter.to_string
-  let size_of = Experimenter.sizeof
-
-end
-
 module SwitchFeatures = struct
   open Gen
   type t = SwitchFeatures.t
@@ -713,13 +715,7 @@ module PortMod = struct
     PortDesc.Config.arbitrary >>= fun mpMask ->
     list1 Properties.arbitrary >>= fun mpProp ->
     ret_gen { mpPortNo; mpHw_addr; mpConfig; mpMask; mpProp}
-    
-
-  let marshal = PortMod.marshal
-  let parse = PortMod.parse
-  let to_string = PortMod.to_string
-  let size_of = PortMod.sizeof
-
+  
   let marshal = PortMod.marshal
   let parse = PortMod.parse
   let to_string = PortMod.to_string
@@ -727,4 +723,383 @@ module PortMod = struct
 
 end
 
+module FlowRemoved = struct
+
+  open Gen
+
+  type t = FlowRemoved.t
+
+  let arbitrary_reason = 
+    oneof [ 
+      ret_gen FlowIdleTimeout;
+      ret_gen FlowHardTiemout;
+      ret_gen FlowDelete;
+      ret_gen FlowGroupDelete;
+      ret_gen FlowMeterDelete;
+      ret_gen FlowEviction]
+
+  let arbitrary =
+    arbitrary_uint64 >>= fun cookie ->
+    arbitrary_uint16 >>= fun priority ->
+    arbitrary_reason >>= fun reason ->
+    arbitrary_uint8 >>= fun table_id ->
+    arbitrary_uint32 >>= fun duration_sec ->
+    arbitrary_uint32 >>= fun duration_nsec ->
+    arbitrary_timeout >>= fun idle_timeout ->
+    arbitrary_timeout >>= fun hard_timeout ->
+    arbitrary_uint64 >>= fun packet_count ->
+    arbitrary_uint64 >>= fun byte_count ->
+    OfpMatch.arbitrary >>= fun oxm ->
+    ret_gen { cookie; priority; reason; table_id; duration_sec; duration_nsec;
+              idle_timeout; hard_timeout; packet_count; byte_count; oxm }
+
+  let marshal = FlowRemoved.marshal
+  let parse = FlowRemoved.parse
+  let to_string = FlowRemoved.to_string
+  let size_of = FlowRemoved.sizeof
+
+end
+
+module QueueDescReq = struct
+  open Gen
+
+  type t = QueueDescReq.t
+
+  let arbitrary = 
+    PseudoPort.arbitrary_nc >>= fun port_no ->
+    arbitrary_uint32 >>= fun queue_id ->
+    ret_gen {port_no; queue_id}
+
+  let marshal = QueueDescReq.marshal
+  let parse = QueueDescReq.parse
+  let to_string = QueueDescReq.to_string
+  let size_of = QueueDescReq.sizeof
+
+end
+
+module FlowMonitorRequest = struct
+  open Gen
+
+  type t = FlowMonitorRequest.t
+
+  let arbitrary_command = 
+    oneof [
+      ret_gen FMonAdd;
+      ret_gen FMonModify;
+      ret_gen FMonDelete]
+
+  let arbitrary_flags = 
+    arbitrary_bool >>= fun fmInitial ->
+    arbitrary_bool >>= fun fmAdd ->
+    arbitrary_bool >>= fun fmRemoved->
+    arbitrary_bool >>= fun fmModify ->
+    arbitrary_bool >>= fun fmInstructions ->
+    arbitrary_bool >>= fun fmNoAbvrev ->
+    arbitrary_bool >>= fun fmOnlyOwn ->
+    ret_gen {fmInitial; fmAdd; fmRemoved; fmModify; fmInstructions; fmNoAbvrev; fmOnlyOwn}
+
+  let arbitrary = 
+    arbitrary_uint32 >>= fun fmMonitor_id ->
+    PseudoPort.arbitrary_nc >>= fun fmOut_port ->
+    arbitrary_uint32 >>= fun fmOut_group ->
+    arbitrary_flags >>= fun fmFlags ->
+    arbitrary_uint8 >>= fun fmTable_id ->
+    arbitrary_command >>= fun fmCommand ->
+    OfpMatch.arbitrary >>= fun fmMatch ->
+    ret_gen { fmMonitor_id; fmOut_port; fmOut_group; fmFlags; fmTable_id; fmCommand; fmMatch}
+
+  let marshal = FlowMonitorRequest.marshal
+  let parse = FlowMonitorRequest.parse
+  let to_string = FlowMonitorRequest.to_string
+  let size_of = FlowMonitorRequest.sizeof
+
+end
+
+module MultipartReq = struct
+  open Gen
+
+  type t = MultipartReq.t
+
+  let arbitrary_type = 
+    oneof [
+        ret_gen TableDescReq;
+        QueueDescReq.arbitrary >>= (fun n -> ret_gen (QueueDescReq n));
+        FlowMonitorRequest.arbitrary >>= (fun n -> ret_gen (FlowMonitorReq n));
+    ]
+  let arbitrary =
+    arbitrary_bool >>= fun mpr_flags ->
+    arbitrary_type >>= fun mpr_type ->
+    ret_gen {
+        mpr_type;
+        mpr_flags
+    }
+  
+  let marshal = MultipartReq.marshal
+  let parse = MultipartReq.parse
+  let to_string = MultipartReq.to_string
+  let size_of = MultipartReq.sizeof
+
+end
+  
+module PortStats = struct
+  open Gen
+
+  type t = PortStats.t
+
+  module Properties = struct 
+    module Ethernet = struct
+      let arbitrary =
+        arbitrary_uint64 >>= fun rx_frame_err ->
+        arbitrary_uint64 >>= fun rx_over_err ->
+        arbitrary_uint64 >>= fun rx_crc_err ->
+        arbitrary_uint64 >>= fun collisions ->
+        ret_gen {rx_frame_err; rx_over_err; rx_crc_err; collisions}
+    end
+
+    module Optical = struct
+      let arbitrary_flags = 
+        arbitrary_bool >>= fun rx_tune ->
+        arbitrary_bool >>= fun tx_tune ->
+        arbitrary_bool >>= fun tx_pwr ->
+        arbitrary_bool >>= fun rx_pwr ->
+        arbitrary_bool >>= fun tx_bias ->
+        arbitrary_bool >>= fun tx_temp ->
+        ret_gen {rx_tune; tx_tune; tx_pwr; rx_pwr; tx_bias; tx_temp}
+
+      let arbitrary =
+        arbitrary_flags >>= fun flags ->
+        arbitrary_uint32 >>= fun tx_freq_lmda ->
+        arbitrary_uint32 >>= fun tx_offset ->
+        arbitrary_uint32 >>= fun tx_grid_span ->
+        arbitrary_uint32 >>= fun rx_freq_lmda ->
+        arbitrary_uint32 >>= fun rx_offset ->
+        arbitrary_uint32 >>= fun rx_grid_span ->
+        arbitrary_uint16 >>= fun tx_pwr ->
+        arbitrary_uint16 >>= fun rx_pwr ->
+        arbitrary_uint16 >>= fun bias_current ->
+        arbitrary_uint16 >>= fun temperature ->
+        ret_gen {flags; tx_freq_lmda; tx_offset; tx_grid_span; 
+                 rx_freq_lmda; rx_offset; rx_grid_span; tx_pwr; 
+                 rx_pwr; bias_current; temperature}
+    end
+
+    type t = PortStats.Properties.t
+
+    let arbitrary = 
+      oneof [
+        (Ethernet.arbitrary >>= (fun n -> ret_gen (PortStatsPropEthernet n)));
+        (Optical.arbitrary >>= (fun n -> ret_gen (PortStatsPropOptical n)));
+        (Experimenter.arbitrary >>= (fun n -> ret_gen (PortStatsPropExperimenter n)))
+      ]
+      
+
+    let marshal = PortStats.Properties.marshal
+    let parse = PortStats.Properties.parse
+    let to_string = PortStats.Properties.to_string
+    let size_of = PortStats.Properties.sizeof
+
+  end
+
+  let arbitrary =
+      arbitrary_uint32 >>= fun psPort_no ->
+      arbitrary_uint64 >>= fun rx_packets ->
+      arbitrary_uint64 >>= fun tx_packets ->
+      arbitrary_uint64 >>= fun rx_bytes ->
+      arbitrary_uint64 >>= fun tx_bytes ->
+      arbitrary_uint64 >>= fun rx_dropped ->
+      arbitrary_uint64 >>= fun tx_dropped ->
+      arbitrary_uint64 >>= fun rx_errors ->
+      arbitrary_uint64 >>= fun tx_errors ->
+      arbitrary_uint32 >>= fun duration_sec ->
+      arbitrary_uint32 >>= fun duration_nsec ->
+      arbitrary_list Properties.arbitrary >>= fun properties ->
+      ret_gen {
+          psPort_no;
+          duration_sec;
+          duration_nsec;
+          rx_packets;
+          tx_packets;
+          rx_bytes;
+          tx_bytes;
+          rx_dropped;
+          tx_dropped;
+          rx_errors;
+          tx_errors;
+          properties
+      }
+
+  let marshal = PortStats.marshal
+  let parse = PortStats.parse
+  let to_string = PortStats.to_string
+  let size_of = PortStats.sizeof
+end 
+
+module QueueStats = struct
+  open Gen
+
+  module Properties = struct
+
+    type t = QueueStats.Properties.t
+
+    let arbitrary = 
+      oneof [
+        (Experimenter.arbitrary >>= (fun n -> ret_gen (ExperimenterQueueStats n)))
+        ]
+      
+
+    let marshal = QueueStats.Properties.marshal
+    let parse = QueueStats.Properties.parse
+    let to_string = QueueStats.Properties.to_string
+    let size_of = QueueStats.Properties.sizeof
+  end
+
+  type t = QueueStats.t
+
+  let arbitrary = 
+    arbitrary_uint32 >>= fun qsPort_no ->
+    arbitrary_uint32 >>= fun queue_id ->
+    arbitrary_uint64 >>= fun tx_bytes ->
+    arbitrary_uint64 >>= fun tx_packets ->
+    arbitrary_uint64 >>= fun tx_errors ->
+    arbitrary_uint32 >>= fun duration_sec ->
+    arbitrary_uint32 >>= fun duration_nsec ->
+    arbitrary_list Properties.arbitrary >>= fun properties ->
+    ret_gen { 
+        qsPort_no;
+        queue_id;
+        tx_bytes;
+        tx_packets;
+        tx_errors;
+        duration_sec;
+        duration_nsec;
+        properties
+    }
+
+  let marshal = QueueStats.marshal
+  let parse = QueueStats.parse
+  let to_string = QueueStats.to_string
+  let size_of = QueueStats.sizeof
+
+end
+
+module TableDescReply = struct
+
+  open Gen
+  type t = TableDescReply.t
+
+  let arbitrary =   
+    arbitrary_uint8 >>= fun table_id ->
+    TableMod.arbitrary_config >>= fun config ->
+    arbitrary_list TableMod.Properties.arbitrary >>= fun properties ->
+    ret_gen { table_id; config; properties }
+
+  let marshal = TableDescReply.marshal
+  let parse = TableDescReply.parse
+  let to_string = TableDescReply.to_string
+  let size_of = TableDescReply.sizeof
+
+end
+
+module QueueDescReply = struct
+  open Gen
+
+  module Properties = struct
+
+    type t = QueueDescReply.Properties.t
+
+    let arbitrary_rate = 
+      frequency [
+        (1, ret_gen Disabled);
+        (10, choose_int (0,1000) >>= fun a ->
+             ret_gen (Rate a))
+      ]
+
+    let arbitrary = 
+      oneof [
+        (arbitrary_rate >>= (fun n -> ret_gen (QueueDescPropMinRate n)));
+        (arbitrary_rate >>= (fun n -> ret_gen (QueueDescPropMaxRate n)));
+        (Experimenter.arbitrary >>= (fun n -> ret_gen (QueueDescPropExperimenter n)))
+        ]
+      
+
+    let marshal = QueueDescReply.Properties.marshal
+    let parse = QueueDescReply.Properties.parse
+    let to_string = QueueDescReply.Properties.to_string
+    let size_of = QueueDescReply.Properties.sizeof
+  end
+
+  type t = QueueDescReply.t
+
+  let arbitrary = 
+    arbitrary_uint32 >>= fun port_no ->
+    arbitrary_uint32 >>= fun queue_id ->
+    arbitrary_list Properties.arbitrary >>= fun properties ->
+    ret_gen { port_no; queue_id; properties }
+
+  let marshal = QueueDescReply.marshal
+  let parse = QueueDescReply.parse
+  let to_string = QueueDescReply.to_string
+  let size_of = QueueDescReply.sizeof 
+end
+
+module FlowMonitorReply = struct
+
+  open Gen
+  type t = FlowMonitorReply.t
+
+  module UpdateFull = struct
+    let arbitrary event = 
+      arbitrary_uint8 >>= fun table_id ->
+      FlowRemoved.arbitrary_reason >>= fun reason ->
+      arbitrary_timeout >>= fun idle_timeout ->
+      arbitrary_timeout >>= fun hard_timeout ->
+      arbitrary_uint16 >>= fun priority ->
+      arbitrary_uint64 >>= fun cookie ->
+      OfpMatch.arbitrary >>= fun updateMatch ->
+      Instructions.arbitrary >>= fun instructions ->
+      ret_gen { event; table_id; reason; idle_timeout; hard_timeout; priority; cookie; updateMatch; instructions }
+  end
+
+  let arbitrary = 
+    oneof [
+      (UpdateFull.arbitrary InitialUpdate >>= (fun n -> ret_gen (FmUpdateFull n)));
+      (UpdateFull.arbitrary AddedUpdate >>= (fun n -> ret_gen (FmUpdateFull n)));
+      (UpdateFull.arbitrary RemovedUpdate >>= (fun n -> ret_gen (FmUpdateFull n)));
+      (UpdateFull.arbitrary ModifiedUpdate >>= (fun n -> ret_gen (FmUpdateFull n)));
+      (arbitrary_uint32 >>= (fun n -> ret_gen (FmAbbrev n)));
+      ret_gen (FmPaused Pause);
+      ret_gen (FmPaused Resume)
+    ]
+
+  let marshal = FlowMonitorReply.marshal
+  let parse = FlowMonitorReply.parse
+  let to_string = FlowMonitorReply.to_string
+  let size_of = FlowMonitorReply.sizeof 
+end 
+
+module MultipartReply = struct
+  open Gen 
+  type t = MultipartReply.t
+
+  let arbitrary_type =
+    arbitrary_bool >>= fun flags ->
+    oneof [
+      (arbitrary_list TableDescReply.arbitrary >>= (fun n -> ret_gen (TableDescReply n)));
+      (arbitrary_list QueueDescReply.arbitrary >>= (fun n -> ret_gen (QueueDescReply n)));
+      (arbitrary_list FlowMonitorReply.arbitrary >>= (fun n -> ret_gen (FlowMonitorReply n)))
+      ]
+
+  let arbitrary =
+    arbitrary_bool >>= fun mpreply_flags ->
+    arbitrary_type >>= fun mpreply_typ ->
+    ret_gen {
+        mpreply_typ;
+        mpreply_flags
+    }
+
+  let marshal = MultipartReply.marshal
+  let parse = MultipartReply.parse
+  let to_string = MultipartReply.to_string
+  let size_of = MultipartReply.sizeof
+end
 

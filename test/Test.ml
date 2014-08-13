@@ -598,6 +598,52 @@ module RoundTripping = struct
       let module GenPortMod = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.PortMod) in
       (openflow_quickCheck GenPortMod.arbitrary
           GenPortMod.to_string GenPortMod.parse GenPortMod.marshal)
+
+  TEST "OpenFlow0x05 MultipartReq.QueueDesc RoundTrip" =
+      let module GenQueueDesc = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.QueueDescReq) in
+      (openflow_quickCheck GenQueueDesc.arbitrary
+          GenQueueDesc.to_string GenQueueDesc.parse GenQueueDesc.marshal)
+
+  TEST "OpenFlow0x05 MultipartReq.FlowMonitorRequest RoundTrip" =
+      let module GenFlowMonitorRequest = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.FlowMonitorRequest) in
+      (openflow_quickCheck GenFlowMonitorRequest.arbitrary
+          GenFlowMonitorRequest.to_string GenFlowMonitorRequest.parse GenFlowMonitorRequest.marshal)
+
+  TEST "OpenFlow0x05 MultipartReq RoundTrip" =
+      let module GenMultipartReq = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.MultipartReq) in
+      (openflow_quickCheck GenMultipartReq.arbitrary
+          GenMultipartReq.to_string GenMultipartReq.parse GenMultipartReq.marshal)
+
+  TEST "OpenFlow0x05 MultipartReply.PortStats RoundTrip" =
+      let module GenPortStats = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.PortStats) in
+      (openflow_quickCheck GenPortStats.arbitrary
+          GenPortStats.to_string GenPortStats.parse GenPortStats.marshal)
+
+  TEST "OpenFlow0x05 MultipartReply.QueueStats RoundTrip" =
+      let module GenQueueStats = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.QueueStats) in
+      (openflow_quickCheck GenQueueStats.arbitrary
+          GenQueueStats.to_string GenQueueStats.parse GenQueueStats.marshal)
+
+  TEST "OpenFlow0x05 MultipartReply.TableDescReply RoundTrip" =
+      let module GenTableDescReply = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.TableDescReply) in
+      (openflow_quickCheck GenTableDescReply.arbitrary
+          GenTableDescReply.to_string GenTableDescReply.parse GenTableDescReply.marshal)
+
+  TEST "OpenFlow0x05 MultipartReply.QueueDescReply RoundTrip" =
+      let module GenQueueDescReply = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.QueueDescReply) in
+      (openflow_quickCheck GenQueueDescReply.arbitrary
+          GenQueueDescReply.to_string GenQueueDescReply.parse GenQueueDescReply.marshal)
+
+  TEST "OpenFlow0x05 MultipartReply.FlowMonitorReply RoundTrip" =
+      let module GenFlowMonitorReply = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.FlowMonitorReply) in
+      (openflow_quickCheck GenFlowMonitorReply.arbitrary
+          GenFlowMonitorReply.to_string GenFlowMonitorReply.parse GenFlowMonitorReply.marshal)
+
+  TEST "OpenFlow0x05 MultipartReply RoundTrip" =
+      let module GenMultipartReply = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.MultipartReply) in
+      (openflow_quickCheck GenMultipartReply.arbitrary
+          GenMultipartReply.to_string GenMultipartReply.parse GenMultipartReply.marshal)
+
   TEST "OpenFlow Hello Test 1" = 
     let open Message in 
     let bs = Cstruct.create 101 in

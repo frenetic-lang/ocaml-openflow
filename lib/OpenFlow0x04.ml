@@ -3915,7 +3915,7 @@ module ActionHdr = struct
       | PopPbbHdr
       | SetMplsTtlHdr
       | DecMplsTtlHdr
-      | SetQueueHdr
+      | SetQueueHdr -> 4
       | ExperimenterAHdr _ -> 8
 
   let to_string (act : t) =

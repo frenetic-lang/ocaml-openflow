@@ -3408,6 +3408,7 @@ module TableDescReply = struct
     ("[ " ^ (String.concat "; " (map TableMod.Properties.to_string tab.properties))^ " ]")
 
   let marshal (buf : Cstruct.t) (tab : t) : int =
+    set_ofp_table_desc_len buf (sizeof tab);
     set_ofp_table_desc_table_id buf tab.table_id;
     set_ofp_table_desc_config buf (TableMod.TableConfig.marshal tab.config);
     sizeof_ofp_table_desc + (marshal_fields (Cstruct.shift buf sizeof_ofp_table_desc) tab.properties TableMod.Properties.marshal)
@@ -3641,7 +3642,7 @@ module FlowMonitorReply = struct
 
     let to_string (t : t) = 
       Format.sprintf "{ event = %s; table_id = %u; reason = %s; idle_timeout = %s; hard_timeout = %s\
-                        cookie = %Lu; match = %s; instructions = %s }"
+                        priority = %u; cookie = %Lu; match = %s; instructions = %s }"
       (match t.event with
         | InitialUpdate -> "Initial"
         | AddedUpdate -> "Added"
@@ -3655,6 +3656,7 @@ module FlowMonitorReply = struct
       (match t.hard_timeout with
        | Permanent -> "Permanent"
        | ExpiresAfter v -> string_of_int v)
+      t.priority
       t.cookie
       (OfpMatch.to_string t.updateMatch)
       (Instructions.to_string t.instructions)
@@ -3677,6 +3679,7 @@ module FlowMonitorReply = struct
         match t.hard_timeout with
           | Permanent -> 0
           | ExpiresAfter n -> n);
+      set_ofp_flow_update_full_priority buf t.priority;
       set_ofp_flow_update_full_cookie buf t.cookie;
       let size = sizeof_ofp_flow_update_full +
         OfpMatch.marshal 

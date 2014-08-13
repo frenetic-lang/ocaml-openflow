@@ -349,6 +349,398 @@ module MeterMod : sig
 
 end
 
+module FlowRemoved : sig
+
+  type t = flowRemoved
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+end
+
+
+module FlowRequest : sig
+
+  type t = flowRequest
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+end
+
+module QueueRequest : sig
+
+  type t = queueRequest
+    
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+end
+
+module TableFeatures : sig
+
+  type t = tableFeatures list
+
+  val sizeof : t -> int
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+  val to_string : t -> string
+
+end
+
+module QueueDescReq : sig
+
+  type t = queueDescRequest
+
+  val sizeof : t -> int
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+  val to_string : t -> string
+
+end
+
+module FlowMonitorRequest : sig
+
+  type t = flowMonitorReq
+
+  val sizeof : t -> int
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+  val to_string : t -> string
+
+end
+
+module MultipartReq : sig
+
+  type t = multipartRequest
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+ 
+  val parse : Cstruct.t -> t
+
+end
+
+module GroupStats : sig
+  
+  type t = groupStats
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t ->  t -> int
+
+  val parse : Cstruct.t ->  t
+
+  val length_func : Cstruct.t -> int option
+
+end
+
+module SwitchDescriptionReply : sig
+
+  type t = switchDesc
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+end
+
+
+module FlowStats : sig
+
+  type t = flowStats
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+  val length_func : Cstruct.t -> int option
+
+end
+
+
+module AggregateStats : sig
+
+  type t = aggregStats
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+end
+
+module TableStats : sig
+
+  type t = tableStats
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+  val length_func : Cstruct.t -> int option
+
+end
+
+module PortStats : sig
+
+  module Properties : sig
+
+    type t = portStatsProp
+
+    val sizeof : t -> int
+
+    val to_string : t -> string
+
+    val marshal : Cstruct.t -> t -> int
+
+    val parse : Cstruct.t -> t
+
+    val length_func : Cstruct.t -> int option
+
+  end
+ 
+  type t = portStats
+
+  val sizeof : t-> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+end
+
+module QueueStats : sig
+
+  module Properties : sig
+
+    type t = queueStatsProp
+
+    val sizeof : t -> int
+
+    val to_string : t -> string
+
+    val marshal : Cstruct.t -> t -> int
+
+    val parse : Cstruct.t -> t
+
+    val length_func : Cstruct.t -> int option
+
+  end
+
+  type t = queueStats
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t 
+
+end
+
+module GroupDesc : sig
+
+  type t = groupDesc
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+  val length_func : Cstruct.t -> int option
+
+end
+
+module GroupFeatures : sig
+
+  type t = groupFeatures
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t 
+
+end
+
+module MeterStats : sig
+
+  type t = meterStats
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+  val length_func : Cstruct.t -> int option
+
+end
+
+module MeterConfig : sig
+
+  type t = meterConfig
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+  val length_func : Cstruct.t -> int option
+
+end
+
+
+module MeterFeaturesStats : sig
+
+  type t = meterFeaturesStats
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+end
+
+module FlowMonitorReply : sig
+
+  type t = flowMonitorReply
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+  val length_func : Cstruct.t -> int option
+
+end
+
+module TableDescReply : sig
+
+  type t = tableDescReply
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+  val length_func : Cstruct.t -> int option
+
+end
+
+module QueueDescReply : sig
+
+  module Properties : sig
+
+    type t = queueDescProp
+
+    val sizeof : t -> int
+
+    val to_string : t -> string
+
+    val marshal : Cstruct.t -> t -> int
+
+    val parse : Cstruct.t -> t
+
+    val length_func : Cstruct.t -> int option
+
+  end
+
+  type t = queueDescReply
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+  val length_func : Cstruct.t -> int option
+
+end
+
+module MultipartReply : sig
+
+  type t = multipartReply
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+end  
+
 module Message : sig
 
   type t =
