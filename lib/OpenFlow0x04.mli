@@ -124,6 +124,8 @@ end
 
 module Action : sig
 
+  type t = action
+
   type sequence = OpenFlow0x04_Core.actionSequence
 
   val sizeof : action -> int
@@ -221,25 +223,29 @@ end
 
 module Instruction : sig
 
-  val to_string : instruction -> string
+  type t = instruction
 
-  val sizeof : instruction -> int
+  val to_string : t -> string
 
-  val marshal : Cstruct.t -> instruction -> int
+  val sizeof : t -> int
 
-  val parse : Cstruct.t ->  instruction
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t ->  t
 
 end
 
 module Instructions : sig
 
-  val sizeof : instruction list -> int
+  type t = instruction list
 
-  val marshal : Cstruct.t -> instruction list -> int
+  val sizeof : t -> int
 
-  val to_string : instruction list -> string
+  val marshal : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t -> instruction list
+  val to_string : t -> string
+
+  val parse : Cstruct.t -> t
 
 end
 
