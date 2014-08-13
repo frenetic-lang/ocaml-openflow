@@ -741,6 +741,34 @@ module MultipartReply : sig
 
 end  
 
+module PacketOut : sig
+
+  type t = packetOut
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+end
+
+module RoleRequest : sig
+
+  type t = roleRequest
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+end
+
 module Message : sig
 
   type t =
@@ -760,6 +788,11 @@ module Message : sig
     | MeterModMsg of MeterMod.t
     | MultipartReq of MultipartReq.t
     | MultipartReply of MultipartReply.t
+    | BarrierRequest
+    | BarrierReply
+    | PacketOutMsg of PacketOut.t
+    | RoleRequest of RoleRequest.t
+    | RoleReply of RoleRequest.t
 
   val sizeof : t -> int
 

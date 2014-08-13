@@ -361,3 +361,7 @@ type multipartReplyTyp =
   | FlowMonitorReply of flowMonitorReply list
 
 type multipartReply = {mpreply_typ : multipartReplyTyp; mpreply_flags : bool}
+
+type packetOut = OpenFlow0x04_Core.packetOut
+
+type roleRequest = OpenFlow0x04_Core.roleRequest

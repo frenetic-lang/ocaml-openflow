@@ -3977,6 +3977,10 @@ module MultipartReply = struct
 
 end
 
+module PacketOut = OpenFlow0x04.PacketOut
+
+module RoleRequest = OpenFlow0x04.RoleRequest
+
 module Message = struct
 
   type t =
@@ -3996,6 +4000,11 @@ module Message = struct
     | MeterModMsg of MeterMod.t
     | MultipartReq of MultipartReq.t
     | MultipartReply of MultipartReply.t
+    | BarrierRequest
+    | BarrierReply
+    | PacketOutMsg of PacketOut.t
+    | RoleRequest of RoleRequest.t
+    | RoleReply of RoleRequest.t
 
   let string_of_msg_code (msg : msg_code) : string = match msg with
     | HELLO -> "HELLO"
@@ -4052,6 +4061,11 @@ module Message = struct
     | MeterModMsg _ -> METER_MOD
     | MultipartReq _ -> MULTIPART_REQ
     | MultipartReply _ -> MULTIPART_RESP
+    | BarrierRequest -> BARRIER_REQ
+    | BarrierReply -> BARRIER_RESP
+    | PacketOutMsg _ -> PACKET_OUT
+    | RoleRequest _ -> ROLE_REQ
+    | RoleReply _ -> ROLE_RESP
 
   let sizeof (msg : t) : int = match msg with
     | Hello -> Header.size
@@ -4070,6 +4084,11 @@ module Message = struct
     | MeterModMsg meter -> Header.size + MeterMod.sizeof meter
     | MultipartReq m -> Header.size + MultipartReq.sizeof m
     | MultipartReply m -> Header.size + MultipartReply.sizeof m
+    | BarrierRequest -> Header.size
+    | BarrierReply -> Header.size
+    | PacketOutMsg p -> Header.size + PacketOut.sizeof p
+    | RoleRequest r -> Header.size + RoleRequest.sizeof r
+    | RoleReply r -> Header.size + RoleRequest.sizeof r
 
   let to_string (msg : t) : string = match msg with
     | Hello -> "Hello"
@@ -4088,6 +4107,11 @@ module Message = struct
     | MeterModMsg _ -> "MeterMod"
     | MultipartReq _ -> "MultipartReq"
     | MultipartReply _ -> "MultipartReply"
+    | BarrierRequest -> "BarrierRequest"
+    | BarrierReply -> "BarrierReply"
+    | PacketOutMsg _ -> "PacketOutMsg"
+    | RoleRequest _ -> "RoleReq"
+    | RoleReply _ -> "RoleReply"
 
   (* let marshal (buf : Cstruct.t) (msg : message) : int = *)
   (*   let buf2 = (Cstruct.shift buf Header.size) in *)
@@ -4129,6 +4153,16 @@ module Message = struct
         Header.size + MultipartReq.marshal out m
       | MultipartReply m ->
         Header.size + MultipartReply.marshal out m
+      | BarrierRequest ->
+        Header.size
+      | BarrierReply ->
+        Header.size
+      | PacketOutMsg p -> 
+        Header.size + PacketOut.marshal out p
+      | RoleRequest r -> 
+        Header.size + RoleRequest.marshal out r
+      | RoleReply r -> 
+        Header.size + RoleRequest.marshal out r
 
   let header_of xid msg =
     let open Header in
@@ -4168,6 +4202,9 @@ module Message = struct
       | METER_MOD -> MeterModMsg (MeterMod.parse body_bits)
       | MULTIPART_REQ -> MultipartReq (MultipartReq.parse body_bits)
       | MULTIPART_RESP -> MultipartReply (MultipartReply.parse body_bits)
+      | PACKET_OUT -> PacketOutMsg (PacketOut.parse body_bits)
+      | ROLE_REQ -> RoleRequest (RoleRequest.parse body_bits)
+      | ROLE_RESP -> RoleReply (RoleRequest.parse body_bits)
       | code -> raise (Unparsable (Printf.sprintf "unexpected message type %s" (string_of_msg_code typ))) in
     (hdr.Header.xid, msg)
 end
