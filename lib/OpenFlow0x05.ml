@@ -3981,6 +3981,165 @@ module PacketOut = OpenFlow0x04.PacketOut
 
 module RoleRequest = OpenFlow0x04.RoleRequest
 
+module BundleProp = struct
+
+  cenum ofp_bundle_prop_type {
+    OFPBPT_EXPERIMENTER = 0xFFFF
+  } as uint16_t
+
+  cstruct ofp_bundle_prop_header {
+    uint16_t typ;
+    uint16_t len
+  } as big_endian
+  
+  module Experimenter = struct
+    cstruct ofp_bundle_prop_experimenter {
+      uint16_t typ;
+      uint16_t len;
+      uint32_t experimenter;
+      uint32_t exp_typ
+    } as big_endian
+
+    type t = experimenter
+
+    let to_string (t : t) : string =
+      Format.sprintf "{ experimenter : %lu; exp_typ : %lu }"
+       t.experimenter
+       t.exp_typ
+
+    let sizeof ( _ : t ) =
+      sizeof_ofp_bundle_prop_experimenter
+
+    let marshal (buf : Cstruct.t) (t : t) : int =
+      set_ofp_bundle_prop_experimenter_typ buf (ofp_bundle_prop_type_to_int OFPBPT_EXPERIMENTER);
+      set_ofp_bundle_prop_experimenter_len buf sizeof_ofp_bundle_prop_experimenter;
+      set_ofp_bundle_prop_experimenter_experimenter buf t.experimenter;
+      set_ofp_bundle_prop_experimenter_exp_typ buf t.exp_typ;
+      sizeof_ofp_bundle_prop_experimenter
+
+    let parse (bits : Cstruct.t) : t =
+      { experimenter = get_ofp_bundle_prop_experimenter_experimenter bits
+      ; exp_typ = get_ofp_bundle_prop_experimenter_exp_typ bits}
+
+  end
+
+  type t  = bundleProp
+
+  let sizeof (t : t) : int =
+    match t with
+      | BundleExperimenter e -> Experimenter.sizeof e
+
+  let to_string (t : t) : string =
+    match t with
+      | BundleExperimenter e -> Format.sprintf "Experimenter : %s" (Experimenter.to_string e)
+
+  let length_func (buf : Cstruct.t) : int option =
+    if Cstruct.len buf < sizeof_ofp_bundle_prop_header then None
+    else Some (get_ofp_bundle_prop_header_len buf)
+
+  let marshal (buf : Cstruct.t) (t : t) =
+    match t with
+      | BundleExperimenter e -> Experimenter.marshal buf e
+
+  let parse (bits : Cstruct.t) : t =
+    let typ = match int_to_ofp_bundle_prop_type (get_ofp_bundle_prop_header_typ bits) with
+      | Some v -> v
+      | None -> raise (Unparsable (sprintf "malformed prop typ")) in
+    match typ with
+      | OFPBPT_EXPERIMENTER -> BundleExperimenter (Experimenter.parse bits)
+end
+
+module BundleFlags = struct
+
+  type t = bundleFlags
+
+  let to_string (t : t) = 
+    Format.sprintf "{ atomic = %B; ordered = %B }"
+    t.atomic
+    t.ordered
+
+  let marshal (f : t) =
+    (if f.atomic then 1 lsl 0 else 0) lor
+      (if f.ordered then 1 lsl 1 else 0)
+
+  let parse bits : t =
+    { atomic = test_bit16  0 bits
+    ; ordered = test_bit16  1 bits }
+
+end
+
+module BundleCtrl = struct
+
+  cstruct ofp_bundle_ctrl_msg {
+    uint32_t bundle_id;
+    uint16_t typ;
+    uint16_t flags
+  } as big_endian
+
+  cenum ofp_bundle_ctrl_type {
+    OFPBCT_OPEN_REQUEST = 0;
+    OFPBCT_OPEN_REPLY = 1;
+    OFPBCT_CLOSE_REQUEST = 2;
+    OFPBCT_CLOSE_REPLY = 3;
+    OFPBCT_COMMIT_REQUEST = 4;
+    OFPBCT_COMMIT_REPLY = 5;
+    OFPBCT_DISCARD_REQUEST = 6;
+    OFPBCT_DISCARD_REPLY = 7
+  } as uint16_t
+
+  type t = bundleCtrl
+
+  let sizeof (t : t) =
+    sizeof_ofp_bundle_ctrl_msg + sum (map BundleProp.sizeof t.properties)
+
+  let to_string (t : t) =
+    Format.sprintf "{ bundle_id = %lu; typ = %s; flags = %s; properties = %s }"
+    t.bundle_id
+    (match t.typ with
+      | OpenReq -> "OpenReq"
+      | OpenReply -> "OpenReply"
+      | CloseReq -> "CloseReq"
+      | CloseReply -> "CloseReply"
+      | CommitReq -> "CommitReq"
+      | CommitReply -> "CommitReply"
+      | DiscardReq -> "DiscardReq"
+      | DiscardReply -> "DiscardReply")
+    (BundleFlags.to_string t.flags)
+    ("[ " ^ (String.concat "; " (map BundleProp.to_string t.properties)) ^ " ]")
+
+  let marshal (buf : Cstruct.t) (t : t) =
+    set_ofp_bundle_ctrl_msg_bundle_id buf t.bundle_id;
+    set_ofp_bundle_ctrl_msg_typ buf (
+      match t.typ with
+        | OpenReq -> ofp_bundle_ctrl_type_to_int OFPBCT_OPEN_REQUEST
+        | OpenReply -> ofp_bundle_ctrl_type_to_int OFPBCT_OPEN_REPLY
+        | CloseReq -> ofp_bundle_ctrl_type_to_int OFPBCT_CLOSE_REQUEST
+        | CloseReply -> ofp_bundle_ctrl_type_to_int OFPBCT_CLOSE_REPLY
+        | CommitReq -> ofp_bundle_ctrl_type_to_int OFPBCT_COMMIT_REQUEST
+        | CommitReply -> ofp_bundle_ctrl_type_to_int OFPBCT_COMMIT_REPLY
+        | DiscardReq -> ofp_bundle_ctrl_type_to_int OFPBCT_DISCARD_REQUEST
+        | DiscardReply -> ofp_bundle_ctrl_type_to_int OFPBCT_DISCARD_REPLY);
+    set_ofp_bundle_ctrl_msg_flags buf (BundleFlags.marshal t.flags);
+    sizeof_ofp_bundle_ctrl_msg + marshal_fields (Cstruct.shift buf sizeof_ofp_bundle_ctrl_msg) t.properties BundleProp.marshal
+
+  let parse (bits : Cstruct.t) : t =
+    { bundle_id = get_ofp_bundle_ctrl_msg_bundle_id bits
+    ; typ = (match int_to_ofp_bundle_ctrl_type (get_ofp_bundle_ctrl_msg_typ bits) with
+              | Some OFPBCT_OPEN_REQUEST -> OpenReq
+              | Some OFPBCT_OPEN_REPLY -> OpenReply
+              | Some OFPBCT_CLOSE_REQUEST -> CloseReq
+              | Some OFPBCT_CLOSE_REPLY -> CloseReply
+              | Some OFPBCT_COMMIT_REQUEST -> CommitReq
+              | Some OFPBCT_COMMIT_REPLY -> CommitReply
+              | Some OFPBCT_DISCARD_REQUEST -> DiscardReq
+              | Some OFPBCT_DISCARD_REPLY -> DiscardReply
+              | None -> raise (Unparsable (sprintf "malformed bundle controle type")))
+    ; flags = BundleFlags.parse (get_ofp_bundle_ctrl_msg_flags bits)
+    ; properties = parse_fields (Cstruct.shift bits sizeof_ofp_bundle_ctrl_msg) BundleProp.parse BundleProp.length_func
+    }
+
+end
+
 module Message = struct
 
   type t =
@@ -4005,6 +4164,7 @@ module Message = struct
     | PacketOutMsg of PacketOut.t
     | RoleRequest of RoleRequest.t
     | RoleReply of RoleRequest.t
+    | BundleControl of BundleCtrl.t
 
   let string_of_msg_code (msg : msg_code) : string = match msg with
     | HELLO -> "HELLO"
@@ -4066,6 +4226,7 @@ module Message = struct
     | PacketOutMsg _ -> PACKET_OUT
     | RoleRequest _ -> ROLE_REQ
     | RoleReply _ -> ROLE_RESP
+    | BundleControl _ -> BUNDLE_CONTROL
 
   let sizeof (msg : t) : int = match msg with
     | Hello -> Header.size
@@ -4089,6 +4250,7 @@ module Message = struct
     | PacketOutMsg p -> Header.size + PacketOut.sizeof p
     | RoleRequest r -> Header.size + RoleRequest.sizeof r
     | RoleReply r -> Header.size + RoleRequest.sizeof r
+    | BundleControl b -> Header.size + BundleCtrl.sizeof b
 
   let to_string (msg : t) : string = match msg with
     | Hello -> "Hello"
@@ -4112,6 +4274,7 @@ module Message = struct
     | PacketOutMsg _ -> "PacketOutMsg"
     | RoleRequest _ -> "RoleReq"
     | RoleReply _ -> "RoleReply"
+    | BundleControl _ -> "BundleControl"
 
   (* let marshal (buf : Cstruct.t) (msg : message) : int = *)
   (*   let buf2 = (Cstruct.shift buf Header.size) in *)
@@ -4163,6 +4326,8 @@ module Message = struct
         Header.size + RoleRequest.marshal out r
       | RoleReply r -> 
         Header.size + RoleRequest.marshal out r
+      | BundleControl b ->
+        Header.size + BundleCtrl.marshal out b
 
   let header_of xid msg =
     let open Header in
@@ -4205,6 +4370,7 @@ module Message = struct
       | PACKET_OUT -> PacketOutMsg (PacketOut.parse body_bits)
       | ROLE_REQ -> RoleRequest (RoleRequest.parse body_bits)
       | ROLE_RESP -> RoleReply (RoleRequest.parse body_bits)
+      | BUNDLE_CONTROL -> BundleControl (BundleCtrl.parse body_bits)
       | code -> raise (Unparsable (Printf.sprintf "unexpected message type %s" (string_of_msg_code typ))) in
     (hdr.Header.xid, msg)
 end

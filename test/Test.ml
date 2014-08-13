@@ -644,6 +644,16 @@ module RoundTripping = struct
       (openflow_quickCheck GenMultipartReply.arbitrary
           GenMultipartReply.to_string GenMultipartReply.parse GenMultipartReply.marshal)
 
+  TEST "OpenFlow0x05 BundleProp RoundTrip" =
+      let module GenBundleProp = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.BundleProp) in
+      (openflow_quickCheck GenBundleProp.arbitrary
+          GenBundleProp.to_string GenBundleProp.parse GenBundleProp.marshal)
+
+  TEST "OpenFlow0x05 BundleCtrl RoundTrip" =
+      let module GenBundleCtrl = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.BundleCtrl) in
+      (openflow_quickCheck GenBundleCtrl.arbitrary
+          GenBundleCtrl.to_string GenBundleCtrl.parse GenBundleCtrl.marshal)
+
   TEST "OpenFlow Hello Test 1" = 
     let open Message in 
     let bs = Cstruct.create 101 in

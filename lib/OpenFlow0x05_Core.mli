@@ -362,3 +362,21 @@ type multipartReply = {mpreply_typ : multipartReplyTyp; mpreply_flags : bool}
 type packetOut = OpenFlow0x04_Core.packetOut
 
 type roleRequest = OpenFlow0x04_Core.roleRequest
+
+type bundleCtrlTyp = 
+  | OpenReq
+  | OpenReply
+  | CloseReq
+  | CloseReply
+  | CommitReq
+  | CommitReply
+  | DiscardReq
+  | DiscardReply
+
+type bundleFlags = { atomic : bool; ordered : bool}
+  
+type bundleProp = 
+  | BundleExperimenter of experimenter
+
+
+type bundleCtrl = { bundle_id : int32; typ : bundleCtrlTyp; flags : bundleFlags; properties : bundleProp list }

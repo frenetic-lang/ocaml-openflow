@@ -769,6 +769,37 @@ module RoleRequest : sig
 
 end
 
+module BundleProp : sig
+
+  type t = bundleProp
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+  val length_func : Cstruct.t -> int option
+
+end
+
+module BundleCtrl : sig
+
+  type t = bundleCtrl
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+end
+
+
 module Message : sig
 
   type t =
@@ -793,6 +824,7 @@ module Message : sig
     | PacketOutMsg of PacketOut.t
     | RoleRequest of RoleRequest.t
     | RoleReply of RoleRequest.t
+    | BundleControl of BundleCtrl.t
 
   val sizeof : t -> int
 

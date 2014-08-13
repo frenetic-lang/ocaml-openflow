@@ -1103,3 +1103,55 @@ module MultipartReply = struct
   let size_of = MultipartReply.sizeof
 end
 
+module BundleProp = struct
+
+  open Gen
+  type t = BundleProp.t
+
+  let arbitrary = 
+    oneof [
+      (Experimenter.arbitrary >>= (fun n -> ret_gen (BundleExperimenter n)))
+      ]    
+
+  let marshal = BundleProp.marshal
+  let parse = BundleProp.parse
+  let to_string = BundleProp.to_string
+  let size_of = BundleProp.sizeof
+
+end
+
+module BundleCtrl = struct
+
+  open Gen
+  type t = BundleCtrl.t
+
+  let arbitrary_typ = 
+    oneof [
+      ret_gen OpenReq;
+      ret_gen OpenReply;
+      ret_gen CloseReq;
+      ret_gen CloseReply;
+      ret_gen CommitReq;
+      ret_gen CommitReply;
+      ret_gen DiscardReq;
+      ret_gen DiscardReply
+    ]
+
+  let arbitrary_flags =
+    arbitrary_bool >>= fun atomic ->
+    arbitrary_bool >>= fun ordered ->
+    ret_gen { atomic; ordered }
+
+  let arbitrary =
+    arbitrary_uint32 >>= fun bundle_id ->
+    arbitrary_typ >>= fun typ ->
+    arbitrary_flags >>= fun flags ->
+    arbitrary_list BundleProp.arbitrary >>= fun properties ->
+    ret_gen { bundle_id; typ; flags; properties }
+
+  let marshal = BundleCtrl.marshal
+  let parse = BundleCtrl.parse
+  let to_string = BundleCtrl.to_string
+  let size_of = BundleCtrl.sizeof
+
+end
