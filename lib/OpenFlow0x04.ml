@@ -2358,6 +2358,8 @@ end
 
 module Action = struct
 
+  type t = action
+
   type sequence = OpenFlow0x04_Core.actionSequence
     
   let sizeof (act : action) : int = match act with
@@ -2976,6 +2978,8 @@ end
 
 module Instruction = struct
 
+  type t = instruction
+
   let to_string ins =
     match ins with
       | GotoTable t -> Format.sprintf "Go to Table = %u" t
@@ -3094,6 +3098,8 @@ module Instruction = struct
 end
 
 module Instructions = struct
+
+  type t = instruction list
 
   let sizeof (inss : instruction list) : int =
     sum (map Instruction.sizeof inss)
