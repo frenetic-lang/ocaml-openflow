@@ -758,6 +758,8 @@ module Message : sig
     | TableModMsg of TableMod.t
     | PortModMsg of PortMod.t
     | MeterModMsg of MeterMod.t
+    | MultipartReq of MultipartReq.t
+    | MultipartReply of MultipartReply.t
 
   val sizeof : t -> int
 

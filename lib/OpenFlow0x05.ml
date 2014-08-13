@@ -3994,6 +3994,8 @@ module Message = struct
     | TableModMsg of TableMod.t
     | PortModMsg of PortMod.t
     | MeterModMsg of MeterMod.t
+    | MultipartReq of MultipartReq.t
+    | MultipartReply of MultipartReply.t
 
   let string_of_msg_code (msg : msg_code) : string = match msg with
     | HELLO -> "HELLO"
@@ -4048,6 +4050,8 @@ module Message = struct
     | TableModMsg _ -> TABLE_MOD
     | PortModMsg _ -> PORT_MOD
     | MeterModMsg _ -> METER_MOD
+    | MultipartReq _ -> MULTIPART_REQ
+    | MultipartReply _ -> MULTIPART_RESP
 
   let sizeof (msg : t) : int = match msg with
     | Hello -> Header.size
@@ -4064,6 +4068,8 @@ module Message = struct
     | TableModMsg table -> Header.size + TableMod.sizeof table
     | PortModMsg port -> Header.size + PortMod.sizeof port
     | MeterModMsg meter -> Header.size + MeterMod.sizeof meter
+    | MultipartReq m -> Header.size + MultipartReq.sizeof m
+    | MultipartReply m -> Header.size + MultipartReply.sizeof m
 
   let to_string (msg : t) : string = match msg with
     | Hello -> "Hello"
@@ -4080,6 +4086,8 @@ module Message = struct
     | TableModMsg _ -> "TableMod"
     | PortModMsg _ -> "PortMod"
     | MeterModMsg _ -> "MeterMod"
+    | MultipartReq _ -> "MultipartReq"
+    | MultipartReply _ -> "MultipartReply"
 
   (* let marshal (buf : Cstruct.t) (msg : message) : int = *)
   (*   let buf2 = (Cstruct.shift buf Header.size) in *)
@@ -4117,6 +4125,10 @@ module Message = struct
         Header.size + PortMod.marshal out port
       | MeterModMsg meter ->
         Header.size + MeterMod.marshal out meter
+      | MultipartReq m ->
+        Header.size + MultipartReq.marshal out m
+      | MultipartReply m ->
+        Header.size + MultipartReply.marshal out m
 
   let header_of xid msg =
     let open Header in
@@ -4154,6 +4166,8 @@ module Message = struct
       | TABLE_MOD -> TableModMsg (TableMod.parse body_bits)
       | PORT_MOD -> PortModMsg (PortMod.parse body_bits)
       | METER_MOD -> MeterModMsg (MeterMod.parse body_bits)
+      | MULTIPART_REQ -> MultipartReq (MultipartReq.parse body_bits)
+      | MULTIPART_RESP -> MultipartReply (MultipartReply.parse body_bits)
       | code -> raise (Unparsable (Printf.sprintf "unexpected message type %s" (string_of_msg_code typ))) in
     (hdr.Header.xid, msg)
 end
