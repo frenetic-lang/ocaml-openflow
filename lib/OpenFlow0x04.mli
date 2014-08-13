@@ -124,6 +124,8 @@ end
 
 module Action : sig
 
+  type t = action
+
   type sequence = OpenFlow0x04_Core.actionSequence
 
   val sizeof : action -> int
@@ -221,25 +223,29 @@ end
 
 module Instruction : sig
 
-  val to_string : instruction -> string
+  type t = instruction
 
-  val sizeof : instruction -> int
+  val to_string : t -> string
 
-  val marshal : Cstruct.t -> instruction -> int
+  val sizeof : t -> int
 
-  val parse : Cstruct.t ->  instruction
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t ->  t
 
 end
 
 module Instructions : sig
 
-  val sizeof : instruction list -> int
+  type t = instruction list
 
-  val marshal : Cstruct.t -> instruction list -> int
+  val sizeof : t -> int
 
-  val to_string : instruction list -> string
+  val marshal : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t -> instruction list
+  val to_string : t -> string
+
+  val parse : Cstruct.t -> t
 
 end
 
@@ -474,6 +480,9 @@ module GroupStats : sig
   val marshal : Cstruct.t ->  groupStats -> int
 
   val parse : Cstruct.t ->  groupStats
+
+  val length_func : Cstruct.t -> int option
+
 end
 
 module SwitchDescriptionReply : sig
@@ -503,6 +512,8 @@ module FlowStats : sig
 
   val parse : Cstruct.t -> flowStats
 
+  val length_func : Cstruct.t -> int option
+
 end
 
 
@@ -531,6 +542,8 @@ module TableStats : sig
   val marshal : Cstruct.t -> tableStats -> int
 
   val parse : Cstruct.t -> tableStats
+
+  val length_func : Cstruct.t -> int option
 
 end
 
@@ -574,6 +587,8 @@ module GroupDesc : sig
 
   val parse : Cstruct.t -> groupDesc
 
+  val length_func : Cstruct.t -> int option
+
 end
 
 module GroupFeatures : sig
@@ -602,6 +617,8 @@ module MeterStats : sig
 
   val parse : Cstruct.t -> meterStats
 
+  val length_func : Cstruct.t -> int option
+
 end
 
 module MeterConfig : sig
@@ -615,6 +632,8 @@ module MeterConfig : sig
   val marshal : Cstruct.t -> meterConfig -> int
 
   val parse : Cstruct.t -> meterConfig
+
+  val length_func : Cstruct.t -> int option
 
 end
 
