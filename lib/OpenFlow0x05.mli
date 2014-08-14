@@ -813,6 +813,18 @@ module BundleCtrl : sig
 
 end
 
+module BundleAdd : sig
+
+  val sizeof : 'a bundleAdd -> ('a -> int) -> int
+
+  val to_string : 'a bundleAdd -> ('a -> string) -> string
+
+  val marshal : Cstruct.t -> 'a bundleAdd -> ('a -> Cstruct.t -> int) -> (xid -> 'a -> OpenFlow_Header.t) -> int
+
+  val parse : Cstruct.t -> (OpenFlow_Header.t -> string -> xid * 'a) -> ('a -> int) -> 'a bundleAdd
+
+end
+
 
 module Message : sig
 
