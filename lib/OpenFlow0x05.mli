@@ -196,9 +196,23 @@ module Experimenter : sig
 
 end
 
+module Capabilities : sig
+
+  type t = capabilities
+
+  val to_int32 : t -> int32
+
+  val to_string : t -> string
+
+  val parse : int32 -> t
+
+end
+
+
+
 module SwitchFeatures : sig
 
-  type t = OpenFlow0x04.SwitchFeatures.t
+  type t = switchFeatures
 
   val sizeof : t -> int
 
@@ -825,6 +839,7 @@ module Message : sig
     | RoleRequest of RoleRequest.t
     | RoleReply of RoleRequest.t
     | BundleControl of BundleCtrl.t
+    | BundleAdd of t bundleAdd
 
   val sizeof : t -> int
 

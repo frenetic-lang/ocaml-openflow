@@ -1835,8 +1835,58 @@ end
 
 (* Controller to switch message *)
 
-module SwitchFeatures = OpenFlow0x04.SwitchFeatures
+module Capabilities = OpenFlow0x04.Capabilities
 
+module SwitchFeatures = struct
+
+  cstruct ofp_switch_features {
+    uint64_t datapath_id;
+    uint32_t n_buffers;
+    uint8_t n_tables;
+    uint8_t auxiliary_id;
+    uint8_t pad0;
+    uint8_t pad1;
+    uint32_t capabilities; 
+    uint32_t reserved
+  } as big_endian
+
+  type t = switchFeatures
+
+  let sizeof (sw : t) : int =
+      sizeof_ofp_switch_features
+
+  let to_string (sw : t) : string =
+      Format.sprintf "{ datapath_id = %Lu; num_buffers = %lu; num_Tables = %u; aux_id = %u; capabilities = %s }"
+      sw.datapath_id
+      sw.num_buffers
+      sw.num_tables
+      sw.aux_id
+      (Capabilities.to_string sw.supported_capabilities)
+
+  let marshal (buf : Cstruct.t) (features : t) : int =
+    set_ofp_switch_features_datapath_id buf features.datapath_id;
+    set_ofp_switch_features_n_buffers buf features.num_buffers;
+    set_ofp_switch_features_n_tables buf features.num_tables;
+    set_ofp_switch_features_auxiliary_id buf features.aux_id;
+    set_ofp_switch_features_pad0 buf 0;
+    set_ofp_switch_features_pad1 buf 0;
+    set_ofp_switch_features_capabilities buf (Capabilities.to_int32 features.supported_capabilities); 
+    sizeof_ofp_switch_features
+
+  let parse (bits : Cstruct.t) : t =
+    let datapath_id = get_ofp_switch_features_datapath_id bits in 
+    let num_buffers = get_ofp_switch_features_n_buffers bits in
+    let num_tables = get_ofp_switch_features_n_tables bits in
+    let aux_id = get_ofp_switch_features_auxiliary_id bits in
+    let supported_capabilities = Capabilities.parse
+      (get_ofp_switch_features_capabilities bits) in
+    { datapath_id; 
+      num_buffers; 
+      num_tables;
+      aux_id; 
+      supported_capabilities }
+
+end
 module SwitchConfig = OpenFlow0x04.SwitchConfig
 
 module TableMod = struct
@@ -4140,6 +4190,49 @@ module BundleCtrl = struct
 
 end
 
+module BundleAdd = struct
+
+  cstruct ofp_bundle_add_msg {
+    uint32_t bundle_id;
+    uint16_t pad;
+    uint16_t flags
+  } as big_endian
+
+(*  type t = 'a bundleAdd*)
+
+  module Header = OpenFlow_Header
+
+  let sizeof (t : 'a bundleAdd) (sizeof_fn : 'a -> int)=
+    sizeof_ofp_bundle_add_msg + (sizeof_fn t.message) + sum (map BundleProp.sizeof t.properties)
+
+  let to_string (t : 'a bundleAdd) (to_string_fn : 'a -> string)=
+    Format.sprintf "{ bundle_id = %lu; flags = %s; message = %s; properties = %s }"
+    t.bundle_id
+    (BundleFlags.to_string t.flags)
+    (to_string_fn t.message)
+    ("[ " ^ (String.concat "; " (map BundleProp.to_string t.properties)) ^ " ]")
+
+  let marshal (buf : Cstruct.t) (t : 'a bundleAdd) (marshal_fn : 'a -> Cstruct.t -> int)= 
+    set_ofp_bundle_add_msg_bundle_id buf t.bundle_id;
+    set_ofp_bundle_add_msg_flags buf (BundleFlags.marshal t.flags);
+    let body_buf = Cstruct.shift buf sizeof_ofp_bundle_add_msg in
+    let message_size = marshal_fn t.message body_buf in
+    let prop_buf = (Cstruct.shift body_buf message_size) in
+    sizeof_ofp_bundle_add_msg + message_size + marshal_fields prop_buf t.properties BundleProp.marshal
+
+  let parse (bits : Cstruct.t) (parse_fn : Header.t -> string -> xid * 'a) (sizeof_fn : 'a -> int) : 'a bundleAdd =
+    let bundle_id = get_ofp_bundle_add_msg_bundle_id bits in
+    let flags = BundleFlags.parse (get_ofp_bundle_add_msg_flags bits) in
+    let message_bits = Cstruct.shift bits (sizeof_ofp_bundle_add_msg + Header.size) in
+    let hdr = Header.parse (Cstruct.shift bits (sizeof_ofp_bundle_add_msg)) in
+    let _,message = parse_fn hdr (Cstruct.to_string message_bits) in
+    let sizeof_msg = sizeof_fn message in
+    let properties = parse_fields (Cstruct.shift message_bits sizeof_msg) BundleProp.parse BundleProp.length_func in
+    { bundle_id; flags; message; properties }
+
+end
+
+
 module Message = struct
 
   type t =
@@ -4165,6 +4258,7 @@ module Message = struct
     | RoleRequest of RoleRequest.t
     | RoleReply of RoleRequest.t
     | BundleControl of BundleCtrl.t
+    | BundleAdd of t bundleAdd
 
   let string_of_msg_code (msg : msg_code) : string = match msg with
     | HELLO -> "HELLO"
@@ -4227,8 +4321,9 @@ module Message = struct
     | RoleRequest _ -> ROLE_REQ
     | RoleReply _ -> ROLE_RESP
     | BundleControl _ -> BUNDLE_CONTROL
+    | BundleAdd _ -> BUNDLE_ADD_MESSAGE
 
-  let sizeof (msg : t) : int = match msg with
+  let rec sizeof (msg : t) : int = match msg with
     | Hello -> Header.size
     | EchoRequest bytes -> Header.size + (String.length (Cstruct.to_string bytes))
     | EchoReply bytes -> Header.size + (String.length (Cstruct.to_string bytes))
@@ -4251,6 +4346,7 @@ module Message = struct
     | RoleRequest r -> Header.size + RoleRequest.sizeof r
     | RoleReply r -> Header.size + RoleRequest.sizeof r
     | BundleControl b -> Header.size + BundleCtrl.sizeof b
+    | BundleAdd b -> Header.size + BundleAdd.sizeof b sizeof
 
   let to_string (msg : t) : string = match msg with
     | Hello -> "Hello"
@@ -4275,6 +4371,7 @@ module Message = struct
     | RoleRequest _ -> "RoleReq"
     | RoleReply _ -> "RoleReply"
     | BundleControl _ -> "BundleControl"
+    | BundleAdd _ -> "BundleAdd"
 
   (* let marshal (buf : Cstruct.t) (msg : message) : int = *)
   (*   let buf2 = (Cstruct.shift buf Header.size) in *)
@@ -4282,7 +4379,7 @@ module Message = struct
   (*   set_ofp_header_typ buf (msg_code_to_int (msg_code_of_message msg)); *)
   (*   set_ofp_header_length buf (sizeof msg); *)
 
-  let blit_message (msg : t) (out : Cstruct.t) =
+  let rec blit_message (msg : t) (out : Cstruct.t) =
     match msg with
       | Hello ->
         Header.size
@@ -4328,6 +4425,8 @@ module Message = struct
         Header.size + RoleRequest.marshal out r
       | BundleControl b ->
         Header.size + BundleCtrl.marshal out b
+      | BundleAdd b ->
+        Header.size + BundleAdd.marshal out b blit_message
 
   let header_of xid msg =
     let open Header in
@@ -4346,7 +4445,7 @@ module Message = struct
     let _ = blit_message msg (Cstruct.shift buf Header.size) in
     Cstruct.to_string buf
 
-  let parse (hdr : Header.t) (body_buf : string) : (xid * t) =
+  let rec parse (hdr : Header.t) (body_buf : string) : (xid * t) =
     let body_bits = Cstruct.of_string body_buf in
     let typ = match int_to_msg_code hdr.Header.type_code with
       | Some code -> code
@@ -4371,6 +4470,7 @@ module Message = struct
       | ROLE_REQ -> RoleRequest (RoleRequest.parse body_bits)
       | ROLE_RESP -> RoleReply (RoleRequest.parse body_bits)
       | BUNDLE_CONTROL -> BundleControl (BundleCtrl.parse body_bits)
+      | BUNDLE_ADD_MESSAGE -> BundleAdd (BundleAdd.parse body_bits parse sizeof)
       | code -> raise (Unparsable (Printf.sprintf "unexpected message type %s" (string_of_msg_code typ))) in
     (hdr.Header.xid, msg)
 end

@@ -200,7 +200,19 @@ type portModPropt =
 
 type portMod = { mpPortNo : portId; mpHw_addr : int48; mpConfig : portConfig;
                  mpMask : portConfig; mpProp : portModPropt list }
-                 
+
+type groupMod = OpenFlow0x04_Core.groupMod
+
+type meterMod = OpenFlow0x04_Core.meterMod
+
+type capabilities = OpenFlow0x04_Core.capabilities
+
+type switchFeatures = { datapath_id : int64; num_buffers : int32;
+                        num_tables : int8; aux_id : int8;
+                        supported_capabilities : capabilities }
+
+type switchConfig = OpenFlow0x04_Core.switchConfig
+
 type flowRequest = OpenFlow0x04_Core.flowRequest
 
 type queueRequest = OpenFlow0x04_Core.queueRequest
@@ -378,5 +390,31 @@ type bundleFlags = { atomic : bool; ordered : bool}
 type bundleProp = 
   | BundleExperimenter of experimenter
 
-
 type bundleCtrl = { bundle_id : int32; typ : bundleCtrlTyp; flags : bundleFlags; properties : bundleProp list }
+
+type message = 
+  | Hello
+  | EchoRequest of bytes
+  | EchoReply of bytes
+  | Experimenter of experimenter
+  | FeaturesRequest
+  | FeaturesReply of switchFeatures
+  | GetConfigRequestMsg of switchConfig
+  | GetConfigReplyMsg of switchConfig
+  | SetConfigMsg of switchConfig
+  | FlowModMsg of flowMod
+  | GroupModMsg of groupMod
+  | TableModMsg of tableMod
+  | PortModMsg of portMod
+  | MeterModMsg of meterMod
+  | MultipartReq of multipartRequest
+  | MultipartReply of multipartReply
+  | BarrierRequest
+  | BarrierReply
+  | PacketOutMsg of packetOut
+  | RoleRequest of roleRequest
+  | RoleReply of roleRequest
+  | BundleControl of bundleCtrl
+
+type 'a bundleAdd = { bundle_id : int32; flags : bundleFlags; message : 'a; properties : bundleProp list }
+
