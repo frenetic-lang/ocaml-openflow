@@ -416,5 +416,5 @@ type message =
   | RoleReply of roleRequest
   | BundleControl of bundleCtrl
 
-type 'a bundleAdd = { bundle_id : int32; flags : bundleFlags; message : 'a; properties : bundleProp list }
+type 'a bundleAdd = { bundle_id : int32; flags : bundleFlags; xid : xid; message : 'a; properties : bundleProp list }
 

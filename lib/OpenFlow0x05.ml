@@ -4212,23 +4212,28 @@ module BundleAdd = struct
     (to_string_fn t.message)
     ("[ " ^ (String.concat "; " (map BundleProp.to_string t.properties)) ^ " ]")
 
-  let marshal (buf : Cstruct.t) (t : 'a bundleAdd) (marshal_fn : 'a -> Cstruct.t -> int)= 
+  let marshal (buf : Cstruct.t) (t : 'a bundleAdd) (marshal_fn : 'a -> Cstruct.t -> int) (header_of : xid -> 'a -> Header.t)= 
+    let open OpenFlow_Header in
     set_ofp_bundle_add_msg_bundle_id buf t.bundle_id;
     set_ofp_bundle_add_msg_flags buf (BundleFlags.marshal t.flags);
-    let body_buf = Cstruct.shift buf sizeof_ofp_bundle_add_msg in
+    let hdr = header_of t.xid t.message in
+    Header.marshal (Cstruct.shift buf sizeof_ofp_bundle_add_msg) hdr;
+    let body_buf = Cstruct.shift buf (sizeof_ofp_bundle_add_msg + Header.size)in
     let message_size = marshal_fn t.message body_buf in
     let prop_buf = (Cstruct.shift body_buf message_size) in
     sizeof_ofp_bundle_add_msg + message_size + marshal_fields prop_buf t.properties BundleProp.marshal
 
   let parse (bits : Cstruct.t) (parse_fn : Header.t -> string -> xid * 'a) (sizeof_fn : 'a -> int) : 'a bundleAdd =
+    let open OpenFlow_Header in
     let bundle_id = get_ofp_bundle_add_msg_bundle_id bits in
     let flags = BundleFlags.parse (get_ofp_bundle_add_msg_flags bits) in
     let message_bits = Cstruct.shift bits (sizeof_ofp_bundle_add_msg + Header.size) in
     let hdr = Header.parse (Cstruct.shift bits (sizeof_ofp_bundle_add_msg)) in
+    let xid = hdr.xid in
     let _,message = parse_fn hdr (Cstruct.to_string message_bits) in
     let sizeof_msg = sizeof_fn message in
     let properties = parse_fields (Cstruct.shift message_bits sizeof_msg) BundleProp.parse BundleProp.length_func in
-    { bundle_id; flags; message; properties }
+    { bundle_id; flags; xid; message; properties }
 
 end
 
@@ -4373,6 +4378,11 @@ module Message = struct
     | BundleControl _ -> "BundleControl"
     | BundleAdd _ -> "BundleAdd"
 
+  let header_of xid msg =
+    let open Header in
+    { version = 0x05; type_code = msg_code_to_int (msg_code_of_message msg);
+      length = sizeof msg; xid = xid }
+
   (* let marshal (buf : Cstruct.t) (msg : message) : int = *)
   (*   let buf2 = (Cstruct.shift buf Header.size) in *)
   (*   set_ofp_header_version buf 0x05; *)
@@ -4426,12 +4436,7 @@ module Message = struct
       | BundleControl b ->
         Header.size + BundleCtrl.marshal out b
       | BundleAdd b ->
-        Header.size + BundleAdd.marshal out b blit_message
-
-  let header_of xid msg =
-    let open Header in
-    { version = 0x05; type_code = msg_code_to_int (msg_code_of_message msg);
-      length = sizeof msg; xid = xid }
+        Header.size + BundleAdd.marshal out b blit_message header_of
 
   let marshal_body (msg : t) (buf : Cstruct.t) =
     let _ = blit_message msg buf in
