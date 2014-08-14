@@ -3247,6 +3247,8 @@ end
 
 module Capabilities = struct
 
+  type t = capabilities
+
   let to_int32 (capa : capabilities) : int32 = 
     Int32.logor (if capa.flow_stats then (Int32.shift_left 1l 0) else 0l)
      (Int32.logor (if capa.table_stats then (Int32.shift_left 1l 1) else 0l)

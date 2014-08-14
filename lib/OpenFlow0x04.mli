@@ -262,10 +262,14 @@ module FlowMod : sig
 end
 
 module Capabilities : sig
- 
-  val to_string : capabilities -> string
 
-  val parse : int32  -> capabilities
+  type t = capabilities
+
+  val to_int32 : t ->int32
+ 
+  val to_string : t -> string
+
+  val parse : int32  -> t
 
 end
 
