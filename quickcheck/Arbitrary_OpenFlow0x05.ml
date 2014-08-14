@@ -524,7 +524,6 @@ module SwitchFeatures = struct
 
   let arbitrary = 
     let open Gen in
-    let open OpenFlow0x04.SwitchFeatures in
     let arbitrary_capabilities = 
       let open OpenFlow0x04_Core in
       arbitrary_bool >>= fun flow_stats ->
