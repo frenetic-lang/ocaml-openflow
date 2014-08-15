@@ -1294,3 +1294,28 @@ module RoleStatus = struct
   let size_of = RoleStatus.sizeof
 
 end
+
+module TableStatus = struct
+
+  open Gen
+
+  type t = TableStatus.t
+
+  let arbitrary_reason = 
+    oneof [
+      ret_gen VacancyDown;
+      ret_gen VacancyUp
+    ]
+
+  let arbitrary =
+    let open OpenFlow0x05_Core in
+    arbitrary_reason >>= fun reason ->
+    TableMod.arbitrary >>= fun table ->
+    ret_gen { reason; table }
+
+  let marshal = TableStatus.marshal
+  let parse = TableStatus.parse
+  let to_string = TableStatus.to_string
+  let size_of = TableStatus.sizeof
+
+end

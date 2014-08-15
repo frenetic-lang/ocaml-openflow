@@ -455,3 +455,9 @@ type roleStatusProp =
 
 type roleStatus = { role : controllerRole; reason : roleStatusReason; generation_id : int64; 
                     properties : roleStatusProp list }
+
+type tableStatusReason =
+  | VacancyDown
+  | VacancyUp
+
+type tableStatus = { reason : tableStatusReason; table : tableDescReply}

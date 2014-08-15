@@ -4838,6 +4838,60 @@ module RoleStatus = struct
     }
 end
 
+module TableStatus = struct
+
+  module Reason = struct
+
+    cenum ofp_table_reason {
+      OFPTR_VACANCY_DOWN = 3;
+      OFPTR_VACANCY_UP = 4
+    } as uint8_t
+
+    type t = tableStatusReason
+
+    let to_string (t : t) = 
+      match t with
+        | VacancyDown -> "VacancyDown"
+        | VacancyUp -> "VacancyUp"
+
+    let marshal (t : t) : int8 =
+      match t with
+        | VacancyDown -> ofp_table_reason_to_int OFPTR_VACANCY_DOWN
+        | VacancyUp -> ofp_table_reason_to_int OFPTR_VACANCY_UP
+
+    let parse bits : t = 
+      match int_to_ofp_table_reason bits with
+        | Some OFPTR_VACANCY_DOWN -> VacancyDown
+        | Some OFPTR_VACANCY_UP -> VacancyUp
+        | None -> raise (Unparsable (sprintf "malfomed reason"))
+
+  end
+
+  cstruct ofp_table_status {
+    uint8_t reason;
+    uint8_t pad[7];
+  } as big_endian
+
+  type t = tableStatus
+
+  let sizeof (t : t) =
+    sizeof_ofp_table_status + (TableMod.sizeof t.table)
+
+  let to_string (t : t) =
+    Format.sprintf "{ reason = %s; table = %s }"
+    (Reason.to_string t.reason)
+    (TableMod.to_string t.table)
+
+  let marshal (buf : Cstruct.t) (t : t) =
+    set_ofp_table_status_reason buf (Reason.marshal t.reason);
+    sizeof_ofp_table_status + TableMod.marshal (Cstruct.shift buf sizeof_ofp_table_status) t.table
+
+  let parse (bits : Cstruct.t) : t =
+    { reason = Reason.parse (get_ofp_table_status_reason bits)
+    ; table = TableMod.parse (Cstruct.shift bits sizeof_ofp_table_status) }
+
+end
+
 module Message = struct
 
   type t =
@@ -4870,6 +4924,7 @@ module Message = struct
     | PacketInMsg of PacketIn.t
     | PortStatus of PortStatus.t
     | RoleStatus of RoleStatus.t
+    | TableStatus of TableStatus.t
 
   let string_of_msg_code (msg : msg_code) : string = match msg with
     | HELLO -> "HELLO"
@@ -4939,6 +4994,7 @@ module Message = struct
     | PacketInMsg _ -> PACKET_IN
     | PortStatus _ -> PORT_STATUS
     | RoleStatus _ -> ROLE_STATUS
+    | TableStatus _ -> TABLE_STATUS
 
   let rec sizeof (msg : t) : int = match msg with
     | Hello -> Header.size
@@ -4970,6 +5026,7 @@ module Message = struct
     | PacketInMsg p -> Header.size + PacketIn.sizeof p
     | PortStatus p -> Header.size + PortStatus.sizeof p
     | RoleStatus r -> Header.size + RoleStatus.sizeof r
+    | TableStatus t -> Header.size + TableStatus.sizeof t
 
   let to_string (msg : t) : string = match msg with
     | Hello -> "Hello"
@@ -5001,6 +5058,7 @@ module Message = struct
     | PacketInMsg _ -> "PacketIn"
     | PortStatus _ -> "PortStatus"
     | RoleStatus _ -> "RoleStatus"
+    | TableStatus _ -> "TableStatus"
 
   let header_of xid msg =
     let open Header in
@@ -5073,6 +5131,8 @@ module Message = struct
         Header.size + PortStatus.marshal out p
       | RoleStatus r -> 
         Header.size + RoleStatus.marshal out r
+      | TableStatus t ->
+        Header.size + TableStatus.marshal out t
       
 
   let marshal_body (msg : t) (buf : Cstruct.t) =
@@ -5118,6 +5178,7 @@ module Message = struct
       | PACKET_IN -> PacketInMsg (PacketIn.parse body_bits)
       | PORT_STATUS -> PortStatus (PortStatus.parse body_bits)
       | ROLE_STATUS -> RoleStatus (RoleStatus.parse body_bits)
+      | TABLE_STATUS -> TableStatus (TableStatus.parse body_bits)
       | code -> raise (Unparsable (Printf.sprintf "unexpected message type %s" (string_of_msg_code typ))) in
     (hdr.Header.xid, msg)
 end

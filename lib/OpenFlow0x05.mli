@@ -922,6 +922,20 @@ module RoleStatus : sig
 
 end
 
+module TableStatus : sig
+
+  type t = tableStatus
+  
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+end
+
 module Message : sig
 
   type t =
@@ -954,6 +968,7 @@ module Message : sig
     | PacketInMsg of PacketIn.t
     | PortStatus of PortStatus.t
     | RoleStatus of RoleStatus.t
+    | TableStatus of TableStatus.t
 
   val sizeof : t -> int
 
