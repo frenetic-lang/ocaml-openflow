@@ -841,6 +841,18 @@ end
 (** Role Request message structure. See the section 7.3.9 of OpenFlow 1.3.4 specification *)
 module RoleRequest : sig
 
+  module Role : sig
+
+    type t = controllerRole
+
+    val to_string : t -> string
+
+    val marshal : t -> int32
+
+    val parse : int32 -> t
+
+  end  
+
   type t = roleRequest
 
   val sizeof : t -> int

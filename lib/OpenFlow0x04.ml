@@ -5576,6 +5576,8 @@ module RoleRequest = struct
       OFPCR_ROLE_SLAVE = 3
     } as uint32_t
 
+    type t = controllerRole
+
     let to_string (role : controllerRole) : string =
       match role with
         | NoChangeRole -> "NOCHANGE"
