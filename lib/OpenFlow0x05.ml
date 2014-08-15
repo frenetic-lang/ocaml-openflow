@@ -4577,6 +4577,128 @@ module AsyncConfig = struct
 
 end
 
+(* Asynchronous messages *)
+
+module PacketIn = struct
+
+  module Reason = struct 
+
+    cenum ofp_packet_in_reason {
+      OFPR_TABLE_MISS = 0;
+      OFPR_APPLY_ACTION = 1;
+      OFPR_INVALID_TTL = 2;
+      OFPR_ACTION_SET = 3;
+      OFPR_GROUP = 4;
+      OFPR_PACKET_OUT = 5
+    } as uint8_t
+
+    type t = packetInReason
+
+    let to_string t : string =
+      match t with
+        | NoMatch -> "NO_MATCH"
+        | ExplicitSend -> "ACTION"
+        | InvalidTTL -> "INVALID_TTL"
+        | ActionSet -> "ActionSet"
+        | Group -> "Group"
+        | PacketOut -> "PacketOut"
+
+    let marshal t : int =
+      match t with
+         | NoMatch -> ofp_packet_in_reason_to_int OFPR_TABLE_MISS
+         | ExplicitSend -> ofp_packet_in_reason_to_int OFPR_APPLY_ACTION
+         | InvalidTTL -> ofp_packet_in_reason_to_int OFPR_INVALID_TTL
+         | ActionSet -> ofp_packet_in_reason_to_int OFPR_ACTION_SET
+         | Group -> ofp_packet_in_reason_to_int OFPR_GROUP
+         | PacketOut -> ofp_packet_in_reason_to_int OFPR_PACKET_OUT
+         
+
+    let parse bits : t =
+      match int_to_ofp_packet_in_reason bits with
+        | Some OFPR_TABLE_MISS -> NoMatch
+        | Some OFPR_APPLY_ACTION -> ExplicitSend
+        | Some OFPR_INVALID_TTL -> InvalidTTL
+        | Some OFPR_ACTION_SET -> ActionSet
+        | Some OFPR_GROUP -> Group
+        | Some OFPR_PACKET_OUT -> PacketOut
+        | None -> raise (Unparsable (sprintf "bad reason in packet_in (%d)" bits))  
+  end
+
+  cstruct ofp_packet_in {
+    uint32_t buffer_id;     
+    uint16_t total_len;     
+    uint8_t reason;         
+    uint8_t table_id;
+    uint64_t cookie
+  } as big_endian
+
+  type t = packetIn
+
+  let sizeof (pi : t) : int = 
+    pi.pi_total_len + (OfpMatch.sizeof pi.pi_ofp_match) + sizeof_ofp_packet_in + 2 (*2 bytes of pad*)
+
+  let to_string (pi: t) : string =
+    Format.sprintf "{ total_len = %u; reason = %s; table_id = %u; cookie = %Lu; match = %s; payload = %s }"
+    pi.pi_total_len
+    (Reason.to_string pi.pi_reason)
+    pi.pi_table_id
+    pi.pi_cookie
+    (OfpMatch.to_string pi.pi_ofp_match)
+    (match pi.pi_payload with 
+      | Buffered (n,bytes) -> Format.sprintf "Buffered<id=%lu>= %s; len = %u" n (Packet.to_string (Packet.parse bytes)) (Cstruct.len bytes)
+      | NotBuffered bytes -> Format.sprintf "NotBuffered = %s; len = %u"  (Packet.to_string (Packet.parse bytes)) (Cstruct.len bytes))
+
+  let marshal (buf : Cstruct.t) (pi : t) : int = 
+    let bufMatch = Cstruct.shift buf sizeof_ofp_packet_in in
+    let size = pi.pi_total_len + (OfpMatch.marshal bufMatch pi.pi_ofp_match) + 
+               sizeof_ofp_packet_in in
+    let buffer_id,bytes = match pi.pi_payload with
+     | Buffered (n,bytes) -> n, bytes
+     | NotBuffered bytes -> -1l, bytes in
+    set_ofp_uint8_value (Cstruct.shift bufMatch (OfpMatch.sizeof pi.pi_ofp_match)) 0; (*pad*)
+    set_ofp_uint8_value (Cstruct.shift bufMatch (OfpMatch.sizeof pi.pi_ofp_match + 1)) 0; (*pad*)
+    Cstruct.blit bytes 0 bufMatch (2 + OfpMatch.sizeof pi.pi_ofp_match) pi.pi_total_len;
+    set_ofp_packet_in_buffer_id buf buffer_id;
+    set_ofp_packet_in_total_len buf pi.pi_total_len;
+    set_ofp_packet_in_reason buf (Reason.marshal pi.pi_reason);
+    set_ofp_packet_in_table_id buf pi.pi_table_id;
+    set_ofp_packet_in_cookie buf pi.pi_cookie;
+    size
+
+  let parse (bits : Cstruct.t) : t =
+    (* let oc = open_out "test-msg-1.3-msg3-bits" in *)
+    (* let str = Cstruct.to_string bits in *)
+    (* fprintf oc "%s" str; *)
+    (* close_out oc; *)
+    let bufId = match get_ofp_packet_in_buffer_id bits with
+      | -1l -> None
+      | n -> Some n in
+    let total_len = get_ofp_packet_in_total_len bits in
+    let reason_code = get_ofp_packet_in_reason bits in
+    let reason = Reason.parse (reason_code) in
+    let table_id = get_ofp_packet_in_table_id bits in
+    let cookie = get_ofp_packet_in_cookie bits in
+    let ofp_match_bits = Cstruct.shift bits sizeof_ofp_packet_in in
+    let ofp_match, pkt_bits = OfpMatch.parse ofp_match_bits in
+    let pkt_bits = Cstruct.sub pkt_bits 2 total_len in (* pad bytes *)
+    let final_bits = Cstruct.create total_len in
+    (* create a new Cstruct to set the offset to 0 *)
+    Cstruct.blit pkt_bits 0 final_bits 0 total_len;
+    (* printf "len = %d\n" (Cstruct.len pkt_bits); *)
+    let pkt = match bufId with
+      | None -> NotBuffered final_bits
+      | Some n -> Buffered (n,final_bits)
+    in
+    { pi_total_len = total_len;
+      pi_reason = reason;
+      pi_table_id = table_id;
+      pi_cookie = cookie;
+      pi_ofp_match = ofp_match;
+      pi_payload = pkt
+    }
+    
+end
+
 module Message = struct
 
   type t =
@@ -4606,6 +4728,7 @@ module Message = struct
     | GetAsyncRequest
     | GetAsyncReply of AsyncConfig.t
     | SetAsync of AsyncConfig.t
+    | PacketInMsg of PacketIn.t
 
   let string_of_msg_code (msg : msg_code) : string = match msg with
     | HELLO -> "HELLO"
@@ -4672,6 +4795,7 @@ module Message = struct
     | GetAsyncRequest -> GET_ASYNC_REQ
     | GetAsyncReply _ -> GET_ASYNC_REP
     | SetAsync _ -> SET_ASYNC
+    | PacketInMsg _ -> PACKET_IN
 
   let rec sizeof (msg : t) : int = match msg with
     | Hello -> Header.size
@@ -4700,6 +4824,7 @@ module Message = struct
     | GetAsyncRequest -> Header.size
     | GetAsyncReply a -> Header.size + AsyncConfig.sizeof a
     | SetAsync a -> Header.size + AsyncConfig.sizeof a
+    | PacketInMsg p -> Header.size + PacketIn.sizeof p
 
   let to_string (msg : t) : string = match msg with
     | Hello -> "Hello"
@@ -4728,6 +4853,7 @@ module Message = struct
     | GetAsyncRequest -> "GetAsyncRequest"
     | GetAsyncReply _ -> "GetAsyncReply"
     | SetAsync _ -> "SetAsync"
+    | PacketInMsg _ -> "PacketIn"
 
   let header_of xid msg =
     let open Header in
@@ -4794,6 +4920,8 @@ module Message = struct
         Header.size + AsyncConfig.marshal out a
       | SetAsync a ->
         Header.size + AsyncConfig.marshal out a
+      | PacketInMsg p ->
+        Header.size + PacketIn.marshal out p
       
 
   let marshal_body (msg : t) (buf : Cstruct.t) =
@@ -4836,6 +4964,7 @@ module Message = struct
       | BUNDLE_ADD_MESSAGE -> BundleAdd (BundleAdd.parse body_bits parse sizeof)
       | GET_ASYNC_REP -> GetAsyncReply (AsyncConfig.parse body_bits)
       | SET_ASYNC -> SetAsync (AsyncConfig.parse body_bits)
+      | PACKET_IN -> PacketInMsg (PacketIn.parse body_bits)
       | code -> raise (Unparsable (Printf.sprintf "unexpected message type %s" (string_of_msg_code typ))) in
     (hdr.Header.xid, msg)
 end

@@ -428,3 +428,16 @@ type asyncProp =
   | AsyncExperimenterMaster of experimenter
 
 type asyncConfig = asyncProp list
+
+type packetInReason =
+  | NoMatch
+  | ExplicitSend
+  | InvalidTTL
+  | ActionSet
+  | Group
+  | PacketOut
+
+type packetIn = { pi_total_len : int16; pi_reason : packetInReason; 
+                  pi_table_id : tableId; pi_cookie : int64;
+                  pi_ofp_match : oxmMatch; pi_payload : payload }
+
