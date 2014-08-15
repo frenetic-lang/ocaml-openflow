@@ -257,24 +257,24 @@ type pseudoPort =
   | Local
   | Any
 
-type actionTyp = 
- | Output
- | CopyTTLOut
- | CopyTTLIn
- | SetMPLSTTL
- | DecMPLSTTL
- | PushVLAN
- | PopVLAN
- | PushMPLS
- | PopMPLS
- | SetQueue
- | Group
- | SetNWTTL
- | DecNWTTL
- | SetField
- | PushPBB
- | PopPBB
- | Experimenter
+type actionHdr = 
+  | OutputHdr
+  | GroupHdr
+  | PopVlanHdr
+  | PushVlanHdr
+  | PopMplsHdr
+  | PushMplsHdr
+  | SetFieldHdr
+  | CopyTtlOutHdr
+  | CopyTtlInHdr
+  | SetNwTtlHdr
+  | DecNwTtlHdr
+  | PushPbbHdr
+  | PopPbbHdr
+  | SetMplsTtlHdr
+  | DecMplsTtlHdr
+  | SetQueueHdr
+  | ExperimenterAHdr of int32
   
 type action =
 | Output of pseudoPort
@@ -296,6 +296,15 @@ type action =
 | Experimenter of int32
 
 type actionSequence = action list
+
+type instructionHdr = 
+ | GotoTableHdr
+ | ApplyActionsHdr
+ | WriteActionsHdr
+ | WriteMetadataHdr
+ | ClearHdr
+ | MeterHdr
+ | ExperimenterHdr of int32
 
 type instruction =
 | GotoTable of tableId
@@ -486,14 +495,14 @@ type queueRequest = {port_number : portId; queue_id : int32}
 type experimenter = {exp_id : int32; exp_type : int32}
 
 type tableFeatureProp =
-  | TfpInstruction of instruction list 
-  | TfpInstructionMiss of instruction list
+  | TfpInstruction of instructionHdr list 
+  | TfpInstructionMiss of instructionHdr list
   | TfpNextTable of tableId list
   | TfpNextTableMiss of tableId list
-  | TfpWriteAction of action list
-  | TfpWriteActionMiss of action list
-  | TfpApplyAction of action list
-  | TfpApplyActionMiss of action list
+  | TfpWriteAction of actionHdr list
+  | TfpWriteActionMiss of actionHdr list
+  | TfpApplyAction of actionHdr list
+  | TfpApplyActionMiss of actionHdr list
   | TfpMatch of oxm list
   | TfpWildcard of oxm list
   | TfpWriteSetField of oxm list
@@ -508,7 +517,7 @@ type tableConfig = Deprecated
 type tableFeatures = {length : int16;table_id : tableId; name : string;
                       metadata_match : int64; metadata_write : int64;
                       config : tableConfig; max_entries: int32;
-                      feature_prop : tableFeatureProp}
+                      feature_prop : tableFeatureProp list}
 
 type multipartType =
   | SwitchDescReq
@@ -592,7 +601,7 @@ type meterConfig = { length : length; flags : meterFlags; meter_id : int32; band
 
 type meterBandMaps = { drop : bool; dscpRemark : bool}
 
-type meterFeaturesStats = { max_meter : int32; band_typ : meterBandMaps; 
+type meterFeatures = { max_meter : int32; band_typ : meterBandMaps; 
                             capabilities : meterFlags; max_band : int8;
                             max_color : int8 }
 
@@ -610,7 +619,7 @@ type multipartReplyTyp =
   | GroupFeaturesReply of groupFeatures
   | MeterReply of meterStats list
   | MeterConfig of meterConfig list
-  | MeterFeaturesReply of meterFeaturesStats
+  | MeterFeaturesReply of meterFeatures
 
 type multipartReply = {mpreply_typ : multipartReplyTyp; mpreply_flags : bool}
 
@@ -646,7 +655,13 @@ type element =
 
 type helloElement = element list
 
-type asyncConfig = { packet_in : packetInReason asyncMask; 
-                     port_status : portReason asyncMask;
-                     flow_removed : flowReason asyncMask }
+type packetInReasonMap =  { table_miss : bool; apply_action : bool; invalid_ttl : bool }
 
+type portReasonMap =  { add : bool; delete : bool; modify : bool }
+
+type flowReasonMask = { idle_timeout : bool; hard_timeout : bool; delete : bool; 
+                        group_delete : bool}
+
+type asyncConfig = { packet_in : packetInReasonMap asyncMask; 
+                     port_status : portReasonMap asyncMask;
+                     flow_removed : flowReasonMask asyncMask }

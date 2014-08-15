@@ -1,11 +1,13 @@
 # OASIS_START
-# DO NOT EDIT (digest: e33998d8f65203d198a9d7a41a9d620d)
+# DO NOT EDIT (digest: 1b7bac22e7a1fe64a3966339adbe9243)
 OpenFlow_Header
 OpenFlow0x01
 OpenFlow0x01_Core
 OpenFlow0x01_Stats
 OpenFlow0x04
 OpenFlow0x04_Core
+OpenFlow0x05
+OpenFlow0x05_Core
 SDN_OpenFlow0x01
 SDN_OpenFlow0x04
 GroupTable0x04
