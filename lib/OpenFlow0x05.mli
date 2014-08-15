@@ -969,6 +969,7 @@ module Message : sig
     | PortStatus of PortStatus.t
     | RoleStatus of RoleStatus.t
     | TableStatus of TableStatus.t
+    | RequestForward of t requestForward
 
   val sizeof : t -> int
 

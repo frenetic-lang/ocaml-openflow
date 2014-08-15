@@ -4925,6 +4925,7 @@ module Message = struct
     | PortStatus of PortStatus.t
     | RoleStatus of RoleStatus.t
     | TableStatus of TableStatus.t
+    | RequestForward of t requestForward
 
   let string_of_msg_code (msg : msg_code) : string = match msg with
     | HELLO -> "HELLO"
@@ -4995,6 +4996,7 @@ module Message = struct
     | PortStatus _ -> PORT_STATUS
     | RoleStatus _ -> ROLE_STATUS
     | TableStatus _ -> TABLE_STATUS
+    | RequestForward _ -> REQUEST_FORWARD
 
   let rec sizeof (msg : t) : int = match msg with
     | Hello -> Header.size
@@ -5027,6 +5029,7 @@ module Message = struct
     | PortStatus p -> Header.size + PortStatus.sizeof p
     | RoleStatus r -> Header.size + RoleStatus.sizeof r
     | TableStatus t -> Header.size + TableStatus.sizeof t
+    | RequestForward (_,t) -> Header.size + sizeof t
 
   let to_string (msg : t) : string = match msg with
     | Hello -> "Hello"
@@ -5059,6 +5062,7 @@ module Message = struct
     | PortStatus _ -> "PortStatus"
     | RoleStatus _ -> "RoleStatus"
     | TableStatus _ -> "TableStatus"
+    | RequestForward _ -> "RequestForward"
 
   let header_of xid msg =
     let open Header in
@@ -5133,6 +5137,10 @@ module Message = struct
         Header.size + RoleStatus.marshal out r
       | TableStatus t ->
         Header.size + TableStatus.marshal out t
+      | RequestForward (xid,t) ->
+        let hdr = header_of xid t in
+        Header.marshal out hdr;
+        Header.size + blit_message t (Cstruct.shift out Header.size)
       
 
   let marshal_body (msg : t) (buf : Cstruct.t) =
@@ -5179,6 +5187,7 @@ module Message = struct
       | PORT_STATUS -> PortStatus (PortStatus.parse body_bits)
       | ROLE_STATUS -> RoleStatus (RoleStatus.parse body_bits)
       | TABLE_STATUS -> TableStatus (TableStatus.parse body_bits)
+      | REQUEST_FORWARD -> RequestForward (parse (Header.parse body_bits) (Cstruct.to_string (Cstruct.shift body_bits Header.size)))
       | code -> raise (Unparsable (Printf.sprintf "unexpected message type %s" (string_of_msg_code typ))) in
     (hdr.Header.xid, msg)
 end

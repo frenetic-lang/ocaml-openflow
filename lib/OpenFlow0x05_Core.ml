@@ -461,3 +461,5 @@ type tableStatusReason =
   | VacancyUp
 
 type tableStatus = { reason : tableStatusReason; table : tableDescReply}
+
+type 'a requestForward = xid * 'a

@@ -458,3 +458,6 @@ type tableStatusReason =
   | VacancyUp
 
 type tableStatus = { reason : tableStatusReason; table : tableDescReply}
+
+(* Only group and meter are forwarded *)
+type 'a requestForward = xid * 'a
