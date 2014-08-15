@@ -373,6 +373,8 @@ type multipartReply = {mpreply_typ : multipartReplyTyp; mpreply_flags : bool}
 
 type packetOut = OpenFlow0x04_Core.packetOut
 
+type controllerRole = OpenFlow0x04_Core.controllerRole
+
 type roleRequest = OpenFlow0x04_Core.roleRequest
 
 type bundleCtrlTyp = 
@@ -439,3 +441,14 @@ type packetIn = { pi_total_len : int16; pi_reason : packetInReason;
                   pi_ofp_match : oxmMatch; pi_payload : payload }
 
 type portStatus = OpenFlow0x04_Core.portStatus
+
+type roleStatusReason =
+  | RSRMasterRequest
+  | RSRConfig
+  | RSRExperimenter
+
+type roleStatusProp =
+  | RSPExperimenter of experimenter
+
+type roleStatus = { role : controllerRole; reason : roleStatusReason; generation_id : int64; 
+                    properties : roleStatusProp list }

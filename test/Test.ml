@@ -659,6 +659,11 @@ module RoundTripping = struct
       (openflow_quickCheck GenAsync.arbitrary
           GenAsync.to_string GenAsync.parse GenAsync.marshal)
 
+  TEST "OpenFlow0x05 RoleStatus RoundTrip" =
+      let module GenRoleStatus = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.RoleStatus) in
+      (openflow_quickCheck GenRoleStatus.arbitrary
+          GenRoleStatus.to_string GenRoleStatus.parse GenRoleStatus.marshal)
+
   TEST "OpenFlow Hello Test 1" = 
     let open Message in 
     let bs = Cstruct.create 101 in

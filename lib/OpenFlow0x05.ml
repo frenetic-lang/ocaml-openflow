@@ -4702,6 +4702,142 @@ end
 
 module PortStatus = OpenFlow0x04.PortStatus
 
+module RoleStatus = struct
+
+  module Properties = struct
+
+    cenum ofp_role_prop_type {
+      OFPRPT_EXPERIMENTER = 0xffff
+    } as uint16_t
+
+    cstruct ofp_role_prop_header {
+      uint16_t typ;
+      uint16_t len
+    } as big_endian
+
+    module Experimenter = struct
+
+      cstruct ofp_role_prop_experimenter {
+        uint16_t typ;
+        uint16_t len;
+        uint32_t experimenter;
+        uint32_t exp_typ
+      } as big_endian
+
+      type t = experimenter
+
+      let to_string (t : t) : string =
+        Format.sprintf "{ experimenter : %lu; exp_typ : %lu }"
+         t.experimenter
+         t.exp_typ
+
+      let sizeof ( _ : t ) =
+        sizeof_ofp_role_prop_experimenter
+
+      let marshal (buf : Cstruct.t) (t : t) : int =
+        set_ofp_role_prop_experimenter_typ buf (ofp_role_prop_type_to_int OFPRPT_EXPERIMENTER);
+        set_ofp_role_prop_experimenter_len buf sizeof_ofp_role_prop_experimenter;
+        set_ofp_role_prop_experimenter_experimenter buf t.experimenter;
+        set_ofp_role_prop_experimenter_exp_typ buf t.exp_typ;
+        sizeof_ofp_role_prop_experimenter
+
+      let parse (bits : Cstruct.t) : t =
+        { experimenter = get_ofp_role_prop_experimenter_experimenter bits
+        ; exp_typ = get_ofp_role_prop_experimenter_exp_typ bits}
+
+    end
+
+    type t = roleStatusProp
+
+    let sizeof (t : t) : int =
+      match t with
+        | RSPExperimenter e -> Experimenter.sizeof e
+
+    let to_string (t : t) : string =
+      match t with
+        | RSPExperimenter e -> Format.sprintf "Experimenter : %s" (Experimenter.to_string e)
+
+    let length_func (buf : Cstruct.t) : int option =
+      if Cstruct.len buf < sizeof_ofp_role_prop_header then None
+      else Some (get_ofp_role_prop_header_len buf)
+
+    let marshal (buf : Cstruct.t) (t : t) =
+      match t with
+        | RSPExperimenter e -> Experimenter.marshal buf e
+
+    let parse (bits : Cstruct.t) : t =
+      let typ = match int_to_ofp_role_prop_type (get_ofp_role_prop_header_typ bits) with
+        | Some v -> v
+        | None -> raise (Unparsable (sprintf "malformed prop typ")) in
+      match typ with
+        | OFPRPT_EXPERIMENTER -> RSPExperimenter (Experimenter.parse bits)
+
+  end
+
+  module Reason = struct
+
+    cenum ofp_controller_role_reason {
+      OFPCRR_MASTER_REQUEST = 0;
+      OFPCRR_CONFIG = 1;
+      OFPCRR_EXPERIMENTER = 2
+    } as uint8_t
+
+    type t = roleStatusReason
+
+    let to_string (t : t) =
+      match t with
+         | RSRMasterRequest -> "MasterRequest"
+         | RSRConfig -> "Config"
+         | RSRExperimenter -> "Experimenter"
+
+    let marshal (t : t) : int8 =
+      match t with 
+        | RSRMasterRequest -> ofp_controller_role_reason_to_int OFPCRR_MASTER_REQUEST
+        | RSRConfig -> ofp_controller_role_reason_to_int OFPCRR_CONFIG
+        | RSRExperimenter -> ofp_controller_role_reason_to_int OFPCRR_EXPERIMENTER
+
+    let parse bits : t =
+      match int_to_ofp_controller_role_reason bits with
+        | Some OFPCRR_MASTER_REQUEST -> RSRMasterRequest
+        | Some OFPCRR_CONFIG -> RSRConfig
+        | Some OFPCRR_EXPERIMENTER -> RSRExperimenter
+        | None -> raise (Unparsable (sprintf "malformed reason"))
+
+  end
+
+  cstruct ofp_role_status {
+    uint32_t role;
+    uint8_t reason;
+    uint8_t pad[3];
+    uint64_t generation_id;
+  } as big_endian
+
+  type t = roleStatus
+
+  let sizeof (t : t) = 
+    sizeof_ofp_role_status + sum (map Properties.sizeof t.properties)
+
+  let to_string (t : t) =
+    Format.sprintf "{ role = %s; reason = %s; generation_id = %Lu; properties = %s }"
+    (RoleRequest.Role.to_string t.role)
+    (Reason.to_string t.reason)
+    t.generation_id
+    ("[ " ^ (String.concat "; " (map Properties.to_string t.properties)) ^ " ]")
+
+  let marshal (buf : Cstruct.t) (t : t) =
+    set_ofp_role_status_role buf (RoleRequest.Role.marshal t.role);
+    set_ofp_role_status_reason buf (Reason.marshal t.reason);
+    set_ofp_role_status_generation_id buf t.generation_id;
+    sizeof_ofp_role_status + marshal_fields (Cstruct.shift buf sizeof_ofp_role_status) t.properties Properties.marshal
+
+  let parse (bits : Cstruct.t) : t = 
+    { role = RoleRequest.Role.parse (get_ofp_role_status_role bits)
+    ; reason = Reason.parse (get_ofp_role_status_reason bits)
+    ; generation_id = get_ofp_role_status_generation_id bits
+    ; properties = parse_fields (Cstruct.shift bits sizeof_ofp_role_status) Properties.parse Properties.length_func
+    }
+end
+
 module Message = struct
 
   type t =
@@ -4733,6 +4869,7 @@ module Message = struct
     | SetAsync of AsyncConfig.t
     | PacketInMsg of PacketIn.t
     | PortStatus of PortStatus.t
+    | RoleStatus of RoleStatus.t
 
   let string_of_msg_code (msg : msg_code) : string = match msg with
     | HELLO -> "HELLO"
@@ -4801,6 +4938,7 @@ module Message = struct
     | SetAsync _ -> SET_ASYNC
     | PacketInMsg _ -> PACKET_IN
     | PortStatus _ -> PORT_STATUS
+    | RoleStatus _ -> ROLE_STATUS
 
   let rec sizeof (msg : t) : int = match msg with
     | Hello -> Header.size
@@ -4831,6 +4969,7 @@ module Message = struct
     | SetAsync a -> Header.size + AsyncConfig.sizeof a
     | PacketInMsg p -> Header.size + PacketIn.sizeof p
     | PortStatus p -> Header.size + PortStatus.sizeof p
+    | RoleStatus r -> Header.size + RoleStatus.sizeof r
 
   let to_string (msg : t) : string = match msg with
     | Hello -> "Hello"
@@ -4861,6 +5000,7 @@ module Message = struct
     | SetAsync _ -> "SetAsync"
     | PacketInMsg _ -> "PacketIn"
     | PortStatus _ -> "PortStatus"
+    | RoleStatus _ -> "RoleStatus"
 
   let header_of xid msg =
     let open Header in
@@ -4931,6 +5071,8 @@ module Message = struct
         Header.size + PacketIn.marshal out p
       | PortStatus p ->
         Header.size + PortStatus.marshal out p
+      | RoleStatus r -> 
+        Header.size + RoleStatus.marshal out r
       
 
   let marshal_body (msg : t) (buf : Cstruct.t) =
@@ -4975,6 +5117,7 @@ module Message = struct
       | SET_ASYNC -> SetAsync (AsyncConfig.parse body_bits)
       | PACKET_IN -> PacketInMsg (PacketIn.parse body_bits)
       | PORT_STATUS -> PortStatus (PortStatus.parse body_bits)
+      | ROLE_STATUS -> RoleStatus (RoleStatus.parse body_bits)
       | code -> raise (Unparsable (Printf.sprintf "unexpected message type %s" (string_of_msg_code typ))) in
     (hdr.Header.xid, msg)
 end

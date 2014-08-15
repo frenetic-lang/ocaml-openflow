@@ -771,6 +771,17 @@ end
 
 module RoleRequest : sig
 
+  module Role : sig
+
+    type t = controllerRole
+
+    val to_string : t -> string
+
+    val marshal : t -> int32
+
+    val parse : int32 -> t
+  end  
+
   type t = roleRequest
 
   val sizeof : t -> int
@@ -883,6 +894,34 @@ module PortStatus : sig
 
 end
 
+module RoleStatus : sig
+
+  module Properties : sig
+
+    type t = roleStatusProp
+
+    val sizeof : t -> int
+
+    val to_string : t -> string
+
+    val marshal : Cstruct.t -> t -> int
+
+    val parse : Cstruct.t -> t
+
+  end
+
+  type t = roleStatus
+  
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+end
+
 module Message : sig
 
   type t =
@@ -914,6 +953,7 @@ module Message : sig
     | SetAsync of AsyncConfig.t
     | PacketInMsg of PacketIn.t
     | PortStatus of PortStatus.t
+    | RoleStatus of RoleStatus.t
 
   val sizeof : t -> int
 

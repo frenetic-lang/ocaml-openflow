@@ -1241,3 +1241,56 @@ module AsyncConfig = struct
   let size_of = AsyncConfig.sizeof
 
 end
+
+module RoleStatus = struct
+
+  open Gen
+
+  module Properties = struct
+  
+    type t = RoleStatus.Properties.t
+
+    let arbitrary = 
+      oneof [
+        (Experimenter.arbitrary >>= (fun n -> ret_gen (RSPExperimenter n)))
+        ]
+
+    let marshal = RoleStatus.Properties.marshal
+    let parse = RoleStatus.Properties.parse
+    let to_string = RoleStatus.Properties.to_string
+    let size_of = RoleStatus.Properties.sizeof
+
+  end
+
+  type t = RoleStatus.t
+
+  let arbitrary_reason = 
+    oneof [
+      ret_gen RSRMasterRequest;
+      ret_gen RSRConfig;
+      ret_gen RSRExperimenter
+    ]
+
+  let arbitrary_role =
+    let open OpenFlow0x04_Core in
+    oneof [
+      ret_gen NoChangeRole;
+      ret_gen EqualRole;
+      ret_gen MasterRole;
+      ret_gen SlaveRole
+    ]
+
+  let arbitrary =
+    let open OpenFlow0x05_Core in
+    arbitrary_role >>= fun role ->
+    arbitrary_reason >>= fun reason ->
+    arbitrary_uint64 >>= fun generation_id ->
+    arbitrary_list Properties.arbitrary >>= fun properties ->
+    ret_gen { role; reason; generation_id; properties }
+
+  let marshal = RoleStatus.marshal
+  let parse = RoleStatus.parse
+  let to_string = RoleStatus.to_string
+  let size_of = RoleStatus.sizeof
+
+end
