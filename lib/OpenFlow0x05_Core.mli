@@ -392,29 +392,36 @@ type bundleProp =
 
 type bundleCtrl = { bundle_id : int32; typ : bundleCtrlTyp; flags : bundleFlags; properties : bundleProp list }
 
-type message = 
-  | Hello
-  | EchoRequest of bytes
-  | EchoReply of bytes
-  | Experimenter of experimenter
-  | FeaturesRequest
-  | FeaturesReply of switchFeatures
-  | GetConfigRequestMsg of switchConfig
-  | GetConfigReplyMsg of switchConfig
-  | SetConfigMsg of switchConfig
-  | FlowModMsg of flowMod
-  | GroupModMsg of groupMod
-  | TableModMsg of tableMod
-  | PortModMsg of portMod
-  | MeterModMsg of meterMod
-  | MultipartReq of multipartRequest
-  | MultipartReply of multipartReply
-  | BarrierRequest
-  | BarrierReply
-  | PacketOutMsg of packetOut
-  | RoleRequest of roleRequest
-  | RoleReply of roleRequest
-  | BundleControl of bundleCtrl
-
 type 'a bundleAdd = { bundle_id : int32; flags : bundleFlags; xid : xid; message : 'a; properties : bundleProp list }
 
+type packetInReasonMap = { table_miss : bool; apply_action : bool; invalid_ttl : bool; action_set : bool; 
+                           group : bool; packet_out : bool}
+
+type portStatusReasonMap = { add : bool; delete : bool; modify : bool }
+
+type flowRemovedReasonMap = { idle_timeout : bool; hard_timeout : bool; delete : bool; 
+                              group_delete : bool; meter_delete : bool; eviction : bool }
+
+type roleStatusReasonMap = { master_request : bool; config : bool; experimenter : bool }
+
+type tableStatusReasonMap = { vacancy_down : bool; vacancy_up : bool}
+
+type requestedForwardReasonMap = { group_mod : bool; meter_mod : bool }
+
+type asyncProp = 
+  | AsyncReasonPacketInSlave of packetInReasonMap
+  | AsyncReasonPacketInMaster of packetInReasonMap
+  | AsyncReasonPortStatusSlave of portStatusReasonMap
+  | AsyncReasonPortStatusMaster of portStatusReasonMap
+  | AsyncReasonFlowRemovedSlave of flowRemovedReasonMap
+  | AsyncReasonFlowRemovedMaster of flowRemovedReasonMap
+  | AsyncReasonRoleStatusSlave of roleStatusReasonMap
+  | AsyncReasonRoleStatusMaster of roleStatusReasonMap
+  | AsyncReasonTableStatusSlave of tableStatusReasonMap
+  | AsyncReasonTableStatusMaster of tableStatusReasonMap
+  | AsyncReasonRequestedForwardSlave of requestedForwardReasonMap
+  | AsyncReasonRequestedForwardMaster of requestedForwardReasonMap
+  | AsyncExperimenterSlave of experimenter
+  | AsyncExperimenterMaster of experimenter
+
+type asyncConfig = asyncProp list

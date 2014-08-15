@@ -825,6 +825,19 @@ module BundleAdd : sig
 
 end
 
+module AsyncConfig : sig
+
+  type t = asyncConfig
+
+  val sizeof : t -> int
+
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+end
 
 module Message : sig
 
@@ -852,6 +865,9 @@ module Message : sig
     | RoleReply of RoleRequest.t
     | BundleControl of BundleCtrl.t
     | BundleAdd of t bundleAdd
+    | GetAsyncRequest
+    | GetAsyncReply of AsyncConfig.t
+    | SetAsync of AsyncConfig.t
 
   val sizeof : t -> int
 

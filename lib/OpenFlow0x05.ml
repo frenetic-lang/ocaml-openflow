@@ -2063,7 +2063,7 @@ module TableMod = struct
       { eviction = Bits.test_bit 2 bits
       ; vacancyEvent = Bits.test_bit 3 bits }
 
-    let to_string tc =
+    let to_string (tc : t) =
       Format.sprintf "{ eviction = %B; vacancyEvent = %B }"
       tc.eviction
       tc.vacancyEvent
@@ -4237,6 +4237,345 @@ module BundleAdd = struct
 
 end
 
+module AsyncConfig = struct
+
+  module Properties = struct
+
+    cenum ofp_async_config_prop_type {
+      OFPACPT_PACKET_IN_SLAVE = 0;
+      OFPACPT_PACKET_IN_MASTER = 1;
+      OFPACPT_PORT_STATUS_SLAVE = 2;
+      OFPACPT_PORT_STATUS_MASTER = 3;
+      OFPACPT_FLOW_REMOVED_SLAVE = 4;
+      OFPACPT_FLOW_REMOVED_MASTER = 5;
+      OFPACPT_ROLE_STATUS_SLAVE = 6;
+      OFPACPT_ROLE_STATUS_MASTER = 7;
+      OFPACPT_TABLE_STATUS_SLAVE = 8;
+      OFPACPT_TABLE_STATUS_MASTER = 9;
+      OFPACPT_REQUESTFORWARD_SLAVE = 10;
+      OFPACPT_REQUESTFORWARD_MASTER = 11;
+      OFPTFPT_EXPERIMENTER_SLAVE = 0xFFFE;
+      OFPTFPT_EXPERIMENTER_MASTER = 0xFFFF
+    } as uint16_t
+
+    module PacketIn = struct
+
+      type t = packetInReasonMap
+
+      let to_string (t : t) =
+        Format.sprintf "{ table_miss = %B; apply_action = %B; invalid_ttl = %B \
+                          action_set = %B; group = %B; packet_out = %B }"
+        t.table_miss
+        t.apply_action
+        t.invalid_ttl
+        t.action_set
+        t.group
+        t.packet_out
+
+      let marshal (t : t) : int8 = 
+        (if t.table_miss then 1 lsl 0 else 0) lor
+          (if t.apply_action then 1 lsl 1 else 0) lor
+            (if t.invalid_ttl then 1 lsl 2 else 0) lor
+              (if t.action_set then 1 lsl 3 else 0) lor
+                (if t.group then 1 lsl 4 else 0) lor
+                  (if t.packet_out then 1 lsl 5 else 0)
+
+      let parse bits : t =
+        { table_miss = test_bit16 0 bits
+        ; apply_action = test_bit16 1 bits
+        ; invalid_ttl = test_bit16 2 bits
+        ; action_set = test_bit16 3 bits
+        ; group = test_bit16 4 bits
+        ; packet_out  = test_bit16 5 bits}
+
+    end
+
+    module PortStatus = struct
+
+      type t = portStatusReasonMap
+
+      let to_string (t : t) =
+        Format.sprintf "{ add  = %B; delete = %B; modify = %B }"
+        t.add
+        t.delete
+        t.modify
+
+      let marshal (t : t) : int8 =
+        (if t.add then 1 lsl 0 else 0) lor
+          (if t.delete then 1 lsl 1 else 0) lor
+            (if t.modify then 1 lsl 2 else 0)
+
+      let parse bits : t =
+        { add = test_bit16 0 bits
+        ; delete = test_bit16 1 bits
+        ; modify = test_bit16 2 bits }
+
+    end
+
+    module FlowRemoved = struct
+
+      type t = flowRemovedReasonMap
+
+      let to_string (t : t) = 
+        Format.sprintf "{ idle_timeout = %B; hard_timeout = %B; delete = %B; \
+                         group_delete = %B; meter_delete = %B; eviction = %B }"
+        t.idle_timeout
+        t.hard_timeout
+        t.delete
+        t.group_delete
+        t.meter_delete
+        t.eviction
+
+      let marshal (t : t) : int8 =
+        (if t.idle_timeout then 1 lsl 0 else 0) lor
+          (if t.hard_timeout then 1 lsl 1 else 0) lor
+            (if t.delete then 1 lsl 2 else 0) lor
+              (if t.group_delete then 1 lsl 3 else 0) lor
+                (if t.meter_delete then 1 lsl 4 else 0) lor
+                  (if t.eviction then 1 lsl 5 else 0)
+
+      let parse bits : t =
+        { idle_timeout = test_bit16 0 bits
+        ; hard_timeout = test_bit16 1 bits
+        ; delete = test_bit16 2 bits
+        ; group_delete = test_bit16 3 bits
+        ; meter_delete = test_bit16 4 bits
+        ; eviction  = test_bit16 5 bits}
+
+    end
+
+    module RoleStatus = struct
+
+      type t = roleStatusReasonMap
+
+      let to_string (t : t) =
+        Format.sprintf "{ master_request  = %B; config = %B; experimenter = %B }"
+        t.master_request
+        t.config
+        t.experimenter
+
+      let marshal (t : t) : int8 =
+        (if t.master_request then 1 lsl 0 else 0) lor
+          (if t.config then 1 lsl 1 else 0) lor
+            (if t.experimenter then 1 lsl 2 else 0)
+
+      let parse bits : t =
+        { master_request = test_bit16 0 bits
+        ; config = test_bit16 1 bits
+        ; experimenter = test_bit16 2 bits }
+
+    end
+
+    module TableStatus = struct
+
+      type t = tableStatusReasonMap
+
+      let to_string (t : t) =
+        Format.sprintf "{ vacancy_down  = %B; vacancy_up = %B}"
+        t.vacancy_down
+        t.vacancy_up
+
+      let marshal (t : t) : int8 =
+        (if t.vacancy_down then 1 lsl 3 else 0) lor
+          (if t.vacancy_up then 1 lsl 4 else 0)
+
+      let parse bits : t =
+        { vacancy_down = test_bit16 3 bits
+        ; vacancy_up = test_bit16 4 bits }
+
+    end
+
+    module RequestForward = struct
+
+      type t = requestedForwardReasonMap
+
+      let to_string (t : t) =
+        Format.sprintf "{ group_mod  = %B; meter_mod = %B}"
+        t.group_mod
+        t.meter_mod
+
+      let marshal (t : t) : int8 =
+        (if t.group_mod then 1 lsl 0 else 0) lor
+          (if t.meter_mod then 1 lsl 1 else 0)
+
+      let parse bits : t =
+        { group_mod = test_bit16 0 bits
+        ; meter_mod = test_bit16 1 bits }
+
+    end
+
+    cstruct ofp_async_config_prop_header {
+      uint16_t typ;
+      uint16_t len;
+    } as big_endian
+
+    cstruct ofp_async_config_prop_reasons {
+      uint16_t typ; 
+      uint16_t len;
+      uint32_t mask;
+    } as big_endian
+
+    type t = asyncProp
+
+    let length_func (buf : Cstruct.t) : int option =
+      if Cstruct.len buf < sizeof_ofp_async_config_prop_header then None
+      else Some (get_ofp_async_config_prop_header_len buf)
+
+
+    let sizeof (t : t) = 
+      match t with
+        | AsyncReasonPacketInSlave _ -> sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonPacketInMaster _ -> sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonPortStatusSlave _ -> sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonPortStatusMaster _ -> sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonFlowRemovedSlave _ -> sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonFlowRemovedMaster _ -> sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonRoleStatusSlave _ -> sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonRoleStatusMaster _ -> sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonTableStatusSlave _ -> sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonTableStatusMaster _ -> sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonRequestedForwardSlave _ -> sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonRequestedForwardMaster _ -> sizeof_ofp_async_config_prop_reasons
+        | AsyncExperimenterSlave async -> sizeof_ofp_async_config_prop_header + Experimenter.sizeof async
+        | AsyncExperimenterMaster async -> sizeof_ofp_async_config_prop_header + Experimenter.sizeof async 
+
+    let to_string (t : t) = 
+      match t with
+        | AsyncReasonPacketInSlave async -> Format.sprintf "PacketInSlave = %s" (PacketIn.to_string async)
+        | AsyncReasonPacketInMaster async -> Format.sprintf "PacketInMaster = %s" (PacketIn.to_string async)
+        | AsyncReasonPortStatusSlave async -> Format.sprintf "PortStatusSlave = %s" (PortStatus.to_string async)
+        | AsyncReasonPortStatusMaster async -> Format.sprintf "PortStatusMaster = %s" (PortStatus.to_string async)
+        | AsyncReasonFlowRemovedSlave async -> Format.sprintf "FlowRemovedSlave = %s" (FlowRemoved.to_string async)
+        | AsyncReasonFlowRemovedMaster async -> Format.sprintf "FlowRemovedMaster = %s" (FlowRemoved.to_string async)
+        | AsyncReasonRoleStatusSlave async -> Format.sprintf "RoleStatusSlave = %s" (RoleStatus.to_string async)
+        | AsyncReasonRoleStatusMaster async -> Format.sprintf "RoleStatusMaster = %s" (RoleStatus.to_string async)
+        | AsyncReasonTableStatusSlave async -> Format.sprintf "TableStatusInSlave = %s" (TableStatus.to_string async)
+        | AsyncReasonTableStatusMaster async -> Format.sprintf "TableStatusMaster = %s" (TableStatus.to_string async)
+        | AsyncReasonRequestedForwardSlave async -> Format.sprintf "RequestForwardSlave = %s" (RequestForward.to_string async)
+        | AsyncReasonRequestedForwardMaster async -> Format.sprintf "RequestForwardMaster = %s" (RequestForward.to_string async)
+        | AsyncExperimenterSlave async -> Format.sprintf "Experimenter = %s" (Experimenter.to_string async)
+        | AsyncExperimenterMaster async -> Format.sprintf "Experimenter = %s" (Experimenter.to_string async)
+
+    let marshal (buf : Cstruct.t) (t : t) : int =
+      match t with
+        | AsyncReasonPacketInSlave async -> 
+          set_ofp_async_config_prop_reasons_typ buf (ofp_async_config_prop_type_to_int OFPACPT_PACKET_IN_SLAVE);
+          set_ofp_async_config_prop_reasons_len buf sizeof_ofp_async_config_prop_reasons;
+          set_ofp_async_config_prop_reasons_mask buf (Int32.of_int (PacketIn.marshal async));
+          sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonPacketInMaster async -> 
+          set_ofp_async_config_prop_reasons_typ buf (ofp_async_config_prop_type_to_int OFPACPT_PACKET_IN_MASTER);
+          set_ofp_async_config_prop_reasons_len buf sizeof_ofp_async_config_prop_reasons;
+          set_ofp_async_config_prop_reasons_mask buf (Int32.of_int (PacketIn.marshal async));
+          sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonPortStatusSlave async -> 
+          set_ofp_async_config_prop_reasons_typ buf (ofp_async_config_prop_type_to_int OFPACPT_PORT_STATUS_SLAVE);
+          set_ofp_async_config_prop_reasons_len buf sizeof_ofp_async_config_prop_reasons;
+          set_ofp_async_config_prop_reasons_mask buf (Int32.of_int (PortStatus.marshal async));
+          sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonPortStatusMaster async -> 
+          set_ofp_async_config_prop_reasons_typ buf (ofp_async_config_prop_type_to_int OFPACPT_PORT_STATUS_MASTER);
+          set_ofp_async_config_prop_reasons_len buf sizeof_ofp_async_config_prop_reasons;
+          set_ofp_async_config_prop_reasons_mask buf (Int32.of_int (PortStatus.marshal async));
+          sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonFlowRemovedSlave async -> 
+          set_ofp_async_config_prop_reasons_typ buf (ofp_async_config_prop_type_to_int OFPACPT_FLOW_REMOVED_SLAVE);
+          set_ofp_async_config_prop_reasons_len buf sizeof_ofp_async_config_prop_reasons;
+          set_ofp_async_config_prop_reasons_mask buf (Int32.of_int (FlowRemoved.marshal async));
+          sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonFlowRemovedMaster async -> 
+          set_ofp_async_config_prop_reasons_typ buf (ofp_async_config_prop_type_to_int OFPACPT_FLOW_REMOVED_MASTER);
+          set_ofp_async_config_prop_reasons_len buf sizeof_ofp_async_config_prop_reasons;
+          set_ofp_async_config_prop_reasons_mask buf (Int32.of_int (FlowRemoved.marshal async));
+          sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonRoleStatusSlave async -> 
+          set_ofp_async_config_prop_reasons_typ buf (ofp_async_config_prop_type_to_int OFPACPT_ROLE_STATUS_SLAVE);
+          set_ofp_async_config_prop_reasons_len buf sizeof_ofp_async_config_prop_reasons;
+          set_ofp_async_config_prop_reasons_mask buf (Int32.of_int (RoleStatus.marshal async));
+          sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonRoleStatusMaster async -> 
+          set_ofp_async_config_prop_reasons_typ buf (ofp_async_config_prop_type_to_int OFPACPT_ROLE_STATUS_MASTER);
+          set_ofp_async_config_prop_reasons_len buf sizeof_ofp_async_config_prop_reasons;
+          set_ofp_async_config_prop_reasons_mask buf (Int32.of_int (RoleStatus.marshal async));
+          sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonTableStatusSlave async -> 
+          set_ofp_async_config_prop_reasons_typ buf (ofp_async_config_prop_type_to_int OFPACPT_TABLE_STATUS_SLAVE);
+          set_ofp_async_config_prop_reasons_len buf sizeof_ofp_async_config_prop_reasons;
+          set_ofp_async_config_prop_reasons_mask buf (Int32.of_int (TableStatus.marshal async));
+          sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonTableStatusMaster async -> 
+          set_ofp_async_config_prop_reasons_typ buf (ofp_async_config_prop_type_to_int OFPACPT_TABLE_STATUS_MASTER);
+          set_ofp_async_config_prop_reasons_len buf sizeof_ofp_async_config_prop_reasons;
+          set_ofp_async_config_prop_reasons_mask buf (Int32.of_int (TableStatus.marshal async));
+          sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonRequestedForwardSlave async -> 
+          set_ofp_async_config_prop_reasons_typ buf (ofp_async_config_prop_type_to_int OFPACPT_REQUESTFORWARD_SLAVE);
+          set_ofp_async_config_prop_reasons_len buf sizeof_ofp_async_config_prop_reasons;
+          set_ofp_async_config_prop_reasons_mask buf (Int32.of_int (RequestForward.marshal async));
+          sizeof_ofp_async_config_prop_reasons
+        | AsyncReasonRequestedForwardMaster async -> 
+          set_ofp_async_config_prop_reasons_typ buf (ofp_async_config_prop_type_to_int OFPACPT_REQUESTFORWARD_MASTER);
+          set_ofp_async_config_prop_reasons_len buf sizeof_ofp_async_config_prop_reasons;
+          set_ofp_async_config_prop_reasons_mask buf (Int32.of_int (RequestForward.marshal async));
+          sizeof_ofp_async_config_prop_reasons
+        | AsyncExperimenterSlave async -> 
+          set_ofp_async_config_prop_header_typ buf (ofp_async_config_prop_type_to_int OFPTFPT_EXPERIMENTER_SLAVE);
+          set_ofp_async_config_prop_header_len buf (Experimenter.sizeof async);
+          sizeof_ofp_async_config_prop_header + Experimenter.marshal (Cstruct.shift buf sizeof_ofp_async_config_prop_header) async
+        | AsyncExperimenterMaster async -> 
+          set_ofp_async_config_prop_header_typ buf (ofp_async_config_prop_type_to_int OFPTFPT_EXPERIMENTER_MASTER);
+          set_ofp_async_config_prop_header_len buf (Experimenter.sizeof async);
+          sizeof_ofp_async_config_prop_header + Experimenter.marshal (Cstruct.shift buf sizeof_ofp_async_config_prop_header) async
+
+    let parse (bits : Cstruct.t) : t =
+      match int_to_ofp_async_config_prop_type (get_ofp_async_config_prop_header_typ bits) with
+        | Some OFPACPT_PACKET_IN_SLAVE -> 
+          AsyncReasonPacketInSlave (PacketIn.parse (Int32.to_int (get_ofp_async_config_prop_reasons_mask bits)))
+        | Some OFPACPT_PACKET_IN_MASTER -> 
+          AsyncReasonPacketInMaster (PacketIn.parse (Int32.to_int (get_ofp_async_config_prop_reasons_mask bits)))
+        | Some OFPACPT_PORT_STATUS_SLAVE -> 
+          AsyncReasonPortStatusSlave (PortStatus.parse (Int32.to_int (get_ofp_async_config_prop_reasons_mask bits)))
+        | Some OFPACPT_PORT_STATUS_MASTER -> 
+          AsyncReasonPortStatusMaster (PortStatus.parse (Int32.to_int (get_ofp_async_config_prop_reasons_mask bits)))
+        | Some OFPACPT_FLOW_REMOVED_SLAVE -> 
+          AsyncReasonFlowRemovedSlave (FlowRemoved.parse (Int32.to_int (get_ofp_async_config_prop_reasons_mask bits)))
+        | Some OFPACPT_FLOW_REMOVED_MASTER -> 
+          AsyncReasonFlowRemovedMaster (FlowRemoved.parse (Int32.to_int (get_ofp_async_config_prop_reasons_mask bits)))
+        | Some OFPACPT_ROLE_STATUS_SLAVE -> 
+          AsyncReasonRoleStatusSlave (RoleStatus.parse (Int32.to_int (get_ofp_async_config_prop_reasons_mask bits)))
+        | Some OFPACPT_ROLE_STATUS_MASTER -> 
+          AsyncReasonRoleStatusMaster (RoleStatus.parse (Int32.to_int (get_ofp_async_config_prop_reasons_mask bits)))
+        | Some OFPACPT_TABLE_STATUS_SLAVE -> 
+          AsyncReasonTableStatusSlave (TableStatus.parse (Int32.to_int (get_ofp_async_config_prop_reasons_mask bits)))
+        | Some OFPACPT_TABLE_STATUS_MASTER -> 
+          AsyncReasonTableStatusMaster (TableStatus.parse (Int32.to_int (get_ofp_async_config_prop_reasons_mask bits)))
+        | Some OFPACPT_REQUESTFORWARD_SLAVE -> 
+          AsyncReasonRequestedForwardSlave (RequestForward.parse (Int32.to_int (get_ofp_async_config_prop_reasons_mask bits)))
+        | Some OFPACPT_REQUESTFORWARD_MASTER -> 
+          AsyncReasonRequestedForwardMaster (RequestForward.parse (Int32.to_int (get_ofp_async_config_prop_reasons_mask bits)))
+        | Some OFPTFPT_EXPERIMENTER_SLAVE -> 
+          AsyncExperimenterSlave (Experimenter.parse (Cstruct.shift bits sizeof_ofp_async_config_prop_header))
+        | Some OFPTFPT_EXPERIMENTER_MASTER -> 
+        AsyncExperimenterMaster (Experimenter.parse (Cstruct.shift bits sizeof_ofp_async_config_prop_header))
+        | None -> raise (Unparsable (sprintf "malfomed async config type"))
+
+  end
+
+  type t = asyncConfig
+
+  let sizeof (async : t) : int = 
+    sum (map Properties.sizeof async)
+
+  let to_string (async : t) : string =
+    "[ " ^ (String.concat "; " (map Properties.to_string async)) ^ " ]"
+
+  let marshal (buf : Cstruct.t) (async : t) : int =
+    marshal_fields buf async Properties.marshal
+
+  let parse (bits : Cstruct.t) : t = 
+    parse_fields bits Properties.parse Properties.length_func
+
+end
 
 module Message = struct
 
@@ -4264,6 +4603,9 @@ module Message = struct
     | RoleReply of RoleRequest.t
     | BundleControl of BundleCtrl.t
     | BundleAdd of t bundleAdd
+    | GetAsyncRequest
+    | GetAsyncReply of AsyncConfig.t
+    | SetAsync of AsyncConfig.t
 
   let string_of_msg_code (msg : msg_code) : string = match msg with
     | HELLO -> "HELLO"
@@ -4327,6 +4669,9 @@ module Message = struct
     | RoleReply _ -> ROLE_RESP
     | BundleControl _ -> BUNDLE_CONTROL
     | BundleAdd _ -> BUNDLE_ADD_MESSAGE
+    | GetAsyncRequest -> GET_ASYNC_REQ
+    | GetAsyncReply _ -> GET_ASYNC_REP
+    | SetAsync _ -> SET_ASYNC
 
   let rec sizeof (msg : t) : int = match msg with
     | Hello -> Header.size
@@ -4352,6 +4697,9 @@ module Message = struct
     | RoleReply r -> Header.size + RoleRequest.sizeof r
     | BundleControl b -> Header.size + BundleCtrl.sizeof b
     | BundleAdd b -> Header.size + BundleAdd.sizeof b sizeof
+    | GetAsyncRequest -> Header.size
+    | GetAsyncReply a -> Header.size + AsyncConfig.sizeof a
+    | SetAsync a -> Header.size + AsyncConfig.sizeof a
 
   let to_string (msg : t) : string = match msg with
     | Hello -> "Hello"
@@ -4377,6 +4725,9 @@ module Message = struct
     | RoleReply _ -> "RoleReply"
     | BundleControl _ -> "BundleControl"
     | BundleAdd _ -> "BundleAdd"
+    | GetAsyncRequest -> "GetAsyncRequest"
+    | GetAsyncReply _ -> "GetAsyncReply"
+    | SetAsync _ -> "SetAsync"
 
   let header_of xid msg =
     let open Header in
@@ -4437,6 +4788,13 @@ module Message = struct
         Header.size + BundleCtrl.marshal out b
       | BundleAdd b ->
         Header.size + BundleAdd.marshal out b blit_message header_of
+      | GetAsyncRequest ->
+        Header.size
+      | GetAsyncReply a ->
+        Header.size + AsyncConfig.marshal out a
+      | SetAsync a ->
+        Header.size + AsyncConfig.marshal out a
+      
 
   let marshal_body (msg : t) (buf : Cstruct.t) =
     let _ = blit_message msg buf in
@@ -4476,6 +4834,8 @@ module Message = struct
       | ROLE_RESP -> RoleReply (RoleRequest.parse body_bits)
       | BUNDLE_CONTROL -> BundleControl (BundleCtrl.parse body_bits)
       | BUNDLE_ADD_MESSAGE -> BundleAdd (BundleAdd.parse body_bits parse sizeof)
+      | GET_ASYNC_REP -> GetAsyncReply (AsyncConfig.parse body_bits)
+      | SET_ASYNC -> SetAsync (AsyncConfig.parse body_bits)
       | code -> raise (Unparsable (Printf.sprintf "unexpected message type %s" (string_of_msg_code typ))) in
     (hdr.Header.xid, msg)
 end
