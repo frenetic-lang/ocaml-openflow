@@ -654,6 +654,16 @@ module RoundTripping = struct
       (openflow_quickCheck GenBundleCtrl.arbitrary
           GenBundleCtrl.to_string GenBundleCtrl.parse GenBundleCtrl.marshal)
 
+  TEST "OpenFlow0x05 AsyncConfig.Properties RoundTrip" =
+      let module GenAsyncProp = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.AsyncConfig.Properties) in
+      (openflow_quickCheck GenAsyncProp.arbitrary
+          GenAsyncProp.to_string GenAsyncProp.parse GenAsyncProp.marshal)
+
+  TEST "OpenFlow0x05 AsyncConfig RoundTrip" =
+      let module GenAsync = Gen0x05.OpenFlow0x05_Unsize(Gen0x05.AsyncConfig) in
+      (openflow_quickCheck GenAsync.arbitrary
+          GenAsync.to_string GenAsync.parse GenAsync.marshal)
+
   TEST "OpenFlow Hello Test 1" = 
     let open Message in 
     let bs = Cstruct.create 101 in

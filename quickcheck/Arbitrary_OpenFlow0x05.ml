@@ -1154,3 +1154,90 @@ module BundleCtrl = struct
   let size_of = BundleCtrl.sizeof
 
 end
+
+module AsyncConfig = struct
+
+  open Gen
+
+  module Properties = struct
+
+    type t = AsyncConfig.Properties.t
+
+    let arbitrary_packetInReasonMap = 
+      arbitrary_bool >>= fun table_miss ->
+      arbitrary_bool >>= fun apply_action ->
+      arbitrary_bool >>= fun invalid_ttl ->
+      arbitrary_bool >>= fun action_set ->
+      arbitrary_bool >>= fun group ->
+      arbitrary_bool >>= fun packet_out ->
+      ret_gen { table_miss; apply_action; invalid_ttl; action_set; group; packet_out }
+
+    let arbitrary_portStatusReasonMap = 
+      arbitrary_bool >>= fun add ->
+      arbitrary_bool >>= fun delete ->
+      arbitrary_bool >>= fun modify ->
+      ret_gen { add; delete; modify }
+
+    let arbitrary_flowRemovedReasonMap =
+      arbitrary_bool >>= fun idle_timeout ->
+      arbitrary_bool >>= fun hard_timeout ->
+      arbitrary_bool >>= fun delete ->
+      arbitrary_bool >>= fun group_delete ->
+      arbitrary_bool >>= fun meter_delete ->
+      arbitrary_bool >>= fun eviction ->
+      ret_gen { idle_timeout; hard_timeout; delete; group_delete; meter_delete; eviction }
+
+    let arbitrary_roleStatusReasonMap =
+      arbitrary_bool >>= fun master_request ->
+      arbitrary_bool >>= fun config ->
+      arbitrary_bool >>= fun experimenter ->
+      ret_gen { master_request; config; experimenter }
+
+    let arbitrary_tableStatusReasonMap =
+      arbitrary_bool >>= fun vacancy_down ->
+      arbitrary_bool >>= fun vacancy_up ->
+      ret_gen { vacancy_down; vacancy_up }
+
+    let arbitrary_requestedForwardReasonMap = 
+      arbitrary_bool >>= fun group_mod ->
+      arbitrary_bool >>= fun meter_mod ->
+      ret_gen { group_mod; meter_mod }
+
+    let arbitrary = 
+      oneof [
+        (arbitrary_packetInReasonMap >>= (fun n -> ret_gen (AsyncReasonPacketInSlave n)));
+        (arbitrary_packetInReasonMap >>= (fun n -> ret_gen (AsyncReasonPacketInMaster n)));
+        (arbitrary_portStatusReasonMap >>= (fun n -> ret_gen (AsyncReasonPortStatusSlave n)));
+        (arbitrary_portStatusReasonMap >>= (fun n -> ret_gen (AsyncReasonPortStatusMaster n)));
+        (arbitrary_flowRemovedReasonMap >>= (fun n -> ret_gen (AsyncReasonFlowRemovedSlave n)));
+        (arbitrary_flowRemovedReasonMap >>= (fun n -> ret_gen (AsyncReasonFlowRemovedMaster n)));
+        (arbitrary_roleStatusReasonMap >>= (fun n -> ret_gen (AsyncReasonRoleStatusSlave n)));
+        (arbitrary_roleStatusReasonMap >>= (fun n -> ret_gen (AsyncReasonRoleStatusMaster n)));
+        (arbitrary_tableStatusReasonMap >>= (fun n -> ret_gen (AsyncReasonTableStatusSlave n)));
+        (arbitrary_tableStatusReasonMap >>= (fun n -> ret_gen (AsyncReasonTableStatusMaster n)));
+        (arbitrary_requestedForwardReasonMap >>= (fun n -> ret_gen (AsyncReasonRequestedForwardSlave n)));
+        (arbitrary_requestedForwardReasonMap >>= (fun n -> ret_gen (AsyncReasonRequestedForwardMaster n)));
+        (Experimenter.arbitrary >>= (fun n -> ret_gen (AsyncExperimenterSlave n)));
+        (Experimenter.arbitrary >>= (fun n -> ret_gen (AsyncExperimenterMaster n)))
+        ]
+      
+
+    let marshal = AsyncConfig.Properties.marshal
+    let parse = AsyncConfig.Properties.parse
+    let to_string = AsyncConfig.Properties.to_string
+    let size_of = AsyncConfig.Properties.sizeof
+  end
+
+  type t = AsyncConfig.t
+
+
+  let arbitrary =
+    arbitrary_list Properties.arbitrary >>= fun properties ->
+    ret_gen properties
+
+  let marshal = AsyncConfig.marshal
+  let parse = AsyncConfig.parse
+  let to_string = AsyncConfig.to_string
+  let size_of = AsyncConfig.sizeof
+
+end

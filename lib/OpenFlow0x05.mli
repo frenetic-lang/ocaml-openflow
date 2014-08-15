@@ -827,6 +827,22 @@ end
 
 module AsyncConfig : sig
 
+  module Properties : sig
+
+    type t = asyncProp
+
+    val sizeof : t -> int
+
+    val to_string : t -> string
+
+    val marshal : Cstruct.t -> t -> int
+
+    val parse : Cstruct.t -> t
+
+    val length_func : Cstruct.t -> int option
+
+  end
+
   type t = asyncConfig
 
   val sizeof : t -> int

@@ -4520,11 +4520,11 @@ module AsyncConfig = struct
           sizeof_ofp_async_config_prop_reasons
         | AsyncExperimenterSlave async -> 
           set_ofp_async_config_prop_header_typ buf (ofp_async_config_prop_type_to_int OFPTFPT_EXPERIMENTER_SLAVE);
-          set_ofp_async_config_prop_header_len buf (Experimenter.sizeof async);
+          set_ofp_async_config_prop_header_len buf (sizeof_ofp_async_config_prop_header + Experimenter.sizeof async);
           sizeof_ofp_async_config_prop_header + Experimenter.marshal (Cstruct.shift buf sizeof_ofp_async_config_prop_header) async
         | AsyncExperimenterMaster async -> 
           set_ofp_async_config_prop_header_typ buf (ofp_async_config_prop_type_to_int OFPTFPT_EXPERIMENTER_MASTER);
-          set_ofp_async_config_prop_header_len buf (Experimenter.sizeof async);
+          set_ofp_async_config_prop_header_len buf (sizeof_ofp_async_config_prop_header + Experimenter.sizeof async);
           sizeof_ofp_async_config_prop_header + Experimenter.marshal (Cstruct.shift buf sizeof_ofp_async_config_prop_header) async
 
     let parse (bits : Cstruct.t) : t =
