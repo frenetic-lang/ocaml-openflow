@@ -302,7 +302,7 @@ type meterStats = OpenFlow0x04_Core.meterStats
 
 type meterConfig = OpenFlow0x04_Core.meterConfig
 
-type meterFeaturesStats = OpenFlow0x04_Core.meterFeaturesStats
+type meterFeatures = OpenFlow0x04_Core.meterFeatures
 
 type tableDescReply = tableMod
 
@@ -363,7 +363,7 @@ type multipartReplyTyp =
   | GroupFeaturesReply of groupFeatures
   | MeterReply of meterStats list
   | MeterConfig of meterConfig list
-  | MeterFeaturesReply of meterFeaturesStats
+  | MeterFeaturesReply of meterFeatures
   | TableDescReply of tableDescReply list
   | QueueDescReply of queueDescReply list
   | FlowMonitorReply of flowMonitorReply list
@@ -438,3 +438,4 @@ type packetIn = { pi_total_len : int16; pi_reason : packetInReason;
                   pi_table_id : tableId; pi_cookie : int64;
                   pi_ofp_match : oxmMatch; pi_payload : payload }
 
+type portStatus = OpenFlow0x04_Core.portStatus

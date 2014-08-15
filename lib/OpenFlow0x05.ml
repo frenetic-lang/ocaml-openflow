@@ -2640,7 +2640,7 @@ end
 
 module FlowRequest = OpenFlow0x04.FlowRequest
 
-module TableFeatures = OpenFlow0x04.TableFeatures
+module TableFeature = OpenFlow0x04.TableFeature
 
 module QueueRequest = OpenFlow0x04.QueueRequest
 
@@ -2873,7 +2873,7 @@ module MultipartReq = struct
        | QueueDescReq q -> QueueDescReq.sizeof q
        | TableFeatReq tfr -> (match tfr with
           | None -> 0
-          | Some t -> TableFeatures.sizeof t)
+          | Some t -> sum (map TableFeature.sizeof t))
        | FlowMonitorReq f -> FlowMonitorRequest.sizeof f
        | ExperimentReq _ -> sizeof_ofp_experimenter_multipart_header )
 
@@ -2898,8 +2898,8 @@ module MultipartReq = struct
       | MeterStatsReq m -> Format.sprintf "MeterStats Req %lu " m
       | MeterConfReq m -> Format.sprintf "MeterConf Req %lu" m
       | MeterFeatReq -> "MeterFeat Req"
-      | TableFeatReq t -> Format.sprintf "TableFeat Req %s" (match t with
-        | Some v -> TableFeatures.to_string v
+      | TableFeatReq t -> Format.sprintf "TableFeat Req { %s }" (match t with
+        | Some v -> String.concat "; " (map TableFeature.to_string v)
         | None -> "None" )
       | ExperimentReq e-> Format.sprintf "Experimenter Req: id: %lu; type: %lu" e.experimenter e.exp_typ
       | TableDescReq -> "TableDesc Req" 
@@ -2939,7 +2939,7 @@ module MultipartReq = struct
       | TableFeatReq t -> 
         (match t with
           | None -> 0
-          | Some v -> size + (TableFeatures.marshal pay_buf v))
+          | Some v -> size + (marshal_fields pay_buf v TableFeature.marshal))
       | ExperimentReq _ -> size
       | TableDescReq -> size
       | QueueDescReq q -> size + (QueueDescReq.marshal pay_buf q)
@@ -2975,7 +2975,7 @@ module MultipartReq = struct
       | Some OFPMP_TABLE_FEATURES -> TableFeatReq (
       if Cstruct.len bits <= sizeof_ofp_multipart_request then None
       else Some (
-        TableFeatures.parse (Cstruct.shift bits sizeof_ofp_multipart_request)
+        parse_fields (Cstruct.shift bits sizeof_ofp_multipart_request) TableFeature.parse TableFeature.length_func
       ))
       | Some OFPMP_EXPERIMENTER -> ExperimentReq (
       let exp_bits = Cstruct.shift bits sizeof_ofp_multipart_request in
@@ -3421,6 +3421,7 @@ module QueueStats = struct
   let length_func (buf : Cstruct.t) : int option =
     if Cstruct.len buf < sizeof_ofp_queue_stats then None
     else Some (get_ofp_queue_stats_length buf)
+
 end
 
 module GroupStats = OpenFlow0x04.GroupStats
@@ -3433,7 +3434,7 @@ module MeterStats = OpenFlow0x04.MeterStats
 
 module MeterConfig = OpenFlow0x04.MeterConfig
 
-module MeterFeaturesStats = OpenFlow0x04.MeterFeaturesStats
+module MeterFeatures = OpenFlow0x04.MeterFeatures
 
 module SwitchDescriptionReply = OpenFlow0x04.SwitchDescriptionReply
 
@@ -3888,7 +3889,7 @@ module MultipartReply = struct
       | FlowStatsReply fsr -> sum (map FlowStats.sizeof fsr)
       | AggregateReply ag -> AggregateStats.sizeof ag
       | TableReply tr -> sum (map TableStats.sizeof tr)
-      | TableFeaturesReply tf -> TableFeatures.sizeof tf
+      | TableFeaturesReply tf -> sum (map TableFeature.sizeof tf)
       | PortStatsReply psr -> sum (map PortStats.sizeof psr)
       | QueueStatsReply qsr -> sum (map QueueStats.sizeof qsr)
       | GroupStatsReply gs -> sum (map GroupStats.sizeof gs)
@@ -3896,7 +3897,7 @@ module MultipartReply = struct
       | GroupFeaturesReply gf -> GroupFeatures.sizeof gf
       | MeterReply mr -> sum (map MeterStats.sizeof mr)
       | MeterConfig mc -> sum (map MeterConfig.sizeof mc)
-      | MeterFeaturesReply mf -> MeterFeaturesStats.sizeof mf
+      | MeterFeaturesReply mf -> MeterFeatures.sizeof mf
       | TableDescReply t -> sum (map TableDescReply.sizeof t)
       | QueueDescReply q -> sum (map QueueDescReply.sizeof q)
       | FlowMonitorReply f -> sum (map FlowMonitorReply.sizeof f)
@@ -3908,7 +3909,7 @@ module MultipartReply = struct
       | FlowStatsReply fsr -> Format.sprintf "Flow { %s }" (String.concat "; " (map FlowStats.to_string fsr))
       | AggregateReply ag -> Format.sprintf "Aggregate Flow %s" (AggregateStats.to_string ag)
       | TableReply tr -> Format.sprintf "TableReply { %s }" (String.concat "; " (map TableStats.to_string tr))
-      | TableFeaturesReply tf -> Format.sprintf "TableFeaturesReply %s" (TableFeatures.to_string tf)
+      | TableFeaturesReply tf -> Format.sprintf "TableFeaturesReply { %s }" (String.concat "; " (map TableFeature.to_string tf))
       | PortStatsReply psr -> Format.sprintf "PortStatsReply { %s }" (String.concat "; " (map PortStats.to_string psr))
       | QueueStatsReply qsr -> Format.sprintf "QueueStats { %s }" (String.concat "; " (map QueueStats.to_string qsr))
       | GroupStatsReply gs -> Format.sprintf "GroupStats { %s }" (String.concat "; " (map GroupStats.to_string gs))
@@ -3916,7 +3917,7 @@ module MultipartReply = struct
       | GroupFeaturesReply gf -> Format.sprintf "GroupFeatures %s" (GroupFeatures.to_string gf)
       | MeterReply mr -> Format.sprintf "MeterStats { %s }" (String.concat "; " (map MeterStats.to_string mr))
       | MeterConfig mc -> Format.sprintf "MeterConfig { %s }" (String.concat "; " (map MeterConfig.to_string mc))
-      | MeterFeaturesReply mf -> Format.sprintf "MeterFeaturesStats %s" (MeterFeaturesStats.to_string mf)
+      | MeterFeaturesReply mf -> Format.sprintf "MeterFeaturesStats %s" (MeterFeatures.to_string mf)
       | TableDescReply t -> Format.sprintf "TableDescReply { %s }" (String.concat "; " (map TableDescReply.to_string t))
       | QueueDescReply q -> Format.sprintf "QueueDescReply { %s }" (String.concat "; " (map QueueDescReply.to_string q))
       | FlowMonitorReply f -> Format.sprintf "FlowMonitorReply { %s }" (String.concat "; " (map FlowMonitorReply.to_string f))
@@ -3945,7 +3946,7 @@ module MultipartReply = struct
           marshal_fields ofp_body_bits tr TableStats.marshal
       | TableFeaturesReply tf ->
           set_ofp_multipart_reply_typ buf (ofp_multipart_types_to_int OFPMP_TABLE_FEATURES);
-          TableFeatures.marshal ofp_body_bits tf
+          marshal_fields ofp_body_bits tf TableFeature.marshal
       | PortStatsReply psr ->
           set_ofp_multipart_reply_typ buf (ofp_multipart_types_to_int OFPMP_PORT_STATS);
           marshal_fields ofp_body_bits psr PortStats.marshal
@@ -3969,7 +3970,7 @@ module MultipartReply = struct
           marshal_fields ofp_body_bits mc MeterConfig.marshal
       | MeterFeaturesReply mfr ->
           set_ofp_multipart_reply_typ buf (ofp_multipart_types_to_int OFPMP_METER_FEATURES);
-          MeterFeaturesStats.marshal ofp_body_bits mfr
+          MeterFeatures.marshal ofp_body_bits mfr
       | TableDescReply t ->
           set_ofp_multipart_reply_typ buf (ofp_multipart_types_to_int OFPMP_TABLE_DESC);
           marshal_fields ofp_body_bits t TableDescReply.marshal
@@ -3995,7 +3996,7 @@ module MultipartReply = struct
       | Some OFPMP_TABLE -> 
           TableReply (parse_fields ofp_body_bits TableStats.parse TableStats.length_func)
       | Some OFPMP_TABLE_FEATURES ->
-          TableFeaturesReply (TableFeatures.parse ofp_body_bits)
+          TableFeaturesReply (parse_fields ofp_body_bits TableFeature.parse TableFeature.length_func)
       | Some OFPMP_PORT_STATS -> 
           PortStatsReply (parse_fields ofp_body_bits PortStats.parse PortStats.length_func)
       | Some OFPMP_QUEUE ->
@@ -4011,7 +4012,7 @@ module MultipartReply = struct
       | Some OFPMP_METER_CONFIG ->
           MeterConfig (parse_fields ofp_body_bits MeterConfig.parse MeterConfig.length_func)
       | Some OFPMP_METER_FEATURES ->
-          MeterFeaturesReply (MeterFeaturesStats.parse ofp_body_bits)
+          MeterFeaturesReply (MeterFeatures.parse ofp_body_bits)
       | Some OFPMP_QUEUE_DESC ->
           QueueDescReply (parse_fields ofp_body_bits QueueDescReply.parse QueueDescReply.length_func)
       | Some OFPMP_TABLE_DESC ->
@@ -4699,6 +4700,8 @@ module PacketIn = struct
     
 end
 
+module PortStatus = OpenFlow0x04.PortStatus
+
 module Message = struct
 
   type t =
@@ -4729,6 +4732,7 @@ module Message = struct
     | GetAsyncReply of AsyncConfig.t
     | SetAsync of AsyncConfig.t
     | PacketInMsg of PacketIn.t
+    | PortStatus of PortStatus.t
 
   let string_of_msg_code (msg : msg_code) : string = match msg with
     | HELLO -> "HELLO"
@@ -4796,6 +4800,7 @@ module Message = struct
     | GetAsyncReply _ -> GET_ASYNC_REP
     | SetAsync _ -> SET_ASYNC
     | PacketInMsg _ -> PACKET_IN
+    | PortStatus _ -> PORT_STATUS
 
   let rec sizeof (msg : t) : int = match msg with
     | Hello -> Header.size
@@ -4825,6 +4830,7 @@ module Message = struct
     | GetAsyncReply a -> Header.size + AsyncConfig.sizeof a
     | SetAsync a -> Header.size + AsyncConfig.sizeof a
     | PacketInMsg p -> Header.size + PacketIn.sizeof p
+    | PortStatus p -> Header.size + PortStatus.sizeof p
 
   let to_string (msg : t) : string = match msg with
     | Hello -> "Hello"
@@ -4854,6 +4860,7 @@ module Message = struct
     | GetAsyncReply _ -> "GetAsyncReply"
     | SetAsync _ -> "SetAsync"
     | PacketInMsg _ -> "PacketIn"
+    | PortStatus _ -> "PortStatus"
 
   let header_of xid msg =
     let open Header in
@@ -4922,6 +4929,8 @@ module Message = struct
         Header.size + AsyncConfig.marshal out a
       | PacketInMsg p ->
         Header.size + PacketIn.marshal out p
+      | PortStatus p ->
+        Header.size + PortStatus.marshal out p
       
 
   let marshal_body (msg : t) (buf : Cstruct.t) =
@@ -4965,6 +4974,7 @@ module Message = struct
       | GET_ASYNC_REP -> GetAsyncReply (AsyncConfig.parse body_bits)
       | SET_ASYNC -> SetAsync (AsyncConfig.parse body_bits)
       | PACKET_IN -> PacketInMsg (PacketIn.parse body_bits)
+      | PORT_STATUS -> PortStatus (PortStatus.parse body_bits)
       | code -> raise (Unparsable (Printf.sprintf "unexpected message type %s" (string_of_msg_code typ))) in
     (hdr.Header.xid, msg)
 end
