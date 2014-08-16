@@ -11,45 +11,61 @@ type msg_code =  | HELLO | ERROR | ECHO_REQ | ECHO_RESP | VENDOR | FEATURES_REQ
 
 val msg_code_to_int : msg_code -> int
 
+(** See the [ofp_port_config] enumeration in section 7.2.1 of the OpenFlow 1.3.4 specification *)
 module PortConfig : sig
 
-  val marshal : portConfig -> int32
+  type t = portConfig
 
+  val marshal : t -> int32
 
-  val parse : int32 -> portConfig
+  val parse : int32 -> t
 
-  val to_string : portConfig -> string
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
+
 end
 
+(** See the [ofp_port_features] enumeration in section 7.2.1 of the OpenFlow 1.3.4 specification *)
 module PortFeatures : sig
 
-  val marshal : portFeatures -> int32
+  type t = portFeatures
 
-  val parse : int32 -> portFeatures
+  val marshal : t -> int32
 
-  val to_string : portFeatures -> string
+  val parse : int32 -> t
+
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
 end
 
+(** Flow Match Fields structure. See the section 7.2.3.2 of the OpenFlow 1.3.4 specification *)
 module Oxm : sig
 
   type t = oxm
 
-  val field_name : oxm -> string
+  val field_name : t -> string
 
-  val sizeof : oxm -> int 
+  (** [sizeof t] size of the oxm field *)
+  val sizeof : t -> int
 
-  val sizeof_header : oxm list -> int
+  (** [sizeof_header t] size of the oxm field without the payload *)
+  val sizeof_header : t -> int
 
-  val to_string : oxm -> string
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
-  val marshal : Cstruct.t -> oxm -> int
+  (** [marshal buf t] serializes [t] *)
+  val marshal : Cstruct.t -> t -> int
 
-  val marshal_header : Cstruct.t -> oxm -> int
+  (** [marshal_header buf t] same as [marshal] but doesn't serialize the payload *)
+  val marshal_header : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t -> oxm * Cstruct.t
+  (** [parse bits] parse the buffer [bits] *)
+  val parse : Cstruct.t -> t * Cstruct.t
 
-  val parse_header : Cstruct.t -> oxm * Cstruct.t
+  (** [parse_header bits] same as [parse] but doesn't parse the payload *)
+  val parse_header : Cstruct.t -> t * Cstruct.t
 
 end
 
@@ -59,6 +75,7 @@ module PseudoPort : sig
 
   val size_of : t -> int
 
+  (** [to_string v] pretty-prints [v] *)
   val to_string : t -> string
 
   val marshal : t -> int32
@@ -67,14 +84,17 @@ module PseudoPort : sig
 
 end
 
+(** Queue Description structure. See the section 7.2.2 of the OpenFlow 1.3.4 specification *)
 module QueueDesc : sig
 
+  (** Queue Property Description structure. See the 7.2.2 of the OpenFlow 1.3.4 specification *)
   module QueueProp : sig
 
     type t = queueProp
 
     val sizeof : t -> int
 
+    (** [to_string v] pretty-prints [v] *)
     val to_string : t -> string
 
     val marshal : Cstruct.t -> t -> int
@@ -87,6 +107,7 @@ module QueueDesc : sig
 
   val sizeof : t -> int
 
+  (** [to_string v] pretty-prints [v] *)
   val to_string : t -> string
 
   val marshal : Cstruct.t -> t -> int
@@ -95,12 +116,14 @@ module QueueDesc : sig
 
 end
 
+(** Switch Configuration structure. See the section 7.3.2 of the OpenFlow 1.3.4 specification *)
 module SwitchConfig : sig
 
   type t = switchConfig
 
   val sizeof : t -> int
 
+  (** [to_string v] pretty-prints [v] *)
   val to_string : t -> string
 
   val marshal : Cstruct.t -> t -> int
@@ -109,66 +132,80 @@ module SwitchConfig : sig
 
 end  
 
+(** Flow Match structure. See the section 7.2.3.1 of the OpenFlow 1.3.4 specification *)
 module OfpMatch : sig
 
-  val sizeof : oxmMatch -> int
+  type t = oxmMatch
 
-  val to_string : oxmMatch -> string 
+  val sizeof : t -> int
 
+  val marshal : Cstruct.t -> t -> int
 
-  val marshal : Cstruct.t -> oxmMatch -> int
+  val parse : Cstruct.t -> t * Cstruct.t
 
-  val parse : Cstruct.t -> oxmMatch * Cstruct.t
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
 end
 
+(** Action structure. See the section 7.2.5 of the OpenFlow 1.3.4 specification *)
 module Action : sig
+
+  type t = action
 
   type sequence = OpenFlow0x04_Core.actionSequence
 
-  val sizeof : action -> int
+  val sizeof : t -> int
 
-  val marshal : Cstruct.t -> action -> int
+  val marshal : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t -> action
+  val parse : Cstruct.t -> t
 
   val parse_sequence : Cstruct.t -> sequence
 
-  val to_string :  action -> string
+  (** [to_string v] pretty-prints [v] *)
+  val to_string :  t -> string
     
 end
 
+(** Bucket structure for use in groups. See the section 7.3.4.2 of OpenFlow 1.3.4 specification *)
 module Bucket : sig
 
   type t = bucket
 
   val sizeof : t -> int
 
+  (** [to_string v] pretty-prints [v] *)
   val to_string : t -> string
 
   val marshal : Cstruct.t -> t -> int
 
   val parse : Cstruct.t -> t  
+
 end
 
+(** Modify Flow message structure. See the section 7.3.4.1 of the OpenFlow 1.3.4 specification *)
 module FlowModCommand : sig
     
   type t = flowModCommand
 
-  val sizeof : flowModCommand -> int
+  val sizeof : t -> int
 
   val marshal : t -> int
 
-  val parse : int -> flowModCommand
+  val parse : int -> t
 
+  (** [to_string v] pretty-prints [v] *)
   val to_string : t -> string
 
 end
 
+(** See the [ofp_group_type] enumeration in section 7.3.4.2 of the OpenFlow 1.3.4 specification *)
 module GroupType : sig
     
   type t = groupType
 
+  (** [to_string v] pretty-prints [v] *)
   val to_string : t -> string
 
   val marshal : t -> int
@@ -177,12 +214,14 @@ module GroupType : sig
 
 end
 
+(** Modify Group message structure. See the section 7.3.4.2 of the OpenFlow 1.3.4 specification *)
 module GroupMod : sig
 
   type t = groupMod
 
   val sizeof : t -> int
 
+  (** [to_string v] pretty-prints [v] *)
   val to_string : t -> string
 
   val marshal : Cstruct.t -> t -> int
@@ -191,12 +230,14 @@ module GroupMod : sig
 
 end
 
+(** Modify Port message structure. See the section 7.3.4.3 of the OpenFlow 1.3.4 specification *)
 module PortMod : sig
 
   type t = portMod
 
   val sizeof : t -> int
 
+  (** [to_string v] pretty-prints [v] *)
   val to_string : t -> string
 
   val marshal : Cstruct.t -> t -> int
@@ -205,12 +246,14 @@ module PortMod : sig
 
 end
 
+(** Modify Meter message structure. See the section 7.3.4.4 of the OpenFlow 1.3.4 specification *)
 module MeterMod : sig
 
   type t = meterMod
 
   val sizeof : t -> int
 
+  (** [to_string v] pretty-prints [v] *)
   val to_string : t -> string
 
   val marshal : Cstruct.t -> t -> int
@@ -219,50 +262,68 @@ module MeterMod : sig
 
 end
 
+(** Flow Instruction structure. See the section 7.2.4 of the OpenFlow 1.3.4 specification *)
 module Instruction : sig
 
-  val to_string : instruction -> string
+  type t = instruction
 
-  val sizeof : instruction -> int
+  val sizeof : t -> int
 
-  val marshal : Cstruct.t -> instruction -> int
+  val marshal : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t ->  instruction
+  val parse : Cstruct.t ->  t
+
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
 end
 
 module Instructions : sig
 
-  val sizeof : instruction list -> int
+  type t = instruction list
 
-  val marshal : Cstruct.t -> instruction list -> int
+  val sizeof : t -> int
 
-  val to_string : instruction list -> string
+  val marshal : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t -> instruction list
+  val parse : Cstruct.t -> t
+
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
 end
 
+(** Modify flow message structure. See the section 7.3.4.1 of the OpenFlow 1.3.4 specification *)
 module FlowMod : sig
 
-  val sizeof : flowMod -> int
+  type t = flowMod
 
-  val marshal : Cstruct.t -> flowMod -> int
+  val sizeof : t -> int
 
-  val parse : Cstruct.t -> flowMod
+  val marshal : Cstruct.t -> t -> int
 
-  val to_string : flowMod -> string
+  val parse : Cstruct.t -> t
+
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
 end
 
+(** See the [ofp_capabilities] enumeration in section 7.3.1 of OpenFlow 1.3.4 specification *)
 module Capabilities : sig
- 
-  val to_string : capabilities -> string
 
-  val parse : int32  -> capabilities
+  type t = capabilities
+ 
+ (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
+
+  val to_int32 : t -> int32
+
+  val parse : int32  -> t
 
 end
 
+(** Switch Features structure. See the section 7.3.1 of the OpenFlow 1.3.4 specification *)
 module SwitchFeatures : sig
 
   type t = { datapath_id : int64; num_buffers : int32;
@@ -271,6 +332,7 @@ module SwitchFeatures : sig
 
   val sizeof : t -> int
 
+  (** [to_string v] pretty-prints [v] *)
   val to_string : t -> string
 
   val marshal : Cstruct.t -> t -> int
@@ -279,70 +341,93 @@ module SwitchFeatures : sig
 
 end
 
-
+(** See the [ofp_port_state] enumeration in section 7.2.1 of the OpenFlow 1.3.4 specification *)
 module PortState : sig
+
+  type t = portState
 
   val marshal : portState -> int32
 
   val parse : int32 -> portState
 
+  (** [to_string v] pretty-prints [v] *)
   val to_string : portState -> string
 
 end
 
+(** Description of a port structure. See the section 7.3.1 of the OpenFlow 1.3.4 specification *)
 module PortDesc : sig
 
-  val sizeof : portDesc -> int
+  type t = portDesc
 
-  val marshal : Cstruct.t -> portDesc -> int
+  val sizeof : t -> int
 
-  val parse : Cstruct.t -> portDesc
+  val marshal : Cstruct.t -> t -> int
 
-  val to_string : portDesc -> string
+  val parse : Cstruct.t -> t
+
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
+
 end
 
+(** Port Status structure. See the section 7.4.3 of the OpenFlow 1.3.4 specification *)
 module PortStatus : sig
 
-  val sizeof : portStatus -> int
+  type t = portStatus
 
-  val marshal : Cstruct.t ->  portStatus -> int
+  val sizeof : t -> int
 
-  val parse : Cstruct.t -> portStatus
+  val marshal : Cstruct.t ->  t -> int
 
-  val to_string : portStatus -> string
+  val parse : Cstruct.t -> t
+
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
 end
 
+(** Packet received by the datapath and sent to the controller structure. See the section
+    7.4.1 of the OpenFlow 1.3.4 specification *)
 module PacketIn : sig
 
-  val sizeof : packetIn -> int
+  type t = packetIn
 
-  val to_string : packetIn -> string
+  val sizeof : t -> int
 
-  val marshal : Cstruct.t -> packetIn -> int
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
-  val parse : Cstruct.t -> packetIn
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
 
 end
 
+(** Packet send out of the datapath structure. See the section 7.3.7 of the OpenFlow 1.3.4 specification *)
 module PacketOut : sig
 
   type t = packetOut
 
-  val sizeof : packetOut -> int
-  val to_string : packetOut -> string
+  val sizeof : t -> int
 
-  val marshal : Cstruct.t -> packetOut -> int
-  val parse : Cstruct.t -> packetOut
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
 
 end
 
+(** Meter bands structure. See the section 7.3.4.4 of the OpenFlow 1.3.4 specification *)
 module MeterBand : sig
 
   type t = meterBand
 
   val sizeof : t -> int
 
+  (** [to_string v] pretty-prints [v] *)
   val to_string : t -> string
 
   val marshal : Cstruct.t -> t -> int
@@ -351,12 +436,14 @@ module MeterBand : sig
 
 end
 
+(** Flow Removed structure. See the section 7.4.2 of the OpenFlow 1.3.4 specification *)
 module FlowRemoved : sig
 
   type t = flowRemoved
 
   val sizeof : t -> int
 
+  (** [to_string v] pretty-prints [v] *)
   val to_string : t -> string
 
   val marshal : Cstruct.t -> t -> int
@@ -365,294 +452,333 @@ module FlowRemoved : sig
 
 end
 
+(** Flow Statistics request structure. See the section 7.3.5.2 of the OpenFlow 1.3.4 specification 
+    this structure is the same for indidual and aggregate flow request *)
 module FlowRequest : sig
 
   type t = flowRequest
 
-  val sizeof : flowRequest -> int
+  val sizeof : t -> int
 
-  val to_string : flowRequest -> string
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
-  val marshal : Cstruct.t -> flowRequest -> int
+  val marshal : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t -> flowRequest
+  val parse : Cstruct.t -> t
 
 end
 
+(** Queue Statistics request structure. See the section 7.3.5.8 of the OpenFlow 1.3.4 specification *)
 module QueueRequest : sig
 
   type t = queueRequest
     
-  val marshal : Cstruct.t -> queueRequest -> int
+  val marshal : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t -> queueRequest
+  val parse : Cstruct.t -> t
 
-  val sizeof : queueRequest -> int
+  (** [to_string v] pretty-prints [v] *)
+  val sizeof : t -> int
 
-  val to_string : queueRequest -> string
+  val to_string : t -> string
 
 end
 
+(** Table Features property structure. See the section 7.3.5.5.2 of the OpenFlow 1.3.4 specification *)
 module TableFeatureProp : sig
 
   type t = tableFeatureProp
 
-  val marshal : Cstruct.t -> tableFeatureProp -> int
+  val marshal : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t -> tableFeatureProp
+  val parse : Cstruct.t -> t
 
-  val sizeof : tableFeatureProp -> int
+  val sizeof : t -> int
 
-  val to_string : tableFeatureProp -> string
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
 end
 
+(** Table Feature structure. See the section 7.3.5.5.1 of the OpenFlow 1.3.4 specification *)
 module TableFeature : sig
 
   type t = tableFeatures
 
-  val sizeof : tableFeatures -> int
+  val sizeof : t -> int
 
-  val marshal : Cstruct.t -> tableFeatures -> int
+  val marshal : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t -> tableFeatures*Cstruct.t
+  val parse : Cstruct.t -> t
 
-  val to_string : tableFeatures -> string
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
-end
-
-module TableFeatures : sig
-
-  type t = tableFeatures list
-
-  val sizeof : tableFeatures list -> int
-
-  val marshal : Cstruct.t -> tableFeatures list -> int
-
-  val parse : Cstruct.t -> tableFeatures list
-
-  val to_string : tableFeatures list -> string
+  val length_func : Cstruct.t -> int option
 
 end
 
+(** Multipart request message structure. See the section 7.3.5 of the OpenFlow 1.3.4 specification *)
 module MultipartReq : sig
 
   type t = multipartRequest
 
-  val sizeof : multipartRequest -> int
+  val sizeof : t -> int
 
-  val to_string : multipartRequest -> string
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
-  val marshal : Cstruct.t -> multipartRequest -> int
+  val marshal : Cstruct.t -> t -> int
  
-  val parse : Cstruct.t -> multipartRequest
+  val parse : Cstruct.t -> t
 
 end
 
+(** Group statistics structure. See the section 7.3.5.9 of the OpenFlow 1.3.4 specification *)
 module GroupStats : sig
 
+  (** Bucket statistics structure. See the section 7.3.5.9 of the OpenFlow 1.3.4 specification *)
   module BucketStats : sig
   
     type t = bucketStats
 
-    val sizeof : bucketStats -> int
+    val sizeof : t -> int
 
-    val to_string : bucketStats -> string
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
       
-    val marshal : Cstruct.t -> bucketStats -> int
+    val marshal : Cstruct.t -> t -> int
 
-    val parse : Cstruct.t -> bucketStats
+    val parse : Cstruct.t -> t
 
   end
   
   type t = groupStats
 
-  val sizeof : groupStats -> int
+  val sizeof : t -> int
 
-  val to_string : groupStats -> string
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
-  val marshal : Cstruct.t ->  groupStats -> int
+  val marshal : Cstruct.t ->  t -> int
 
-  val parse : Cstruct.t ->  groupStats
+  val parse : Cstruct.t ->  t
+
+  val length_func : Cstruct.t -> int option
+
 end
 
+(** Switch Description structure. See the section 7.3.5.1 of the OpenFlow 1.3.4 specification *)
 module SwitchDescriptionReply : sig
 
   type t = switchDesc
 
-  val sizeof : switchDesc -> int
+  val sizeof : t -> int
 
-  val to_string : switchDesc -> string
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
-  val marshal : Cstruct.t -> switchDesc -> int
+  val marshal : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t -> switchDesc
+  val parse : Cstruct.t -> t
 
 end
 
-
+(** Individual Flow Statistics structure. See the section 7.3.5.2 of the OpenFlow 1.3.4 specification *)
 module FlowStats : sig
 
   type t = flowStats
 
-  val sizeof : flowStats -> int
+  val sizeof : t -> int
 
-  val to_string : flowStats -> string
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
-  val marshal : Cstruct.t -> flowStats -> int
+  val marshal : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t -> flowStats
+  val parse : Cstruct.t -> t
+
+  val length_func : Cstruct.t -> int option
 
 end
 
-
+(** Aggregate Flow Statistics structure. See the section 7.3.5.3 of the OpenFlow 1.3.4 specification *)
 module AggregateStats : sig
 
   type t = aggregStats
 
-  val sizeof : aggregStats -> int
+  val sizeof : t -> int
 
-  val to_string : aggregStats -> string
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
-  val marshal : Cstruct.t -> aggregStats -> int
+  val marshal : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t -> aggregStats
+  val parse : Cstruct.t -> t
 
 end
 
+(** Table Statistics structure. See the section 7.3.5.4 of the OpenFlow 1.3.4 specification *)
 module TableStats : sig
 
   type t = tableStats
 
-  val sizeof : tableStats -> int
+  val sizeof : t -> int
 
-  val to_string : tableStats -> string
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
-  val marshal : Cstruct.t -> tableStats -> int
+  val marshal : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t -> tableStats
+  val parse : Cstruct.t -> t
+
+  val length_func : Cstruct.t -> int option
 
 end
 
+(** Port Statistics structure. See the section 7.3.5.6 of the OpenFlow 1.3.4 specification *)
 module PortStats : sig
  
   type t = portStats
 
-  val sizeof : portStats-> int
+  val sizeof : t-> int
 
-  val to_string : portStats -> string
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
-  val marshal : Cstruct.t -> portStats -> int
+  val marshal : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t -> portStats
+  val parse : Cstruct.t -> t
 
 end
 
+(** Queue Statistics structure. See the section 7.3.5.8 of the OpenFlow 1.3.4 specification *)
 module QueueStats : sig
 
   type t = queueStats
 
-  val sizeof : queueStats -> int
+  val sizeof : t -> int
 
-  val to_string : queueStats -> string
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
-  val marshal : Cstruct.t -> queueStats -> int
+  val marshal : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t -> queueStats 
+  val parse : Cstruct.t -> t
 
 end
 
+(** Group Description structure. See the section 7.3.5.10 of the OpenFlow 1.3.4 specification *)
 module GroupDesc : sig
 
   type t = groupDesc
 
-  val sizeof : groupDesc -> int
+  val sizeof : t -> int
 
-  val to_string : groupDesc -> string
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
-  val marshal : Cstruct.t -> groupDesc -> int
+  val marshal : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t -> groupDesc
+  val parse : Cstruct.t -> t
+
+  val length_func : Cstruct.t -> int option
 
 end
 
+(** Group Features structure. See the section 7.3.5.10 of the OpenFlow 1.3.4 specification *)
 module GroupFeatures : sig
 
   type t = groupFeatures
 
-  val sizeof : groupFeatures -> int
+  val sizeof : t -> int
 
-  val to_string : groupFeatures -> string
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
-  val marshal : Cstruct.t -> groupFeatures -> int
+  val marshal : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t -> groupFeatures 
+  val parse : Cstruct.t -> t
 
 end
 
+(** Meter Statistics structure. See the section 7.3.5.12 of the OpenFlow 1.3.4 specification *)
 module MeterStats : sig
 
   type t = meterStats
 
-  val sizeof : meterStats -> int
+  val sizeof : t -> int
 
-  val to_string : meterStats -> string
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
-  val marshal : Cstruct.t -> meterStats -> int
+  val marshal : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t -> meterStats
+  val parse : Cstruct.t -> t
+
+  val length_func : Cstruct.t -> int option
 
 end
 
+(** Meter Configuration structure. See the section 7.3.5.13 of the OpenFlow 1.3.4 specification *)
 module MeterConfig : sig
 
   type t = meterConfig
 
-  val sizeof : meterConfig -> int
+  val sizeof : t -> int
 
-  val to_string : meterConfig -> string
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
-  val marshal : Cstruct.t -> meterConfig -> int
+  val marshal : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t -> meterConfig
+  val parse : Cstruct.t -> t
 
-end
-
-
-module MeterFeaturesStats : sig
-
-  type t = meterFeaturesStats
-
-  val sizeof : meterFeaturesStats -> int
-
-  val to_string : meterFeaturesStats -> string
-
-  val marshal : Cstruct.t -> meterFeaturesStats -> int
-
-  val parse : Cstruct.t -> meterFeaturesStats
+  val length_func : Cstruct.t -> int option
 
 end
 
+(** Meter Features structure. See the section 7.3.5.14 of the OpenFlow 1.3.4 specification *)
+module MeterFeatures : sig
+
+  type t = meterFeatures
+
+  val sizeof : t -> int
+
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
+
+  val marshal : Cstruct.t -> t -> int
+
+  val parse : Cstruct.t -> t
+
+end
+
+(** Multipart reply message structure. See the section 7.3.5 of the OpenFlow 1.3.4 specification *)
 module MultipartReply : sig
 
   type t = multipartReply
 
-  val sizeof : multipartReply -> int
+  val sizeof : t -> int
 
-  val to_string : multipartReply -> string
+  (** [to_string v] pretty-prints [v] *)
+  val to_string : t -> string
 
-  val marshal : Cstruct.t -> multipartReply -> int
+  val marshal : Cstruct.t -> t -> int
 
-  val parse : Cstruct.t -> multipartReply
+  val parse : Cstruct.t -> t
 
 end
 
+(** Modify Table message structure. See the section 7.3.3 of the OpenFlow 1.3.4 specification *)
 module TableMod : sig
 
   type t = tableMod
 
   val sizeof : t -> int
 
+  (** [to_string v] pretty-prints [v] *)
   val to_string : t -> string
 
   val marshal : Cstruct.t -> t -> int
@@ -661,12 +787,14 @@ module TableMod : sig
 
 end
 
+(** Queue Configuration request message structure. See the section 7.3.6 of the OpenFlow 1.3.4 specification *)
 module QueueConfReq : sig
 
   type t = queueConfReq
 
   val sizeof : t -> int
 
+  (** [to_string v] pretty-prints [v] *)
   val to_string : t -> string
 
   val marshal : Cstruct.t -> t -> int
@@ -675,12 +803,14 @@ module QueueConfReq : sig
 
 end
 
+(** Queue Configuration respond message structure. See the section 7.3.6 of the OpenFlow 1.3.4 specification *)
 module QueueConfReply : sig
 
   type t = queueConfReply
 
   val sizeof : t -> int
 
+  (** [to_string v] pretty-prints [v] *)
   val to_string : t -> string
 
   val marshal : Cstruct.t -> t -> int
@@ -689,7 +819,190 @@ module QueueConfReply : sig
 
 end
 
+(** Error message structure. See the section 7.4.4 of the OpenFlow 1.3.4 specification *)
 module Error : sig
+
+  module HelloFailed : sig
+
+    type t = helloFailed
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module BadRequest : sig
+
+    type t = badRequest
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module BadAction : sig
+
+    type t = badAction
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module BadInstruction : sig
+
+    type t = badInstruction
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module BadMatch : sig
+
+    type t = badMatch
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module FlowModFailed : sig
+
+    type t = flowModFailed
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module GroupModFailed : sig
+
+    type t = groupModFailed
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module PortModFailed : sig
+
+    type t = portModFailed
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module TableModFailed : sig
+
+    type t = tableModFailed
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module QueueOpFailed : sig
+
+    type t = queueOpFailed
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module SwitchConfigFailed : sig
+
+    type t = switchConfigFailed
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module RoleReqFailed : sig
+
+    type t = roleReqFailed
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module MeterModFailed : sig
+
+    type t = meterModFailed
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module TableFeatFailed : sig
+
+    type t = tableFeatFailed
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
 
   type t = {
     err : errorTyp;
@@ -697,18 +1010,36 @@ module Error : sig
   }
 
   val marshal : Cstruct.t -> t -> int
+
   val parse : Cstruct.t -> t
+
   val sizeof : t -> int
+
+  (** [to_string v] pretty-prints [v] *)
   val to_string : t -> string
 
 end
 
+(** Role Request message structure. See the section 7.3.9 of OpenFlow 1.3.4 specification *)
 module RoleRequest : sig
+
+  module Role : sig
+
+    type t = controllerRole
+
+    val to_string : t -> string
+
+    val marshal : t -> int32
+
+    val parse : int32 -> t
+
+  end  
 
   type t = roleRequest
 
   val sizeof : t -> int
 
+  (** [to_string v] pretty-prints [v] *)
   val to_string : t -> string
 
   val marshal : Cstruct.t -> t -> int
@@ -717,16 +1048,20 @@ module RoleRequest : sig
 
 end
 
+(** Hello message structure. See the section 7.5.1 of the OpenFlow 1.3.4 specification *)
 module Hello : sig
 
+  (** Hello Element structure. See the section 7.5.1 of OpenFlow 1.3.4 specification *)
   module Element : sig
 
+    (** Supported Version Bitmap structure. See the section 7.5.1. of OpenFlow 1.3.4 specification *)
     module VersionBitMap : sig
 
       type t = supportedList
 
       val sizeof : t -> int
 
+      (** [to_string v] pretty-prints [v] *)
       val to_string : t -> string
 
       val marshal : Cstruct.t -> t -> int
@@ -739,6 +1074,7 @@ module Hello : sig
 
     val sizeof : t -> int
 
+    (** [to_string v] pretty-prints [v] *)
     val to_string : t -> string
 
     val marshal : Cstruct.t -> t -> int
@@ -751,6 +1087,7 @@ module Hello : sig
 
   val sizeof : t -> int
 
+  (** [to_string v] pretty-prints [v] *)
   val to_string : t -> string
 
   val marshal : Cstruct.t -> t -> int
@@ -759,12 +1096,14 @@ module Hello : sig
 
 end
 
+(** Set Asynchronous message structure. See the section 7.3.10 of OpenFlow 1.3.4 specification *)
 module AsyncConfig : sig
 
   type t = asyncConfig
 
   val sizeof : t -> int
 
+  (** [to_string v] pretty-prints [v] *)
   val to_string : t -> string 
 
   val marshal : Cstruct.t -> t -> int
@@ -781,16 +1120,16 @@ module Message : sig
     | EchoReply of bytes
     | FeaturesRequest
     | FeaturesReply of SwitchFeatures.t
-    | FlowModMsg of flowMod
+    | FlowModMsg of FlowMod.t
     | GroupModMsg of GroupMod.t
-    | PortModMsg of portMod
-    | MeterModMsg of meterMod
-    | PacketInMsg of packetIn
-    | FlowRemoved of flowRemoved
-    | PacketOutMsg of packetOut
-    | PortStatusMsg of portStatus
-    | MultipartReq of multipartRequest
-    | MultipartReply of multipartReply
+    | PortModMsg of PortMod.t
+    | MeterModMsg of MeterMod.t
+    | PacketInMsg of PacketIn.t
+    | FlowRemoved of FlowRemoved.t
+    | PacketOutMsg of PacketOut.t
+    | PortStatusMsg of PortStatus.t
+    | MultipartReq of MultipartReq.t
+    | MultipartReply of MultipartReply.t
     | BarrierRequest
     | BarrierReply
     | RoleRequest of RoleRequest.t
@@ -800,14 +1139,15 @@ module Message : sig
     | GetConfigRequestMsg
     | GetConfigReplyMsg of SwitchConfig.t
     | SetConfigMsg of SwitchConfig.t
-    | TableModMsg of tableMod
+    | TableModMsg of TableMod.t
     | GetAsyncRequest
-    | GetAsyncReply of asyncConfig
-    | SetAsync of asyncConfig
+    | GetAsyncReply of AsyncConfig.t
+    | SetAsync of AsyncConfig.t
     | Error of Error.t
 
   val sizeof : t -> int
 
+  (** [to_string v] pretty-prints [v] *)
   val to_string : t -> string
 
   val blit_message : t -> Cstruct.t -> int
