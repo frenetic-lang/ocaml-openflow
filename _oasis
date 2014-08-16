@@ -41,6 +41,8 @@ Library openflow
     OpenFlow0x01_Stats,
     OpenFlow0x04,
     OpenFlow0x04_Core,
+    OpenFlow0x05,
+    OpenFlow0x05_Core,
     SDN_OpenFlow0x01,
     SDN_OpenFlow0x04,
     GroupTable0x04,
@@ -83,6 +85,7 @@ Library quickcheck
       Arbitrary_OpenFlow,
       Arbitrary_OpenFlow0x01,
       Arbitrary_OpenFlow0x04,
+      Arbitrary_OpenFlow0x05,
       Arbitrary_SDN_Types
 
 Executable testtool
