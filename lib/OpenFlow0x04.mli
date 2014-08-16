@@ -822,6 +822,188 @@ end
 (** Error message structure. See the section 7.4.4 of the OpenFlow 1.3.4 specification *)
 module Error : sig
 
+  module HelloFailed : sig
+
+    type t = helloFailed
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module BadRequest : sig
+
+    type t = badRequest
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module BadAction : sig
+
+    type t = badAction
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module BadInstruction : sig
+
+    type t = badInstruction
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module BadMatch : sig
+
+    type t = badMatch
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module FlowModFailed : sig
+
+    type t = flowModFailed
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module GroupModFailed : sig
+
+    type t = groupModFailed
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module PortModFailed : sig
+
+    type t = portModFailed
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module TableModFailed : sig
+
+    type t = tableModFailed
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module QueueOpFailed : sig
+
+    type t = queueOpFailed
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module SwitchConfigFailed : sig
+
+    type t = switchConfigFailed
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module RoleReqFailed : sig
+
+    type t = roleReqFailed
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module MeterModFailed : sig
+
+    type t = meterModFailed
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
+  module TableFeatFailed : sig
+
+    type t = tableFeatFailed
+
+    val marshal : t -> int
+
+    val parse : int -> t
+
+    (** [to_string v] pretty-prints [v] *)
+    val to_string : t -> string
+
+  end
+
   type t = {
     err : errorTyp;
     data : bytes;
