@@ -939,7 +939,7 @@ end
 module Message : sig
 
   type t =
-    | Hello
+    | Hello of element list
     | EchoRequest of bytes
     | EchoReply of bytes
     | Experimenter of Experimenter.t
@@ -966,6 +966,7 @@ module Message : sig
     | GetAsyncReply of AsyncConfig.t
     | SetAsync of AsyncConfig.t
     | PacketInMsg of PacketIn.t
+    | FlowRemoved of FlowRemoved.t
     | PortStatus of PortStatus.t
     | RoleStatus of RoleStatus.t
     | TableStatus of TableStatus.t

@@ -4892,10 +4892,12 @@ module TableStatus = struct
 
 end
 
+module Hello = OpenFlow0x04.Hello
+
 module Message = struct
 
   type t =
-    | Hello
+    | Hello of element list
     | EchoRequest of bytes
     | EchoReply of bytes
     | Experimenter of Experimenter.t
@@ -4922,6 +4924,7 @@ module Message = struct
     | GetAsyncReply of AsyncConfig.t
     | SetAsync of AsyncConfig.t
     | PacketInMsg of PacketIn.t
+    | FlowRemoved of FlowRemoved.t
     | PortStatus of PortStatus.t
     | RoleStatus of RoleStatus.t
     | TableStatus of TableStatus.t
@@ -4966,7 +4969,7 @@ module Message = struct
   module Header = OpenFlow_Header
 
   let msg_code_of_message (msg : t) : msg_code = match msg with
-    | Hello -> HELLO
+    | Hello _ -> HELLO
     | EchoRequest _ -> ECHO_REQ
     | EchoReply _ -> ECHO_RESP
     | Experimenter _ -> EXPERIMENTER
@@ -4993,13 +4996,14 @@ module Message = struct
     | GetAsyncReply _ -> GET_ASYNC_REP
     | SetAsync _ -> SET_ASYNC
     | PacketInMsg _ -> PACKET_IN
+    | FlowRemoved _ -> FLOW_REMOVED
     | PortStatus _ -> PORT_STATUS
     | RoleStatus _ -> ROLE_STATUS
     | TableStatus _ -> TABLE_STATUS
     | RequestForward _ -> REQUEST_FORWARD
 
   let rec sizeof (msg : t) : int = match msg with
-    | Hello -> Header.size
+    | Hello h -> Header.size + Hello.sizeof h
     | EchoRequest bytes -> Header.size + (String.length (Cstruct.to_string bytes))
     | EchoReply bytes -> Header.size + (String.length (Cstruct.to_string bytes))
     | Experimenter exp -> Header.size + (Experimenter.sizeof exp)
@@ -5026,13 +5030,14 @@ module Message = struct
     | GetAsyncReply a -> Header.size + AsyncConfig.sizeof a
     | SetAsync a -> Header.size + AsyncConfig.sizeof a
     | PacketInMsg p -> Header.size + PacketIn.sizeof p
+    | FlowRemoved f -> Header.size + FlowRemoved.sizeof f
     | PortStatus p -> Header.size + PortStatus.sizeof p
     | RoleStatus r -> Header.size + RoleStatus.sizeof r
     | TableStatus t -> Header.size + TableStatus.sizeof t
     | RequestForward (_,t) -> Header.size + sizeof t
 
   let to_string (msg : t) : string = match msg with
-    | Hello -> "Hello"
+    | Hello _ -> "Hello"
     | EchoRequest _ -> "EchoRequest"
     | EchoReply _ -> "EchoReply"
     | Experimenter _ -> "Experimenter"
@@ -5059,6 +5064,7 @@ module Message = struct
     | GetAsyncReply _ -> "GetAsyncReply"
     | SetAsync _ -> "SetAsync"
     | PacketInMsg _ -> "PacketIn"
+    | FlowRemoved _ -> "FlowRemoved"
     | PortStatus _ -> "PortStatus"
     | RoleStatus _ -> "RoleStatus"
     | TableStatus _ -> "TableStatus"
@@ -5077,8 +5083,8 @@ module Message = struct
 
   let rec blit_message (msg : t) (out : Cstruct.t) =
     match msg with
-      | Hello ->
-        Header.size
+      | Hello h ->
+        Header.size + Hello.marshal out h
       | EchoRequest bytes
       | EchoReply bytes ->
         Cstruct.blit_from_string (Cstruct.to_string bytes) 0 out 0 (String.length (Cstruct.to_string bytes));
@@ -5131,6 +5137,8 @@ module Message = struct
         Header.size + AsyncConfig.marshal out a
       | PacketInMsg p ->
         Header.size + PacketIn.marshal out p
+      | FlowRemoved f ->
+        Header.size + FlowRemoved.marshal out f
       | PortStatus p ->
         Header.size + PortStatus.marshal out p
       | RoleStatus r -> 
@@ -5161,7 +5169,7 @@ module Message = struct
       | Some code -> code
       | None -> raise (Unparsable "unknown message code") in
     let msg = match typ with
-      | HELLO -> Hello
+      | HELLO -> Hello (Hello.parse body_bits)
       | ECHO_REQ -> EchoRequest body_bits
       | ECHO_RESP -> EchoReply body_bits
       | EXPERIMENTER -> Experimenter (Experimenter.parse body_bits)
@@ -5184,6 +5192,7 @@ module Message = struct
       | GET_ASYNC_REP -> GetAsyncReply (AsyncConfig.parse body_bits)
       | SET_ASYNC -> SetAsync (AsyncConfig.parse body_bits)
       | PACKET_IN -> PacketInMsg (PacketIn.parse body_bits)
+      | FLOW_REMOVED -> FlowRemoved (FlowRemoved.parse body_bits)
       | PORT_STATUS -> PortStatus (PortStatus.parse body_bits)
       | ROLE_STATUS -> RoleStatus (RoleStatus.parse body_bits)
       | TABLE_STATUS -> TableStatus (TableStatus.parse body_bits)

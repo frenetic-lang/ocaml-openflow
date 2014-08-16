@@ -463,3 +463,5 @@ type tableStatusReason =
 type tableStatus = { reason : tableStatusReason; table : tableDescReply}
 
 type 'a requestForward = xid * 'a
+
+type element = OpenFlow0x04_Core.element
