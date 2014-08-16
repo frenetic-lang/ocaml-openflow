@@ -465,3 +465,137 @@ type tableStatus = { reason : tableStatusReason; table : tableDescReply}
 type 'a requestForward = xid * 'a
 
 type element = OpenFlow0x04_Core.element
+
+type helloFailed = OpenFlow0x04_Core.helloFailed
+
+type badRequest = 
+ | ReqBadVersion
+ | ReqBadType
+ | ReqBadMultipart
+ | ReqBadExp
+ | ReqBadExpType
+ | ReqPermError
+ | ReqBadLen
+ | ReqBufferEmpty
+ | ReqBufferUnknown
+ | ReqBadTableId
+ | ReqIsSlave
+ | ReqBadPort
+ | ReqBadPacket
+ | ReqMultipartBufOverflow
+ | ReqMultipartReqTimeout
+ | ReqMultipartReplyTimeout
+
+type badAction = OpenFlow0x04_Core.badAction
+
+type badInstruction =
+ | InstUnknownInst
+ | InstBadTableId
+ | InstUnsupInst
+ | InstUnsupMeta
+ | InstUnsupMetaMask
+ | InstBadExp
+ | InstBadExpTyp
+ | InstBadLen
+ | InstPermError  
+ | InstDuplicate
+
+type badMatch = OpenFlow0x04_Core.badMatch
+
+type flowModFailed =
+ | FlUnknown
+ | FlTableFull
+ | FlBadTableId
+ | FlOverlap
+ | FlPermError
+ | FlBadTimeout
+ | FlBadCommand
+ | FlBadFlags
+ | FlCantSync
+ | FlBadPriority
+
+type groupModFailed = OpenFlow0x04_Core.groupModFailed
+
+type portModFailed = OpenFlow0x04_Core.portModFailed
+
+type tableModFailed = OpenFlow0x04_Core.tableModFailed
+
+type queueOpFailed = OpenFlow0x04_Core.queueOpFailed
+
+type switchConfigFailed = OpenFlow0x04_Core.switchConfigFailed
+
+type roleReqFailed = OpenFlow0x04_Core.roleReqFailed
+
+type meterModFailed = OpenFlow0x04_Core.meterModFailed
+
+type tableFeatFailed =
+ | TfBadTable
+ | TfBadMeta
+ | TfPermError
+
+type badProperties =
+  | BpBadType
+  | BpBadLen
+  | BpBadValue
+  | BpTooMany
+  | BpDupType
+  | BpBadExperimenter
+  | BpBadExpType
+  | BpBadExpValue
+  | BpPermError
+
+type asyncConfigFailed =
+  | AcInvalid
+  | AcUnsupported
+  | AcPermError
+
+type flowMonitorFailed = 
+  | FmonUnknown
+  | FmonMonitorExists
+  | FmonInvalidMonitor
+  | FmonUnknownMonitor
+  | FmonBadCommand
+  | FmonBadFlags
+  | FmonBadTableID
+  | FmonBadOut
+
+type bundleFailed =
+  | BfUnknown
+  | BfPermError
+  | BfBadID
+  | BfBundleExists
+  | BfBundleClosed
+  | BfOutOfBundle
+  | BfBadTyp
+  | BfBadFlags
+  | BfMSGBadLen
+  | BfMSGBadXID
+  | BfMSGUnsup
+  | BfMSGConflict
+  | BfMSGTooMany
+  | BfMSGFailed
+  | BfTimeout
+  | BfBundleInProgress
+
+type experimenterFailed = { exp_code : int16; experimenter : int32}
+
+type errorTyp = 
+ | HelloFailed of helloFailed
+ | BadRequest of badRequest
+ | BadAction of badAction
+ | BadInstruction of badInstruction
+ | BadMatch of badMatch
+ | FlowModFailed of flowModFailed
+ | GroupModFailed of groupModFailed
+ | PortModFailed of portModFailed
+ | TableModFailed of tableModFailed
+ | QueueOpFailed of queueOpFailed
+ | SwitchConfigFailed of switchConfigFailed
+ | RoleReqFailed of roleReqFailed
+ | MeterModFailed of meterModFailed
+ | TableFeatFailed of tableFeatFailed
+ | ExperimenterFailed of experimenterFailed
+ | BadProperties of badProperties
+ | AsyncConfigFailed of asyncConfigFailed
+ | FlowMonitorFailed of flowMonitorFailed
+ | BundleFailed of bundleFailed

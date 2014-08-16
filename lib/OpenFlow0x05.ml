@@ -4894,6 +4894,706 @@ end
 
 module Hello = OpenFlow0x04.Hello
 
+module Error = struct
+
+  type t = {
+    err : errorTyp;
+    data : bytes;
+  }
+
+  cstruct ofp_error_msg {
+    uint16_t typ;
+    uint16_t code
+  } as big_endian
+
+  cenum ofp_error_type {
+    OFPET_HELLO_FAILED = 0;
+    OFPET_BAD_REQUEST = 1;
+    OFPET_BAD_ACTION = 2;
+    OFPET_BAD_INSTRUCTION = 3;
+    OFPET_BAD_MATCH = 4;
+    OFPET_FLOW_MOD_FAILED = 5;
+    OFPET_GROUP_MOD_FAILED = 6;
+    OFPET_PORT_MOD_FAILED = 7;
+    OFPET_TABLE_MOD_FAILED = 8;
+    OFPET_QUEUE_OP_FAILED = 9;
+    OFPET_SWITCH_CONFIG_FAILED = 10;
+    OFPET_ROLE_REQUEST_FAILED = 11;
+    OFPET_METER_MOD_FAILED = 12;
+    OFPET_TABLE_FEATURES_FAILED = 13;
+    OFPET_BAD_PROPERTY = 14;
+    OFPET_ASYNC_CONFIG_FAILED = 15;
+    OFPET_FLOW_MONITOR_FAILED = 16;
+    OFPET_BUNDLE_FAILED = 17;
+    OFPET_EXPERIMENTER = 0xffff
+  } as uint16_t
+
+  module HelloFailed = OpenFlow0x04.Error.HelloFailed
+
+  module BadRequest = struct
+
+    cenum ofp_bad_request_code {
+      OFPBRC_BAD_VERSION = 0;
+      OFPBRC_BAD_TYPE = 1;
+      OFPBRC_BAD_MULTIPART = 2;
+      OFPBRC_BAD_EXPERIMENTER = 3;
+      OFPBRC_BAD_EXP_TYPE = 4;
+      OFPBRC_EPERM = 5;
+      OFPBRC_BAD_LEN = 6;
+      OFPBRC_BUFFER_EMPTY = 7;
+      OFPBRC_BUFFER_UNKNOWN = 8;
+      OFPBRC_BAD_TABLE_ID = 9;
+      OFPBRC_IS_SLAVE = 10;
+      OFPBRC_BAD_PORT = 11;
+      OFPBRC_BAD_PACKET = 12;
+      OFPBRC_MULTIPART_BUFFER_OVERFLOW = 13;
+      OFPBRC_MULTIPART_REQUEST_TIMEOUT = 14;
+      OFPBRC_MULTIPART_REPLY_TIMEOUT = 15
+    } as uint16_t
+
+    type t = badRequest
+
+    let to_string (cod : t) : string =
+      match cod with
+        | ReqBadVersion -> "BadVersion"
+        | ReqBadType -> "BadTyp"
+        | ReqBadMultipart -> "BadMultipart"
+        | ReqBadExp -> "BadExp"
+        | ReqBadExpType -> "BadExpType"
+        | ReqPermError -> "Permission_Error"
+        | ReqBadLen -> "BadLen"
+        | ReqBufferEmpty -> "BufferEmpty"
+        | ReqBufferUnknown -> "BufferUnknown"
+        | ReqBadTableId -> "BadTableId"
+        | ReqIsSlave -> "IsSlave"
+        | ReqBadPort -> "BadPort"
+        | ReqBadPacket -> "BadPacket"
+        | ReqMultipartBufOverflow -> "MultipartBufOverflow"
+        | ReqMultipartReqTimeout -> "ReqMultipartReqTimeout"
+        | ReqMultipartReplyTimeout -> "ReqMultipartReplyTimeout"
+
+    let marshal (cod : t) : int =
+      match cod with
+        | ReqBadVersion -> ofp_bad_request_code_to_int OFPBRC_BAD_VERSION
+        | ReqBadType -> ofp_bad_request_code_to_int OFPBRC_BAD_TYPE
+        | ReqBadMultipart -> ofp_bad_request_code_to_int OFPBRC_BAD_MULTIPART
+        | ReqBadExp -> ofp_bad_request_code_to_int OFPBRC_BAD_EXPERIMENTER
+        | ReqBadExpType -> ofp_bad_request_code_to_int OFPBRC_BAD_EXP_TYPE
+        | ReqPermError -> ofp_bad_request_code_to_int OFPBRC_EPERM
+        | ReqBadLen -> ofp_bad_request_code_to_int OFPBRC_BAD_LEN
+        | ReqBufferEmpty -> ofp_bad_request_code_to_int OFPBRC_BUFFER_EMPTY
+        | ReqBufferUnknown -> ofp_bad_request_code_to_int OFPBRC_BUFFER_UNKNOWN
+        | ReqBadTableId -> ofp_bad_request_code_to_int OFPBRC_BAD_TABLE_ID
+        | ReqIsSlave -> ofp_bad_request_code_to_int OFPBRC_IS_SLAVE
+        | ReqBadPort -> ofp_bad_request_code_to_int OFPBRC_BAD_PORT
+        | ReqBadPacket -> ofp_bad_request_code_to_int OFPBRC_BAD_PACKET
+        | ReqMultipartBufOverflow -> ofp_bad_request_code_to_int OFPBRC_MULTIPART_BUFFER_OVERFLOW
+        | ReqMultipartReqTimeout -> ofp_bad_request_code_to_int OFPBRC_MULTIPART_REQUEST_TIMEOUT
+        | ReqMultipartReplyTimeout -> ofp_bad_request_code_to_int OFPBRC_MULTIPART_REPLY_TIMEOUT
+
+    let parse t : t = 
+      match int_to_ofp_bad_request_code t with
+        | Some OFPBRC_BAD_VERSION -> ReqBadVersion
+        | Some OFPBRC_BAD_TYPE -> ReqBadType
+        | Some OFPBRC_BAD_MULTIPART -> ReqBadMultipart
+        | Some OFPBRC_BAD_EXPERIMENTER -> ReqBadExp
+        | Some OFPBRC_BAD_EXP_TYPE -> ReqBadExpType
+        | Some OFPBRC_EPERM -> ReqPermError
+        | Some OFPBRC_BAD_LEN -> ReqBadLen
+        | Some OFPBRC_BUFFER_EMPTY -> ReqBufferEmpty
+        | Some OFPBRC_BUFFER_UNKNOWN -> ReqBufferUnknown
+        | Some OFPBRC_BAD_TABLE_ID -> ReqBadTableId
+        | Some OFPBRC_IS_SLAVE -> ReqIsSlave
+        | Some OFPBRC_BAD_PORT -> ReqBadPort
+        | Some OFPBRC_BAD_PACKET -> ReqBadPacket
+        | Some OFPBRC_MULTIPART_BUFFER_OVERFLOW -> ReqMultipartBufOverflow
+        | Some OFPBRC_MULTIPART_REQUEST_TIMEOUT -> ReqMultipartReqTimeout
+        | Some OFPBRC_MULTIPART_REPLY_TIMEOUT -> ReqMultipartReplyTimeout
+        | None -> raise (Unparsable (sprintf "malfomed bad_request code"))
+
+  end
+
+  module BadAction = OpenFlow0x04.Error.BadAction
+
+  module BadInstruction = struct
+  
+
+    cenum ofp_bad_instruction_code {
+      OFPBIC_UNKNOWN_INST = 0;
+      OFPBIC_UNSUP_INST = 1;
+      OFPBIC_BAD_TABLE_ID = 2;
+      OFPBIC_UNSUP_METADATA = 3;
+      OFPBIC_UNSUP_METADATA_MASK = 4;
+      OFPBIC_BAD_EXPERIMENTER = 5;
+      OFPBIC_BAD_EXP_TYPE = 6;
+      OFPBIC_BAD_LEN = 7;
+      OFPBIC_EPERM = 8;
+      OFPBIC_DUP_INST = 9
+    } as uint16_t
+
+    type t = badInstruction
+
+    let to_string (cod : t) : string =
+      match cod with
+        | InstUnknownInst -> "UnknownInst"
+        | InstUnsupInst -> "UnsupInst"
+        | InstBadTableId -> "BadTableId"
+        | InstUnsupMeta -> "UnsupMeta"
+        | InstUnsupMetaMask -> "UnsupMetaMask"
+        | InstBadExp -> "BadExp"
+        | InstBadExpTyp -> "BadExpTyp"
+        | InstBadLen -> "BadLen"
+        | InstPermError -> "Permission_Error"
+        | InstDuplicate -> "Duplicate Instruction"
+
+     let marshal (cod : t) : int =
+      match cod with
+        | InstUnknownInst -> ofp_bad_instruction_code_to_int OFPBIC_UNKNOWN_INST
+        | InstBadTableId -> ofp_bad_instruction_code_to_int OFPBIC_BAD_TABLE_ID
+        | InstUnsupInst -> ofp_bad_instruction_code_to_int OFPBIC_UNSUP_INST
+        | InstUnsupMeta -> ofp_bad_instruction_code_to_int OFPBIC_UNSUP_METADATA
+        | InstUnsupMetaMask -> ofp_bad_instruction_code_to_int OFPBIC_UNSUP_METADATA_MASK
+        | InstBadExp -> ofp_bad_instruction_code_to_int OFPBIC_BAD_EXPERIMENTER
+        | InstBadExpTyp -> ofp_bad_instruction_code_to_int OFPBIC_BAD_EXP_TYPE
+        | InstBadLen -> ofp_bad_instruction_code_to_int OFPBIC_BAD_LEN
+        | InstPermError -> ofp_bad_instruction_code_to_int OFPBIC_EPERM
+        | InstDuplicate -> ofp_bad_instruction_code_to_int OFPBIC_DUP_INST
+
+    let parse t : t =
+      match int_to_ofp_bad_instruction_code t with
+        | Some OFPBIC_UNKNOWN_INST -> InstUnknownInst
+        | Some OFPBIC_BAD_TABLE_ID -> InstBadTableId
+        | Some OFPBIC_UNSUP_INST -> InstUnsupInst
+        | Some OFPBIC_UNSUP_METADATA -> InstUnsupMeta
+        | Some OFPBIC_UNSUP_METADATA_MASK -> InstUnsupMetaMask
+        | Some OFPBIC_BAD_EXPERIMENTER -> InstBadExp
+        | Some OFPBIC_BAD_EXP_TYPE -> InstBadExpTyp
+        | Some OFPBIC_BAD_LEN -> InstBadLen
+        | Some OFPBIC_EPERM -> InstPermError
+        | Some OFPBIC_DUP_INST -> InstDuplicate
+        | None -> raise (Unparsable (sprintf "malfomed bad_instruction code"))
+
+  end
+
+  module BadMatch = OpenFlow0x04.Error.BadMatch
+
+  module FlowModFailed = struct
+   
+    cenum ofp_flow_mod_failed_code {
+      OFPFMFC_UNKNOWN = 0;
+      OFPFMFC_TABLE_FULL = 1;
+      OFPFMFC_BAD_TABLE_ID = 2;
+      OFPFMFC_OVERLAP = 3;
+      OFPFMFC_EPERM = 4;
+      OFPFMFC_BAD_TIMEOUT = 5;
+      OFPFMFC_BAD_COMMAND = 6;
+      OFPFMFC_BAD_FLAGS = 7;
+      OFPFMFC_CANT_SYNC = 8;
+      OFPFMFC_BAD_PRIORITY = 9
+    } as uint16_t
+
+    type t = flowModFailed
+
+    let to_string (cod : t) : string =
+      match cod with
+        | FlUnknown -> "Unknown"
+        | FlTableFull -> "TableFull"
+        | FlBadTableId -> "BadTableId"
+        | FlOverlap -> "Overlap"
+        | FlPermError -> "Permission_Error"
+        | FlBadTimeout -> "BadTimeout"
+        | FlBadCommand -> "BadCommand"
+        | FlBadFlags  -> "BadFlags"
+        | FlCantSync -> "Can't Sync"
+        | FlBadPriority -> "Bad Priority"
+
+    let marshal (cod : t) : int =
+      match cod with
+        | FlUnknown -> ofp_flow_mod_failed_code_to_int OFPFMFC_UNKNOWN
+        | FlTableFull -> ofp_flow_mod_failed_code_to_int OFPFMFC_TABLE_FULL
+        | FlBadTableId -> ofp_flow_mod_failed_code_to_int OFPFMFC_BAD_TABLE_ID
+        | FlOverlap -> ofp_flow_mod_failed_code_to_int OFPFMFC_OVERLAP
+        | FlPermError -> ofp_flow_mod_failed_code_to_int OFPFMFC_EPERM
+        | FlBadTimeout -> ofp_flow_mod_failed_code_to_int OFPFMFC_BAD_TIMEOUT
+        | FlBadCommand -> ofp_flow_mod_failed_code_to_int OFPFMFC_BAD_COMMAND
+        | FlBadFlags  -> ofp_flow_mod_failed_code_to_int OFPFMFC_BAD_FLAGS
+        | FlCantSync -> ofp_flow_mod_failed_code_to_int OFPFMFC_CANT_SYNC
+        | FlBadPriority -> ofp_flow_mod_failed_code_to_int OFPFMFC_BAD_PRIORITY
+
+    let parse t : t = 
+      match int_to_ofp_flow_mod_failed_code t with
+        | Some OFPFMFC_UNKNOWN -> FlUnknown
+        | Some OFPFMFC_TABLE_FULL -> FlTableFull
+        | Some OFPFMFC_BAD_TABLE_ID -> FlBadTableId
+        | Some OFPFMFC_OVERLAP -> FlOverlap
+        | Some OFPFMFC_EPERM -> FlPermError
+        | Some OFPFMFC_BAD_TIMEOUT -> FlBadTimeout
+        | Some OFPFMFC_BAD_COMMAND -> FlBadCommand
+        | Some OFPFMFC_BAD_FLAGS -> FlBadFlags
+        | Some OFPFMFC_CANT_SYNC -> FlCantSync
+        | Some OFPFMFC_BAD_PRIORITY -> FlBadPriority
+        | None -> raise (Unparsable (sprintf "malfomed flow mod failed code"))
+
+  end
+
+  module GroupModFailed = OpenFlow0x04.Error.GroupModFailed
+
+  module PortModFailed = OpenFlow0x04.Error.PortModFailed
+
+  module TableModFailed = OpenFlow0x04.Error.TableModFailed
+
+  module QueueOpFailed = OpenFlow0x04.Error.QueueOpFailed
+
+  module SwitchConfigFailed = OpenFlow0x04.Error.SwitchConfigFailed
+
+  module RoleReqFailed = OpenFlow0x04.Error.RoleReqFailed
+
+  module MeterModFailed = OpenFlow0x04.Error.MeterModFailed
+
+  module TableFeatFailed = struct
+
+    cenum ofp_table_features_failed_code {
+      OFPTFFC_BAD_TABLE = 0;
+      OFPTFFC_BAD_METADATA = 1;
+      OFPTFFC_EPERM = 5
+    } as uint16_t 
+
+    type t = tableFeatFailed
+
+    let to_string (cod : t) : string =
+      match cod with
+        | TfBadTable -> "BadTable"
+        | TfBadMeta -> "BadMeta"
+        | TfPermError -> "Permission_Error"
+
+    let marshal (cod : t) : int =
+      match cod with
+        | TfBadTable -> ofp_table_features_failed_code_to_int OFPTFFC_BAD_TABLE
+        | TfBadMeta -> ofp_table_features_failed_code_to_int OFPTFFC_BAD_METADATA
+        | TfPermError -> ofp_table_features_failed_code_to_int OFPTFFC_EPERM
+
+    let parse t : t = 
+      match int_to_ofp_table_features_failed_code t with
+        | Some OFPTFFC_BAD_TABLE -> TfBadTable
+        | Some OFPTFFC_BAD_METADATA -> TfBadMeta
+        | Some OFPTFFC_EPERM -> TfPermError
+        | None -> raise (Unparsable (sprintf "malfomed table features failed code"))
+
+  end
+
+  module BadProperties = struct
+
+    cenum ofp_bad_property_code {
+      OFPBPC_BAD_TYPE = 0;
+      OFPBPC_BAD_LEN = 1;
+      OFPBPC_BAD_VALUE = 2;
+      OFPBPC_TOO_MANY = 3;
+      OFPBPC_DUP_TYPE = 4;
+      OFPBPC_BAD_EXPERIMENTER = 5;
+      OFPBPC_BAD_EXP_TYPE = 6;
+      OFPBPC_BAD_EXP_VALUE = 7;
+      OFPBPC_EPERM = 8
+    } as uint16_t 
+
+    type t = badProperties
+
+    let to_string (cod : t) : string =
+      match cod with
+        | BpBadType -> "BadType"
+        | BpBadLen -> "BadLen"
+        | BpBadValue -> "BadValue"
+        | BpTooMany -> "TooMany"
+        | BpDupType -> "DuplicateType"
+        | BpBadExperimenter -> "Unknwon experimenter"
+        | BpBadExpType -> "Unknown exp_type"
+        | BpBadExpValue -> "Unknown experimenter value"
+        | BpPermError -> "Permission_Error"
+
+    let marshal (cod : t) : int =
+      match cod with
+        | BpBadType -> ofp_bad_property_code_to_int OFPBPC_BAD_TYPE
+        | BpBadLen -> ofp_bad_property_code_to_int OFPBPC_BAD_LEN
+        | BpBadValue -> ofp_bad_property_code_to_int OFPBPC_BAD_VALUE
+        | BpTooMany -> ofp_bad_property_code_to_int OFPBPC_TOO_MANY
+        | BpDupType -> ofp_bad_property_code_to_int OFPBPC_DUP_TYPE
+        | BpBadExperimenter -> ofp_bad_property_code_to_int OFPBPC_BAD_EXPERIMENTER
+        | BpBadExpType -> ofp_bad_property_code_to_int OFPBPC_BAD_EXP_TYPE
+        | BpBadExpValue -> ofp_bad_property_code_to_int OFPBPC_BAD_EXP_VALUE
+        | BpPermError -> ofp_bad_property_code_to_int OFPBPC_EPERM
+
+    let parse t : t = 
+      match int_to_ofp_bad_property_code t with
+        | Some OFPBPC_BAD_TYPE -> BpBadType
+        | Some OFPBPC_BAD_LEN -> BpBadLen
+        | Some OFPBPC_BAD_VALUE -> BpBadValue
+        | Some OFPBPC_TOO_MANY -> BpTooMany
+        | Some OFPBPC_DUP_TYPE -> BpDupType
+        | Some OFPBPC_BAD_EXPERIMENTER -> BpBadExperimenter
+        | Some OFPBPC_BAD_EXP_TYPE -> BpBadExpType
+        | Some OFPBPC_BAD_EXP_VALUE -> BpBadExpValue
+        | Some OFPBPC_EPERM -> BpPermError
+        | None -> raise (Unparsable (sprintf "malfomed table features failed code"))
+
+  end
+
+  module AsyncConfigFailed = struct
+
+    cenum ofp_async_config_failed_code {
+      OFPACFC_INVALID = 0;
+      OFPACFC_UNSUPPORTED = 1;
+      OFPACFC_EPERM = 2
+    } as uint16_t 
+
+    type t = asyncConfigFailed
+
+    let to_string (cod : t) : string =
+      match cod with
+        | AcInvalid -> "Invalid_Mask"
+        | AcUnsupported -> "Unsupported_Config"
+        | AcPermError -> "Permission_Error"
+
+    let marshal (cod : t) : int =
+      match cod with
+        | AcInvalid -> ofp_async_config_failed_code_to_int OFPACFC_INVALID
+        | AcUnsupported -> ofp_async_config_failed_code_to_int OFPACFC_UNSUPPORTED
+        | AcPermError -> ofp_async_config_failed_code_to_int OFPACFC_EPERM
+
+    let parse t : t = 
+      match int_to_ofp_async_config_failed_code t with
+        | Some OFPACFC_INVALID -> AcInvalid
+        | Some OFPACFC_UNSUPPORTED -> AcUnsupported
+        | Some OFPACFC_EPERM -> AcPermError
+        | None -> raise (Unparsable (sprintf "malfomed table features failed code"))
+  end
+
+  module FlowMonitorFailed = struct
+
+    cenum ofp_flow_monitor_failed_code {
+      OFPMOFC_UNKNOWN = 0;
+      OFPMOFC_MONITOR_EXISTS = 1;
+      OFPMOFC_INVALID_MONITOR = 2;
+      OFPMOFC_UNKNOWN_MONITOR = 3;
+      OFPMOFC_BAD_COMMAND = 4;
+      OFPMOFC_BAD_FLAGS = 5;
+      OFPMOFC_BAD_TABLE_ID = 6;
+      OFPMOFC_BAD_OUT = 7
+    } as uint16_t 
+
+    type t = flowMonitorFailed
+
+    let to_string (cod : t) : string =
+      match cod with
+        | FmonUnknown -> "Unknown"
+        | FmonMonitorExists -> "MonitorExists"
+        | FmonUnknownMonitor -> "UnknownMonitor"
+        | FmonInvalidMonitor -> "InvalidMonitor"
+        | FmonBadCommand -> "BadCommand"
+        | FmonBadFlags -> "BadFlags"
+        | FmonBadTableID -> "BadTableID"
+        | FmonBadOut -> "BadOutput"
+
+    let marshal (cod : t) : int =
+      match cod with
+        | FmonUnknown -> ofp_flow_monitor_failed_code_to_int OFPMOFC_UNKNOWN
+        | FmonMonitorExists -> ofp_flow_monitor_failed_code_to_int OFPMOFC_MONITOR_EXISTS
+        | FmonUnknownMonitor -> ofp_flow_monitor_failed_code_to_int OFPMOFC_UNKNOWN_MONITOR
+        | FmonInvalidMonitor -> ofp_flow_monitor_failed_code_to_int OFPMOFC_INVALID_MONITOR
+        | FmonBadCommand -> ofp_flow_monitor_failed_code_to_int OFPMOFC_BAD_COMMAND
+        | FmonBadFlags -> ofp_flow_monitor_failed_code_to_int OFPMOFC_BAD_FLAGS
+        | FmonBadTableID -> ofp_flow_monitor_failed_code_to_int OFPMOFC_BAD_TABLE_ID
+        | FmonBadOut -> ofp_flow_monitor_failed_code_to_int OFPMOFC_BAD_OUT
+
+    let parse t : t = 
+      match int_to_ofp_flow_monitor_failed_code t with
+        | Some OFPMOFC_UNKNOWN -> FmonUnknown
+        | Some OFPMOFC_MONITOR_EXISTS -> FmonMonitorExists
+        | Some OFPMOFC_INVALID_MONITOR -> FmonInvalidMonitor
+        | Some OFPMOFC_UNKNOWN_MONITOR -> FmonUnknownMonitor
+        | Some OFPMOFC_BAD_COMMAND -> FmonBadCommand
+        | Some OFPMOFC_BAD_FLAGS -> FmonBadFlags
+        | Some OFPMOFC_BAD_TABLE_ID -> FmonBadTableID
+        | Some OFPMOFC_BAD_OUT -> FmonBadOut
+        | None -> raise (Unparsable (sprintf "malfomed table features failed code"))
+
+  end
+
+  module BundleFailed = struct
+
+    cenum ofp_bundle_failed_code {
+      OFPBFC_UNKNOWN = 0;
+      OFPBFC_EPERM = 1;
+      OFPBFC_BAD_ID = 2;
+      OFPBFC_BUNDLE_EXIST = 3;
+      OFPBFC_BUNDLE_CLOSED = 4;
+      OFPBFC_OUT_OF_BUNDLES = 5;
+      OFPBFC_BAD_TYPE = 6;
+      OFPBFC_BAD_FLAGS = 7;
+      OFPBFC_MSG_BAD_LEN = 8;
+      OFPBFC_MSG_BAD_XID = 9;
+      OFPBFC_MSG_UNSUP = 10;
+      OFPBFC_MSG_CONFLICT = 11;
+      OFPBFC_MSG_TOO_MANY = 12;
+      OFPBFC_MSG_FAILED = 13;
+      OFPBFC_TIMEOUT = 14;
+      OFPBFC_BUNDLE_IN_PROGRESS = 15
+    } as uint16_t 
+
+    type t = bundleFailed
+
+    let to_string (cod : t) : string =
+      match cod with
+        | BfUnknown -> "Unknown"
+        | BfPermError -> "Permission_Error"
+        | BfBadID -> "BadID"
+        | BfBundleExists -> "BundleExists"
+        | BfBundleClosed -> "BundleClosed"
+        | BfOutOfBundle -> "OutOfBundle"
+        | BfBadTyp -> "BadType"
+        | BfBadFlags -> "BadFlags"
+        | BfMSGBadLen -> "MSGBadLen"
+        | BfMSGBadXID -> "MSGBadXID"
+        | BfMSGUnsup -> "MSGUnsupported"
+        | BfMSGConflict -> "MSGConflict"
+        | BfMSGTooMany -> "MSGTooMany"
+        | BfMSGFailed -> "MSGFailed"
+        | BfTimeout -> "Timeout"
+        | BfBundleInProgress -> "LockingRessource"
+
+    let marshal (cod : t) : int =
+      match cod with
+        | BfUnknown -> ofp_bundle_failed_code_to_int OFPBFC_UNKNOWN
+        | BfPermError -> ofp_bundle_failed_code_to_int OFPBFC_EPERM
+        | BfBadID -> ofp_bundle_failed_code_to_int OFPBFC_BAD_ID
+        | BfBundleExists -> ofp_bundle_failed_code_to_int OFPBFC_BUNDLE_EXIST
+        | BfBundleClosed -> ofp_bundle_failed_code_to_int OFPBFC_BUNDLE_CLOSED
+        | BfOutOfBundle -> ofp_bundle_failed_code_to_int OFPBFC_OUT_OF_BUNDLES
+        | BfBadTyp -> ofp_bundle_failed_code_to_int OFPBFC_BAD_TYPE
+        | BfBadFlags -> ofp_bundle_failed_code_to_int OFPBFC_BAD_FLAGS
+        | BfMSGBadLen-> ofp_bundle_failed_code_to_int OFPBFC_MSG_BAD_LEN
+        | BfMSGBadXID -> ofp_bundle_failed_code_to_int OFPBFC_MSG_BAD_XID
+        | BfMSGUnsup -> ofp_bundle_failed_code_to_int OFPBFC_MSG_UNSUP
+        | BfMSGConflict -> ofp_bundle_failed_code_to_int OFPBFC_MSG_CONFLICT
+        | BfMSGTooMany -> ofp_bundle_failed_code_to_int OFPBFC_MSG_TOO_MANY
+        | BfMSGFailed -> ofp_bundle_failed_code_to_int OFPBFC_MSG_FAILED
+        | BfTimeout -> ofp_bundle_failed_code_to_int OFPBFC_TIMEOUT
+        | BfBundleInProgress -> ofp_bundle_failed_code_to_int OFPBFC_BUNDLE_IN_PROGRESS
+
+    let parse t : t = 
+      match int_to_ofp_bundle_failed_code t with
+        | Some OFPBFC_UNKNOWN -> BfUnknown
+        | Some OFPBFC_EPERM -> BfPermError
+        | Some OFPBFC_BAD_ID -> BfBadID
+        | Some OFPBFC_BUNDLE_EXIST -> BfBundleExists
+        | Some OFPBFC_BUNDLE_CLOSED -> BfBundleClosed
+        | Some OFPBFC_OUT_OF_BUNDLES -> BfOutOfBundle
+        | Some OFPBFC_BAD_TYPE -> BfBadTyp
+        | Some OFPBFC_BAD_FLAGS -> BfBadFlags
+        | Some OFPBFC_MSG_BAD_LEN -> BfMSGBadLen
+        | Some OFPBFC_MSG_BAD_XID -> BfMSGBadXID
+        | Some OFPBFC_MSG_UNSUP -> BfMSGUnsup
+        | Some OFPBFC_MSG_CONFLICT -> BfMSGConflict
+        | Some OFPBFC_MSG_TOO_MANY -> BfMSGTooMany
+        | Some OFPBFC_MSG_FAILED -> BfMSGFailed
+        | Some OFPBFC_TIMEOUT -> BfTimeout
+        | Some OFPBFC_BUNDLE_IN_PROGRESS -> BfBundleInProgress
+        | None -> raise (Unparsable (sprintf "malfomed table features failed code"))
+
+  end
+
+  cstruct ofp_error_experimenter_msg {
+    uint16_t typ;
+    uint16_t exp_code;
+    uint32_t experimenter
+  } as big_endian
+
+  let experimenterFailed_to_string (exp : experimenterFailed) : string =
+    Format.sprintf "Exp type : %u; exp ID: %lu"
+    exp.exp_code
+    exp.experimenter
+
+  let to_string (t : t) : string =
+    match t.err with
+      | HelloFailed h -> Format.sprintf "Hello Failed error, code: %s" (HelloFailed.to_string h)
+      | BadRequest br -> Format.sprintf "Bad Request error, code: %s" (BadRequest.to_string br)
+      | BadAction ba -> Format.sprintf "Bad Action error, code: %s" (BadAction.to_string ba)
+      | BadInstruction bi -> Format.sprintf "Bad Instruction error, code: %s" (BadInstruction.to_string bi)
+      | BadMatch bm -> Format.sprintf "Bad Match error, code: %s" (BadMatch.to_string bm)
+      | FlowModFailed fm -> Format.sprintf "Flow Mod Failed error, code: %s" (FlowModFailed.to_string fm)
+      | GroupModFailed gm -> Format.sprintf "Group Mod Failed error, code: %s" (GroupModFailed.to_string gm)
+      | PortModFailed pm -> Format.sprintf "Port Mod Failed error, code: %s" (PortModFailed.to_string pm)
+      | TableModFailed tm -> Format.sprintf "Table Mod Failed error, code: %s" (TableModFailed.to_string tm)
+      | QueueOpFailed qo -> Format.sprintf "Queue Op Failed error, code: %s" (QueueOpFailed.to_string qo)
+      | SwitchConfigFailed sc -> Format.sprintf "Switch Config Failed error, code: %s" (SwitchConfigFailed.to_string sc)
+      | RoleReqFailed rr -> Format.sprintf "Role Request Failed error, code: %s" (RoleReqFailed.to_string rr)
+      | MeterModFailed mm -> Format.sprintf "Meter Mod Failed error, code: %s" (MeterModFailed.to_string mm)
+      | TableFeatFailed tf -> Format.sprintf "Table Features Failed error, code: %s" (TableFeatFailed.to_string tf)
+      | ExperimenterFailed e -> Format.sprintf "Experimenter Failed error, code: %s" (experimenterFailed_to_string e)
+      | BadProperties e -> Format.sprintf "Bad Properties error, code: %s" (BadProperties.to_string e)
+      | AsyncConfigFailed e -> Format.sprintf "Async Config Failed error, code: %s" (AsyncConfigFailed.to_string e)
+      | FlowMonitorFailed e -> Format.sprintf "Flow Monitor Failed error, code: %s" (FlowMonitorFailed.to_string e)
+      | BundleFailed e -> Format.sprintf "Bundle Failed error, code: %s" (BundleFailed.to_string e)
+
+  let sizeof (t : t) : int =
+    match t.err with
+      | ExperimenterFailed _ -> sizeof_ofp_error_experimenter_msg + (Cstruct.len t.data)
+      | _ -> sizeof_ofp_error_msg + (Cstruct.len t.data)
+
+  let marshal (buf : Cstruct.t) (t : t) : int =
+    match t.err with
+      | HelloFailed h ->
+        set_ofp_error_msg_typ buf (ofp_error_type_to_int OFPET_HELLO_FAILED);
+        set_ofp_error_msg_code buf (HelloFailed.marshal h);
+        let dataBuf = Cstruct.shift buf sizeof_ofp_error_msg in
+        Cstruct.blit t.data 0 dataBuf 0 (Cstruct.len t.data);
+        sizeof_ofp_error_msg + (Cstruct.len t.data)
+      | BadRequest br ->
+        set_ofp_error_msg_typ buf (ofp_error_type_to_int OFPET_BAD_REQUEST);
+        set_ofp_error_msg_code buf (BadRequest.marshal br);
+        let dataBuf = Cstruct.shift buf sizeof_ofp_error_msg in
+        Cstruct.blit t.data 0 dataBuf 0 (Cstruct.len t.data);
+        sizeof_ofp_error_msg + (Cstruct.len t.data)
+      | BadAction ba ->
+        set_ofp_error_msg_typ buf (ofp_error_type_to_int OFPET_BAD_ACTION);
+        set_ofp_error_msg_code buf (BadAction.marshal ba);
+        let dataBuf = Cstruct.shift buf sizeof_ofp_error_msg in
+        Cstruct.blit t.data 0 dataBuf 0 (Cstruct.len t.data);
+        sizeof_ofp_error_msg + (Cstruct.len t.data)
+      | BadInstruction bi ->
+        set_ofp_error_msg_typ buf (ofp_error_type_to_int OFPET_BAD_INSTRUCTION);
+        set_ofp_error_msg_code buf (BadInstruction.marshal bi);
+        let dataBuf = Cstruct.shift buf sizeof_ofp_error_msg in
+        Cstruct.blit t.data 0 dataBuf 0 (Cstruct.len t.data);
+        sizeof_ofp_error_msg + (Cstruct.len t.data)
+      | BadMatch bm ->
+        set_ofp_error_msg_typ buf (ofp_error_type_to_int OFPET_BAD_MATCH);
+        set_ofp_error_msg_code buf (BadMatch.marshal bm);
+        let dataBuf = Cstruct.shift buf sizeof_ofp_error_msg in
+        Cstruct.blit t.data 0 dataBuf 0 (Cstruct.len t.data);
+        sizeof_ofp_error_msg + (Cstruct.len t.data)
+      | FlowModFailed fm ->
+        set_ofp_error_msg_typ buf (ofp_error_type_to_int OFPET_FLOW_MOD_FAILED);
+        set_ofp_error_msg_code buf (FlowModFailed.marshal fm);
+        let dataBuf = Cstruct.shift buf sizeof_ofp_error_msg in
+        Cstruct.blit t.data 0 dataBuf 0 (Cstruct.len t.data);
+        sizeof_ofp_error_msg + (Cstruct.len t.data)
+      | GroupModFailed gm ->
+        set_ofp_error_msg_typ buf (ofp_error_type_to_int OFPET_GROUP_MOD_FAILED);
+        set_ofp_error_msg_code buf (GroupModFailed.marshal gm);
+        let dataBuf = Cstruct.shift buf sizeof_ofp_error_msg in
+        Cstruct.blit t.data 0 dataBuf 0 (Cstruct.len t.data);
+        sizeof_ofp_error_msg + (Cstruct.len t.data)
+      | PortModFailed pm ->
+        set_ofp_error_msg_typ buf (ofp_error_type_to_int OFPET_PORT_MOD_FAILED);
+        set_ofp_error_msg_code buf (PortModFailed.marshal pm);
+        let dataBuf = Cstruct.shift buf sizeof_ofp_error_msg in
+        Cstruct.blit t.data 0 dataBuf 0 (Cstruct.len t.data);
+        sizeof_ofp_error_msg + (Cstruct.len t.data)
+      | TableModFailed tm ->
+        set_ofp_error_msg_typ buf (ofp_error_type_to_int OFPET_TABLE_MOD_FAILED);
+        set_ofp_error_msg_code buf (TableModFailed.marshal tm);
+        let dataBuf = Cstruct.shift buf sizeof_ofp_error_msg in
+        Cstruct.blit t.data 0 dataBuf 0 (Cstruct.len t.data);
+        sizeof_ofp_error_msg + (Cstruct.len t.data)
+      | QueueOpFailed qo ->
+        set_ofp_error_msg_typ buf (ofp_error_type_to_int OFPET_QUEUE_OP_FAILED);
+        set_ofp_error_msg_code buf (QueueOpFailed.marshal qo);
+        let dataBuf = Cstruct.shift buf sizeof_ofp_error_msg in
+        Cstruct.blit t.data 0 dataBuf 0 (Cstruct.len t.data);
+        sizeof_ofp_error_msg + (Cstruct.len t.data)
+      | SwitchConfigFailed sc -> 
+        set_ofp_error_msg_typ buf (ofp_error_type_to_int OFPET_SWITCH_CONFIG_FAILED);
+        set_ofp_error_msg_code buf (SwitchConfigFailed.marshal sc);
+        let dataBuf = Cstruct.shift buf sizeof_ofp_error_msg in
+        Cstruct.blit t.data 0 dataBuf 0 (Cstruct.len t.data);
+        sizeof_ofp_error_msg + (Cstruct.len t.data)
+      | RoleReqFailed rr -> 
+        set_ofp_error_msg_typ buf (ofp_error_type_to_int OFPET_ROLE_REQUEST_FAILED);
+        set_ofp_error_msg_code buf (RoleReqFailed.marshal rr);
+        let dataBuf = Cstruct.shift buf sizeof_ofp_error_msg in
+        Cstruct.blit t.data 0 dataBuf 0 (Cstruct.len t.data);
+        sizeof_ofp_error_msg + (Cstruct.len t.data)
+      | MeterModFailed mm -> 
+        set_ofp_error_msg_typ buf (ofp_error_type_to_int OFPET_METER_MOD_FAILED);
+        set_ofp_error_msg_code buf (MeterModFailed.marshal mm);
+        let dataBuf = Cstruct.shift buf sizeof_ofp_error_msg in
+        Cstruct.blit t.data 0 dataBuf 0 (Cstruct.len t.data);
+        sizeof_ofp_error_msg + (Cstruct.len t.data)
+      | TableFeatFailed tf -> 
+        set_ofp_error_msg_typ buf (ofp_error_type_to_int OFPET_TABLE_FEATURES_FAILED);
+        set_ofp_error_msg_code buf (TableFeatFailed.marshal tf);
+        let dataBuf = Cstruct.shift buf sizeof_ofp_error_msg in
+        Cstruct.blit t.data 0 dataBuf 0 (Cstruct.len t.data);
+        sizeof_ofp_error_msg + (Cstruct.len t.data)
+      | ExperimenterFailed e -> 
+        set_ofp_error_experimenter_msg_typ buf (ofp_error_type_to_int OFPET_EXPERIMENTER);
+        set_ofp_error_experimenter_msg_exp_code buf e.exp_code;
+        set_ofp_error_experimenter_msg_experimenter buf e.experimenter;
+        let dataBuf = Cstruct.shift buf sizeof_ofp_error_experimenter_msg in
+        Cstruct.blit t.data 0 dataBuf 0 (Cstruct.len t.data);
+        sizeof_ofp_error_experimenter_msg + (Cstruct.len t.data)
+      | BadProperties e -> 
+        set_ofp_error_msg_typ buf (ofp_error_type_to_int OFPET_BAD_PROPERTY);
+        set_ofp_error_msg_code buf (BadProperties.marshal e);
+        let dataBuf = Cstruct.shift buf sizeof_ofp_error_msg in
+        Cstruct.blit t.data 0 dataBuf 0 (Cstruct.len t.data);
+        sizeof_ofp_error_msg + (Cstruct.len t.data)
+      | AsyncConfigFailed e ->
+        set_ofp_error_msg_typ buf (ofp_error_type_to_int OFPET_ASYNC_CONFIG_FAILED);
+        set_ofp_error_msg_code buf (AsyncConfigFailed.marshal e);
+        let dataBuf = Cstruct.shift buf sizeof_ofp_error_msg in
+        Cstruct.blit t.data 0 dataBuf 0 (Cstruct.len t.data);
+        sizeof_ofp_error_msg + (Cstruct.len t.data)
+      | FlowMonitorFailed e ->
+        set_ofp_error_msg_typ buf (ofp_error_type_to_int OFPET_FLOW_MONITOR_FAILED);
+        set_ofp_error_msg_code buf (FlowMonitorFailed.marshal e);
+        let dataBuf = Cstruct.shift buf sizeof_ofp_error_msg in
+        Cstruct.blit t.data 0 dataBuf 0 (Cstruct.len t.data);
+        sizeof_ofp_error_msg + (Cstruct.len t.data)
+      | BundleFailed e ->
+        set_ofp_error_msg_typ buf (ofp_error_type_to_int OFPET_BUNDLE_FAILED);
+        set_ofp_error_msg_code buf (BundleFailed.marshal e);
+        let dataBuf = Cstruct.shift buf sizeof_ofp_error_msg in
+        Cstruct.blit t.data 0 dataBuf 0 (Cstruct.len t.data);
+        sizeof_ofp_error_msg + (Cstruct.len t.data)
+
+
+  let parse (bits : Cstruct.t) : t =
+    let typ = get_ofp_error_msg_typ bits in
+    let code = get_ofp_error_msg_code bits in
+    let err =  match int_to_ofp_error_type typ with
+      | Some OFPET_HELLO_FAILED -> HelloFailed (HelloFailed.parse code)
+      | Some OFPET_BAD_REQUEST -> BadRequest (BadRequest.parse code)
+      | Some OFPET_BAD_ACTION -> BadAction (BadAction.parse code)
+      | Some OFPET_BAD_INSTRUCTION -> BadInstruction (BadInstruction.parse code)
+      | Some OFPET_BAD_MATCH -> BadMatch (BadMatch.parse code)
+      | Some OFPET_FLOW_MOD_FAILED -> FlowModFailed (FlowModFailed.parse code)
+      | Some OFPET_GROUP_MOD_FAILED -> GroupModFailed (GroupModFailed.parse code)
+      | Some OFPET_PORT_MOD_FAILED -> PortModFailed (PortModFailed.parse code)
+      | Some OFPET_TABLE_MOD_FAILED -> TableModFailed (TableModFailed.parse code)
+      | Some OFPET_QUEUE_OP_FAILED -> QueueOpFailed (QueueOpFailed.parse code)
+      | Some OFPET_SWITCH_CONFIG_FAILED -> SwitchConfigFailed (SwitchConfigFailed.parse code)
+      | Some OFPET_ROLE_REQUEST_FAILED -> RoleReqFailed (RoleReqFailed.parse code)
+      | Some OFPET_METER_MOD_FAILED -> MeterModFailed (MeterModFailed.parse code)
+      | Some OFPET_TABLE_FEATURES_FAILED -> TableFeatFailed (TableFeatFailed.parse code)
+      | Some OFPET_EXPERIMENTER -> (
+        let exp_code = get_ofp_error_experimenter_msg_exp_code bits in
+        let experimenter = get_ofp_error_experimenter_msg_experimenter bits in
+        ExperimenterFailed ({exp_code; experimenter}) )
+      | Some OFPET_BAD_PROPERTY -> BadProperties (BadProperties.parse code)
+      | Some OFPET_ASYNC_CONFIG_FAILED -> AsyncConfigFailed (AsyncConfigFailed.parse code)
+      | Some OFPET_FLOW_MONITOR_FAILED -> FlowMonitorFailed (FlowMonitorFailed.parse code)
+      | Some OFPET_BUNDLE_FAILED -> BundleFailed (BundleFailed.parse code)
+      | None -> raise (Unparsable (sprintf "malfomed type error")) in
+    let err_bits = match err with 
+      | ExperimenterFailed _ -> Cstruct.shift bits sizeof_ofp_error_experimenter_msg
+      | _ -> Cstruct.shift bits sizeof_ofp_error_msg in
+    let data = Cstruct.create (Cstruct.len err_bits) in
+    (* create a new Cstruct to set the offset to 0 *)
+    Cstruct.blit err_bits 0 data 0 (Cstruct.len err_bits);
+    { err; data }
+
+end
+
 module Message = struct
 
   type t =
