@@ -199,8 +199,28 @@ module OpenFlow0x04 : sig
   module Message : Message
     with type t = (OpenFlow_Header.xid * OpenFlow0x04.Message.t)
 
-  module Controller : Platform.S
-    with type m = Message.t
+  module Controller : sig
+    include Platform.S
+      with type m = Message.t
+
+    type f = [
+      | `Connect of Client_id.t * OpenFlow0x04.SwitchFeatures.t
+      | `Disconnect of Client_id.t * SDN_Types.switchId * Sexp.t
+      | `Message of Client_id.t * m
+    ]
+
+    val switch_id_of_client_exn : t -> Client_id.t -> SDN_Types.switchId
+    val client_id_of_switch_exn : t -> SDN_Types.switchId -> Client_id.t
+
+    val switch_id_of_client : t -> Client_id.t -> SDN_Types.switchId option
+    val client_id_of_switch : t -> SDN_Types.switchId -> Client_id.t option
+
+    val set_monitor_interval : t -> Time.Span.t -> unit
+    val set_idle_wait : t -> Time.Span.t -> unit
+    val set_kill_wait : t -> Time.Span.t -> unit
+
+    val features : (t, e, f) Stage.t
+  end
 
 end
 
