@@ -46,7 +46,7 @@ let stderr : Log.Output.t =
 
 let log = lazy (Log.create ~level:`Info ~output:[stderr])
 
-let level () = Log.level (Lazy.force log)
+let level () = Log.set_level (Lazy.force log)
 let set_level = Log.set_level (Lazy.force log)
 
 let set_output outputs = current_outputs := outputs;
@@ -77,8 +77,7 @@ let of_lazy ?(level=`Debug) ?time ?(tags=[]) lazy_str =
    * allowing users of the package to implement `of_lazy` without having to
    * manage the log level manually.
    * *)
-  if level = Log.level (Lazy.force log) then
-    Log.printf (Lazy.force log) ~tags ~level "%s" (Lazy.force lazy_str)
+   Log.printf (Lazy.force log) ~tags ~level "%s" (Lazy.force lazy_str)
 
 let sexp ?(level=`Debug) ?time ?(tags=[]) msg =
   Log.sexp (Lazy.force log) ~tags ~level msg
