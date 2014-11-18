@@ -8,6 +8,7 @@ Most data structures are documented with a pointer to relevent section in the
 OpenFlow 1.0 specification, rather than reproducing the specification here. *)
 
 open Packet
+open Core.Std
 
 (** {2 OpenFlow types}
 
@@ -15,14 +16,14 @@ open Packet
     specification.
 *)
 
-type 'a mask = { m_value : 'a; m_mask : 'a option }
+type 'a mask = { m_value : 'a; m_mask : 'a sexp_option } with sexp
 
 (** [switchId] is the type of switch identifiers received as part of
 [SwitchFeature] replies. *)
-type switchId = int64
+type switchId = int64 with sexp
 
 (** [portId] is the type of physical port identifiers (port numbers). *)
-type portId = int16
+type portId = int16 with sexp
 
 (** [queueId] identifies a specific queue for QoS. *)
 type queueId = int32
@@ -35,19 +36,19 @@ type xid = OpenFlow_Header.xid
     For each field, write [Some x] indicates that the headers must be
     [x], where [None] is a wildcard. *)
 type pattern =  
-    { dlSrc : dlAddr option (** Ethernet source address. *)
-    ; dlDst : dlAddr option (** Etherent destination address. *)
-    ; dlTyp : dlTyp option (** Ethernet frame type. *)
-    ; dlVlan : dlVlan option (** Input VLAN id. *)
-    ; dlVlanPcp : dlVlanPcp option (** Input VLAN priority. *)
-    ; nwSrc : nwAddr mask option (** IP source address. *)
-    ; nwDst : nwAddr mask option (** IP destination address. *)
-    ; nwProto : nwProto option (** IP protocol. *)
-    ; nwTos : nwTos option (** IP ToS. *)
-    ; tpSrc : tpPort option (** TCP/UDP source port. *)
-    ; tpDst : tpPort option (** TCP/UDP destination port. *)
-    ; inPort : portId option (** Input switch port. *)
-    }
+    { dlSrc : dlAddr sexp_option (** Ethernet source address. *)
+    ; dlDst : dlAddr sexp_option (** Etherent destination address. *)
+    ; dlTyp : dlTyp sexp_option (** Ethernet frame type. *)
+    ; dlVlan : dlVlan sexp_option (** Input VLAN id. *)
+    ; dlVlanPcp : dlVlanPcp sexp_option (** Input VLAN priority. *)
+    ; nwSrc : nwAddr mask sexp_option (** IP source address. *)
+    ; nwDst : nwAddr mask sexp_option (** IP destination address. *)
+    ; nwProto : nwProto sexp_option (** IP protocol. *)
+    ; nwTos : nwTos sexp_option (** IP ToS. *)
+    ; tpSrc : tpPort sexp_option (** TCP/UDP source port. *)
+    ; tpDst : tpPort sexp_option (** TCP/UDP destination port. *)
+    ; inPort : portId sexp_option (** Input switch port. *)
+    } with sexp
 
 (** A pseudo-port, as described by the [ofp_port] enumeration in
     Section 5.2.1 of the OpenFlow 1.0 specification. *)
