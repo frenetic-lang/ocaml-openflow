@@ -18,4 +18,7 @@ depends: [
   "sexplib"
 ]
 depopts: [ "async" "quickcheck" ]
-conflicts: [ "async" { > "111.25.00"} ]
+conflicts: [ 
+  "async" { > "111.25.00"} 
+  "async_extra" { > "111.25.00" }
+]
