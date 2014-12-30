@@ -223,3 +223,11 @@ module Highlevel : sig
     -> SDN_Types.flowTable
     -> unit Deferred.t
 end
+
+module Tcp : sig
+
+  module Make : functor (Message : Message) -> Typed_tcp.S
+    with type Server_message.t = Message.t
+     and type Client_message.t = Message.t
+
+end

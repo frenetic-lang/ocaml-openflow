@@ -4,11 +4,9 @@ open Core.Std
 module Header = OpenFlow_Header
 module type Message = Async_OpenFlow_Message.Message
 
-exception Flush_closed_writer
-
 module type S = sig
 
-  type t 
+  type t
   type m
 
   module Client_id : Unique_id
@@ -35,7 +33,7 @@ module type S = sig
 
   val has_client_id : t -> Client_id.t -> bool
 
-  val send 
+  val send
     : t
     -> Client_id.t
     -> m
@@ -45,8 +43,8 @@ module type S = sig
 
   val send_to_all : t -> m -> unit
 
-  val client_addr_port 
-    :  t 
+  val client_addr_port
+    :  t
     -> Client_id.t
     -> (Unix.Inet_addr.t * int) option
 
@@ -59,37 +57,7 @@ module Make(Message : Message) = struct
 
   type m = Message.t
 
-  module Impl = Typed_tcp.Make(struct
-
-    module Client_message = Message
-    module Server_message = Message
-
-    module Serialization = Async_OpenFlow_Message.MakeSerializers (Message)
-
-    module Transport = struct
-
-      type t = Reader.t * Writer.t
-
-      let create (r : Reader.t) (w : Writer.t) = return (r, w)
-
-      let close ((_, w) : t) = Writer.close w
-
-      let flushed_time ((_, w) : t) =
-        let open Deferred in
-        choose [ choice (Writer.flushed_time  w) (fun x  -> `F x)
-               ; choice (Writer.consumer_left w) (fun () -> `C ())
-               ]
-        >>| function
-          | `F x -> x
-          | `C () -> raise Flush_closed_writer
-
-      let read ((r, _) : t) = Serialization.deserialize r
-
-      let write ((_, w) : t) (m : m) : unit = Serialization.serialize w m
-
-    end
-  
-  end)
+  module Impl = Async_OpenFlow_Tcp.Make(Message)
 
   type t = Impl.t
 
