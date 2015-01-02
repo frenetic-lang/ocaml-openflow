@@ -1,28 +1,29 @@
 open Packet
+open Core.Std
 
-type 'a mask = { m_value : 'a; m_mask : 'a option }
+type 'a mask = { m_value : 'a; m_mask : 'a sexp_option } with sexp
 
-type switchId = int64
+type switchId = int64 with sexp
 
-type portId = int16
+type portId = int16 with sexp
 
 type queueId = int32
 
 type xid = OpenFlow_Header.xid
 
 type pattern =  
-    { dlSrc : dlAddr option
-    ; dlDst : dlAddr option
-    ; dlTyp : dlTyp option
-    ; dlVlan : dlVlan option
-    ; dlVlanPcp : dlVlanPcp option
-    ; nwSrc : nwAddr mask option
-    ; nwDst : nwAddr mask option
-    ; nwProto : nwProto option
-    ; nwTos : nwTos option
-    ; tpSrc : tpPort option
-    ; tpDst : tpPort option
-    ; inPort : portId option }
+    { dlSrc : dlAddr sexp_option
+    ; dlDst : dlAddr sexp_option
+    ; dlTyp : dlTyp sexp_option
+    ; dlVlan : dlVlan sexp_option
+    ; dlVlanPcp : dlVlanPcp sexp_option
+    ; nwSrc : nwAddr mask sexp_option
+    ; nwDst : nwAddr mask sexp_option
+    ; nwProto : nwProto sexp_option
+    ; nwTos : nwTos sexp_option
+    ; tpSrc : tpPort sexp_option
+    ; tpDst : tpPort sexp_option
+    ; inPort : portId sexp_option } with sexp
 
 type pseudoPort =
   | PhysicalPort of portId
