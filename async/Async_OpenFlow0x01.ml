@@ -155,6 +155,7 @@ module Controller = struct
   let features t evt =
     match evt with
       | `Connect (c_id) ->
+        Printf.printf "`Connect %d\n%!" (Obj.magic c_id : int);
         assert (not (Hash_set.mem t.shakes c_id));
         Hash_set.add t.shakes c_id;
         ChunkController.send t.sub c_id (Message.marshal' (0l, M.SwitchFeaturesRequest))
@@ -167,7 +168,9 @@ module Controller = struct
          * *)
         >>| (function _ -> [])
       | `Message (c_id, (xid, msg)) when Hash_set.mem t.shakes c_id ->
-        begin match msg with
+        begin 
+          Printf.printf "`Message %d\n [in shakes]\n%!" (Obj.magic c_id : int);
+          match msg with
           | M.SwitchFeaturesReply fs ->
             let switch_id = fs.OpenFlow0x01.SwitchFeatures.switch_id in
             ClientMap.add_exn t.c2s c_id switch_id;
@@ -181,8 +184,10 @@ module Controller = struct
             return []
         end
       | `Message (c_id, msg) ->
+        Printf.printf "`Message %d [not in shakes]\n%!" (Obj.magic c_id : int);
         return [`Message(switch_id_of_client_exn t c_id, msg)]
       | `Disconnect (c_id, exn) ->
+        Printf.printf "`Disconnect %d\n%!" (Obj.magic c_id : int);
         match switch_id_of_client t c_id with
           | None -> (* features request did not complete *)
             assert (Hash_set.mem t.shakes c_id);
