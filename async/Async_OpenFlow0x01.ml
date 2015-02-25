@@ -158,6 +158,9 @@ module Controller = struct
     match evt with
       | `Connect (c_id) ->
         assert (not (Hash_set.mem t.shakes c_id));
+        Log.printf ~tags ~level:`Debug
+          "Async_OpenFlow0x01.Controller.features: Connected to switch %s"
+          (Sexp.to_string (ChunkController.Platform.Impl.Client_id.sexp_of_t c_id));
         Hash_set.add t.shakes c_id;
         ChunkController.send t.sub c_id (Message.marshal' (0l, M.SwitchFeaturesRequest))
         (* XXX(seliopou): This swallows any errors that might have occurred
@@ -169,6 +172,10 @@ module Controller = struct
          * *)
         >>| (function _ -> [])
       | `Message (c_id, (xid, msg)) when Hash_set.mem t.shakes c_id ->
+        Log.printf ~tags ~level:`Debug
+          "Async_OpenFlow0x01.Controller.features: Message %s from switch %s"
+          (Message.to_string (xid, msg))
+          (Sexp.to_string (ChunkController.Platform.Impl.Client_id.sexp_of_t c_id));
         begin match msg with
           | M.SwitchFeaturesReply fs ->
             let switch_id = fs.OpenFlow0x01.SwitchFeatures.switch_id in
@@ -182,9 +189,16 @@ module Controller = struct
                 (Message.to_string (xid, msg));
             return []
         end
-      | `Message (c_id, msg) ->
-        return [`Message(switch_id_of_client_exn t c_id, msg)]
+      | `Message (c_id, (xid, msg)) ->
+        Log.printf ~tags ~level:`Debug
+          "Async_OpenFlow0x01.Controller.features: Message %s from switch %s"
+          (Message.to_string (xid, msg))
+          (Sexp.to_string (ChunkController.Platform.Impl.Client_id.sexp_of_t c_id));
+        return [`Message(switch_id_of_client_exn t c_id, (xid, msg))]
       | `Disconnect (c_id, exn) ->
+        Log.printf ~tags ~level:`Debug
+          "Async_OpenFlow0x01.Controller.features: Disconnect from switch %s"
+          (Sexp.to_string (ChunkController.Platform.Impl.Client_id.sexp_of_t c_id));
         match switch_id_of_client t c_id with
           | None -> (* features request did not complete *)
             assert (Hash_set.mem t.shakes c_id);

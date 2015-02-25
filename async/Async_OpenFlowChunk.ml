@@ -22,6 +22,8 @@ module Message : Platform.Message
 end
 
 module Controller = struct
+  let tags = [("openflow", "openflowChunk")]
+
   open Async.Std
 
   module Platform = Platform.Make(Message) ()
@@ -324,25 +326,36 @@ module Controller = struct
 
   let echo t evt =
     let open Header in
+    let module Log = Async_OpenFlow_Log in
     match evt with
-      | `Message (c_id, (hdr, bytes)) ->
+    | `Message (c_id, (hdr, bytes)) ->
         Handler.activity t c_id;
         begin if hdr.Header.type_code = type_code_echo_request then
-          (* Echo requests get a reply *)
-          let hdr = { hdr with type_code = type_code_echo_reply } in
-          send t c_id (hdr , bytes)
-          (* XXX(seliopou): This swallows any errors that might have occurred
-           * while attemping the handshake. Any such error should not be raised,
-           * since as far as the user is concerned the connection never existed.
-           * At the very least, the exception should be logged, which it will be
-           * as long as the log_disconnects option is not disabled when creating
-           * the controller.
-           * *)
-          >>| (function _ -> [])
-        else if hdr.Header.type_code = type_code_echo_reply then
-          (* Echo replies get eaten. The activity has been recorded above. *)
-          return []
-        else
+            begin
+              Log.printf ~tags ~level:`Debug
+                "Async_OpenFlowChunk.Controller.echo: echo_request from switch %s"
+                (Sexp.to_string (Client_id.sexp_of_t c_id));
+              (* Echo requests get a reply *)
+              let hdr = { hdr with type_code = type_code_echo_reply } in
+              send t c_id (hdr , bytes)
+              (* XXX(seliopou): This swallows any errors that might have occurred
+               * while attemping the handshake. Any such error should not be raised,
+               * since as far as the user is concerned the connection never existed.
+               * At the very least, the exception should be logged, which it will be
+               * as long as the log_disconnects option is not disabled when creating
+               * the controller.
+               * *)
+              >>| (function _ -> [])
+            end
+          else if hdr.Header.type_code = type_code_echo_reply then
+            begin
+              Log.printf ~tags ~level:`Debug
+                "Async_OpenFlowChunk.Controller.echo: echo_reply from switch %s"
+                (Sexp.to_string (Client_id.sexp_of_t c_id));
+              (* Echo replies get eaten. The activity has been recorded above. *)
+              return []
+            end
+          else
           (* All other messages get forwarded *)
           return [evt]
         end

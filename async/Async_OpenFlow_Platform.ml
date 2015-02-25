@@ -68,6 +68,9 @@ end
 
 module Make(Message : Message) () = struct
 
+  module Log = Async_OpenFlow_Log
+  let tags = [("openflow", "openflow_platform")]
+
   type m = Message.t
 
   module Impl = Typed_tcp.Make(struct
@@ -134,8 +137,16 @@ module Make(Message : Message) () = struct
   let send t c_id m =
     Monitor.try_with (fun () -> Impl.send t c_id m)
     >>| function
-      | Ok x       -> x
-      | Error _exn -> `Drop _exn
+      | Ok x       -> Log.printf ~tags ~level:`Debug
+                        "Async_OpenFlowChunk.Controller.send: successfully sent message %s to switch %s"
+                        (Message.to_string m)
+                        (Sexp.to_string (Client_id.sexp_of_t c_id));
+        x
+      | Error _exn -> Log.printf ~tags ~level:`Debug
+                        "Async_OpenFlowChunk.Controller.send: failed to send message %s to switch %s"
+                        (Message.to_string m)
+                        (Sexp.to_string (Client_id.sexp_of_t c_id));
+        `Drop _exn
 
   let send_ignore_errors = Impl.send_ignore_errors
 
