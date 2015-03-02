@@ -48,7 +48,8 @@ Library async
     cstruct.async,
     threads,
     sexplib.syntax,
-    sexplib
+    sexplib,
+    async_parallel
   InternalModules:
     Async_OpenFlow_Log,
     Async_OpenFlow_Message,

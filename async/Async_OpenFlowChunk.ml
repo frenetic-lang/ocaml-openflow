@@ -241,10 +241,13 @@ module Controller = struct
     Platform.close t.platform c_id
 
   let has_client_id t c_id =
-    Platform.has_client_id t.platform c_id &&
-      match Client_id.Table.find t.clients c_id with
+    Platform.has_client_id t.platform c_id >>| function
+      | true -> begin
+        match Client_id.Table.find t.clients c_id with
         | Some({ Conn.version = Some(_) }) -> true
         | _                                -> false
+        end
+      | false -> false
 
   let send t c_id m =
     Platform.send t.platform c_id m

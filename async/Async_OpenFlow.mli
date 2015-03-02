@@ -51,7 +51,7 @@ module Platform : sig
 
     val close : t -> Client_id.t -> unit
 
-    val has_client_id : t -> Client_id.t -> bool
+    val has_client_id : t -> Client_id.t -> bool Deferred.t
 
     val send
       :  t
@@ -66,9 +66,9 @@ module Platform : sig
     val client_addr_port
       :  t
       -> Client_id.t
-      -> (Unix.Inet_addr.t * int) option
+      -> (Unix.Inet_addr.t * int) option Deferred.t
 
-    val listening_port : t -> int
+    val listening_port : t -> int Deferred.t
 
   end
 
@@ -178,7 +178,7 @@ module OpenFlow0x01 : sig
     open OpenFlow0x01_Core
     open OpenFlow0x01_Stats
 
-    val get_switches : t -> SDN_Types.switchId list
+    val get_switches : t -> SDN_Types.switchId list Deferred.t
 
     val clear_flows
       :  ?pattern:pattern -> t -> Client_id.t

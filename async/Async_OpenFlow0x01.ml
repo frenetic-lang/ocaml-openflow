@@ -25,8 +25,9 @@ end
 
 include Async_OpenFlow_Message.MakeSerializers (Message)
 
-module Controller = struct
+module ControllerProcess = struct
   open Async.Std
+  open Async_parallel
 
   module Log = Async_OpenFlow_Log
   let tags = [("openflow", "openflow0x01")]
@@ -122,22 +123,6 @@ module Controller = struct
 
   let listening_port t =
     ChunkController.listening_port t.sub
-
-  let create_from_chunk t =
-    { sub = t
-    ; shakes = ClientSet.create ()
-    ; c2s = ClientMap.create ()
-    ; s2c = SwitchMap.create ()
-    }
-
-  let create ?max_pending_connections
-      ?verbose
-      ?log_disconnects
-      ?buffer_age_limit
-      ?monitor_connections ~port () =
-    ChunkController.create ?max_pending_connections ?verbose ?log_disconnects
-      ?buffer_age_limit ?monitor_connections ~port ()
-    >>| create_from_chunk
 
   let openflow0x01 t evt =
     match evt with
@@ -252,4 +237,228 @@ module Controller = struct
          | (_, M.StatsReplyMsg (IndividualFlowRep r)) -> Result.Ok r
          | _ -> assert false)
       | _ -> assert false)
+
+  let create_from_chunk t =
+    { sub = t
+    ; shakes = ClientSet.create ()
+    ; c2s = ClientMap.create ()
+    ; s2c = SwitchMap.create ()
+    }
+
+    let create_from_chunk_hub t h =
+    let ctl = create_from_chunk t in
+    Pipe.iter (Hub.listen_simple h) ~f:(fun (id, msg) -> match msg with
+        | `Send (sw_id, msg) -> begin
+            send ctl sw_id msg
+            >>| fun resp -> Hub.send h id (`Send_resp resp)
+          end
+        | `Send_to_all msg ->
+            return (send_to_all ctl msg)
+        | `Send_ignore_errors (sw_id, msg) ->
+            return (send_ignore_errors ctl sw_id msg)
+        | `Listen -> begin
+            Intf.hub ()
+            >>=
+            Hub.open_channel
+            >>| fun chan -> Deferred.don't_wait_for (Pipe.iter_without_pushback (listen ctl) ~f:(fun elm -> Channel.write chan elm));
+            Hub.send h id (`Listen_resp chan)
+          end
+        | `Individual_stats (pattern, sw_id) -> (individual_stats ctl ~pattern sw_id)
+          >>| fun resp -> Hub.send h id (`Individual_stats_resp resp)
+        | `Barrier args -> barrier ctl args
+          >>| fun resp -> Hub.send h id (`Barrier_resp resp)
+        | `Close sw_id -> return (close ctl sw_id)
+        | `Has_client_id sw_id -> has_client_id ctl sw_id
+          >>| fun resp -> Hub.send h id (`Has_client_id_resp resp)
+        | `Client_addr_port sw_id -> client_addr_port ctl sw_id
+          >>| fun resp -> Hub.send h id (`Client_addr_port_resp resp)
+        | `Listening_port -> listening_port ctl
+          >>| fun resp -> Hub.send h id (`Listening_port_resp resp)
+        | `Set_monitor_interval interval -> return (set_monitor_interval ctl interval)
+        | `Set_idle_wait interval -> return (set_idle_wait ctl interval)
+        | `Set_kill_wait interval -> return (set_kill_wait ctl interval)
+        | `Get_switches ->
+          return (Hub.send h id (`Get_switches_resp (get_switches ctl)))
+        | `Clear_flows (pattern, sw_id) -> clear_flows ~pattern ctl sw_id
+          >>| fun resp -> Hub.send h id (`Clear_flows_resp resp)
+        | `Send_flow_mods (clear, sw_id, flow_mods) -> send_flow_mods ~clear ctl sw_id flow_mods
+          >>| fun resp -> Hub.send h id (`Send_flow_mods_resp resp)
+        | `Send_pkt_out (sw_id, pkt_out) -> send_pkt_out ctl sw_id pkt_out
+          >>| fun resp -> Hub.send h id (`Send_pkt_out_resp resp)
+        | `Aggregate_stats (pattern, sw_id) -> aggregate_stats ~pattern ctl sw_id
+          >>| fun resp -> Hub.send h id (`Aggregate_stats_resp resp)
+
+      )
+
+  let create ?max_pending_connections
+      ?verbose
+      ?log_disconnects
+      ?buffer_age_limit
+      ?monitor_connections ~port h =
+    ChunkController.create ?max_pending_connections ?verbose ?log_disconnects
+      ?buffer_age_limit ?monitor_connections ~port ()
+    >>= (fun t -> create_from_chunk_hub t h)
+
+end
+
+module Controller = struct
+  open ControllerProcess
+  open Async.Std
+  open Async_parallel
+
+  module Client_id = ControllerProcess.Client_id
+  type t = ([ `Barrier of SwitchMap.key
+            | `Individual_stats of
+                C.pattern *
+                SwitchMap.key
+            | `Listen
+            | `Send of
+                SwitchMap.key *
+                Message.t
+            | `Send_to_all of
+                Message.t
+            | `Send_ignore_errors of
+                SwitchMap.key *
+                Message.t
+            | `Close of Client_id.t
+            | `Has_client_id of Client_id.t
+            | `Client_addr_port of Client_id.t
+            | `Listening_port
+            | `Set_monitor_interval of Core.Std.Time.Span.t
+            | `Set_idle_wait of Core.Std.Time.Span.t
+            | `Set_kill_wait of Core.Std.Time.Span.t
+            | `Get_switches
+            | `Clear_flows of OpenFlow0x01_Core.pattern * Client_id.t
+            | `Send_flow_mods of bool * Client_id.t * OpenFlow0x01_Core.flowMod list
+            | `Send_pkt_out of Client_id.t * OpenFlow0x01_Core.packetOut
+            | `Aggregate_stats of OpenFlow0x01_Core.pattern * Client_id.t
+            ],
+            [ `Barrier_resp of (unit, exn) Result.t
+            | `Individual_stats_resp of
+                (OpenFlow0x01_Stats.individualStats list, exn) Result.t
+            | `Listen_resp of
+                ([ `Connect of
+                     OpenFlow0x01.switchId * OpenFlow0x01.SwitchFeatures.t
+                 | `Disconnect of SDN_Types.switchId * Core.Std.Sexp.t
+                 | `Message of
+                     SDN_Types.switchId * Message.t ],
+                 [ `Connect of
+                     OpenFlow0x01.switchId * OpenFlow0x01.SwitchFeatures.t
+                 | `Disconnect of SDN_Types.switchId * Core.Std.Sexp.t
+                 | `Message of
+                     SDN_Types.switchId * Message.t ]) Channel.t
+            | `Send_resp of [ `Drop of exn | `Sent of Time.t ]
+            | `Has_client_id_resp of bool
+            | `Client_addr_port_resp of (Unix.Inet_addr.t * int) option
+            | `Listening_port_resp of int
+            | `Get_switches_resp of SDN_Types.switchId list
+            | `Clear_flows_resp of (unit, exn) Result.t
+            | `Send_flow_mods_resp of (unit, exn) Result.t
+            | `Send_pkt_out_resp of (unit, exn) Result.t
+            | `Aggregate_stats_resp of (OpenFlow0x01_Stats.aggregateStats, exn) Result.t
+            ]) Channel.t
+
+  let aggregate_stats ?(pattern=C.match_all) (t : t) sw_id =
+    Channel.write t (`Aggregate_stats (pattern, sw_id));
+    Channel.read t >>| function
+    | `Aggregate_stats_resp resp -> resp
+
+  let send_pkt_out (t : t) (sw_id:Client_id.t) pkt_out =
+    Channel.write t (`Send_pkt_out (sw_id, pkt_out));
+    Channel.read t >>| function
+    | `Send_pkt_out_resp resp -> resp
+
+  let send_flow_mods ?(clear=true) (t : t) (sw_id:Client_id.t) flow_mods =
+    Channel.write t (`Send_flow_mods (clear, sw_id, flow_mods));
+    Channel.read t >>| function
+    | `Send_flow_mods_resp resp -> resp
+
+  let clear_flows ?(pattern=C.match_all) (t : t) (sw_id:Client_id.t) =
+    Channel.write t (`Clear_flows (pattern, sw_id));
+    Channel.read t >>| function
+    | `Clear_flows_resp resp -> resp
+
+  let get_switches (t : t) =
+    Channel.write t `Get_switches;
+    Channel.read t >>| function
+    | `Get_switches_resp resp -> resp
+
+  let set_kill_wait t (s:Time.Span.t) =
+    Channel.write t (`Set_kill_wait s)
+
+  let set_monitor_interval t (s:Time.Span.t) =
+    Channel.write t (`Set_monitor_interval s)
+
+  let set_idle_wait t (s:Time.Span.t) : unit =
+    Channel.write t (`Set_idle_wait s)
+
+  let listening_port (t : t) =
+    Channel.write t `Listening_port;
+    Channel.read t >>| function
+    | `Listening_port_resp resp -> resp
+
+  let client_addr_port (t : t) sw_id =
+    Channel.write t (`Client_addr_port sw_id);
+    Channel.read t >>| function
+    | `Client_addr_port_resp resp -> resp
+
+  let send_to_all (t : t) msg =
+    Channel.write t (`Send_to_all msg)
+
+  let send_ignore_errors (t : t) sw_id msg =
+    Channel.write t (`Send_ignore_errors (sw_id, msg))
+
+  let has_client_id (t : t) sw_id =
+    Channel.write t (`Has_client_id sw_id);
+    Channel.read t >>| function
+    | `Has_client_id_resp resp -> resp
+
+  let close (t : t) sw_id =
+    Channel.write t (`Close sw_id)
+
+  type e = ControllerProcess.e
+  type m = ControllerProcess.m
+  type c = ControllerProcess.c
+
+  let create_from_chunk chunk =
+    Intf.spawn (create_from_chunk_hub chunk) >>| fun (c,_) ->
+    c
+
+  let create ?max_pending_connections
+      ?verbose
+      ?log_disconnects
+      ?buffer_age_limit
+      ?monitor_connections ~port () : t Deferred.t =
+    Intf.spawn (create ?max_pending_connections
+      ?verbose
+      ?log_disconnects
+      ?buffer_age_limit
+      ?monitor_connections ~port) >>| fun (c,_) ->
+    c
+
+  let send (t : t) sw_id msg =
+    Channel.write t (`Send (sw_id, msg));
+    Channel.read t >>| function
+    | `Send_resp resp -> resp
+
+  let channel_transfer chan writer =
+    Deferred.forever () (fun _ -> Channel.read chan >>=
+                          Pipe.write writer)
+  let listen (t : t) =
+    Channel.write t `Listen;
+    let reader,writer = Pipe.create () in
+    don't_wait_for (
+      Channel.read t >>| function
+      | `Listen_resp resp -> channel_transfer resp writer);
+    reader
+
+  let barrier (t : t) sw_id =
+    Channel.write t (`Barrier sw_id);
+    Channel.read t >>| function
+    | `Barrier_resp resp -> resp
+
+  let individual_stats ?(pattern=C.match_all) (t : t) sw_id =
+    Channel.write t (`Individual_stats (pattern, sw_id));
+    Channel.read t >>| function
+    | `Individual_stats_resp resp -> resp
 end
