@@ -32,6 +32,15 @@ module ControllerProcess = struct
   module Log = Async_OpenFlow_Log
   let tags = [("openflow", "openflow0x01")]
 
+  let output_log = ref None
+
+  let initialize_output () =
+    Writer.open_file "/home/mark/updates-experiments/scripts/controller.remote"
+    >>| fun log -> output_log := Some log
+
+  let get_output () = match !output_log with
+    | Some log -> log
+
   module ChunkController = Async_OpenFlowChunk.Controller
   module Client_id = struct
     module T = struct
@@ -246,24 +255,34 @@ module ControllerProcess = struct
     }
 
     let create_from_chunk_hub t h =
-    let ctl = create_from_chunk t in
+      let ctl = create_from_chunk t in
+      initialize_output ()
+      >>= fun () ->
     Pipe.iter (Hub.listen_simple h) ~f:(fun (id, msg) -> match msg with
         | `Send (sw_id, msg) -> begin
-            Log.debug ~tags "send (remote)";
+            Print.fprintf (get_output ()) "[remote] send\n";
+            Writer.fsync (get_output ())
+            >>= fun () ->
             send ctl sw_id msg
             >>| fun resp -> Hub.send h id (`Send_resp resp)
           end
         | `Send_to_all msg ->
-          Log.debug ~tags "send_to_all (remote)";
+          Print.fprintf (get_output ()) "[remote] send_to_all\n";
+          Writer.fsync (get_output ())
+          >>= fun () ->
             return (send_to_all ctl msg)
         | `Send_ignore_errors (sw_id, msg) ->
             return (send_ignore_errors ctl sw_id msg)
         | `Listen -> begin
-            Intf.hub ()
-            >>=
-            Hub.open_channel
-            >>| fun chan -> Deferred.don't_wait_for (Pipe.iter_without_pushback (listen ctl) ~f:(fun elm -> Channel.write chan elm));
-            Hub.send h id (`Listen_resp chan)
+            Intf.hub ~buffer_age_limit:`Unlimited ()
+            >>= fun new_h ->
+            Deferred.don't_wait_for (Pipe.read (Hub.listen_simple new_h)
+                                     >>= function
+                                     | `Ok (id, msg) ->
+                                       (Pipe.iter_without_pushback (listen ctl)
+                                          ~f:(Hub.send new_h id)));
+            Hub.open_channel new_h
+            >>| fun chan -> Hub.send h id (`Listen_resp chan)
           end
         | `Individual_stats (pattern, sw_id) -> (individual_stats ctl ~pattern sw_id)
           >>| fun resp -> Hub.send h id (`Individual_stats_resp resp)
@@ -280,7 +299,10 @@ module ControllerProcess = struct
         | `Set_idle_wait interval -> return (set_idle_wait ctl interval)
         | `Set_kill_wait interval -> return (set_kill_wait ctl interval)
         | `Get_switches ->
+          Print.fprintf (get_output ()) "[remote] get_switches\n";
           Log.debug ~tags "get_switches (remote)";
+          Writer.fsync (get_output ())
+          >>= fun () ->
           return (Hub.send h id (`Get_switches_resp (get_switches ctl)))
         | `Clear_flows (pattern, sw_id) -> clear_flows ~pattern ctl sw_id
           >>| fun resp -> Hub.send h id (`Clear_flows_resp resp)
@@ -343,16 +365,12 @@ module Controller = struct
             | `Individual_stats_resp of
                 (OpenFlow0x01_Stats.individualStats list, exn) Result.t
             | `Listen_resp of
-                ([ `Connect of
-                     OpenFlow0x01.switchId * OpenFlow0x01.SwitchFeatures.t
-                 | `Disconnect of SDN_Types.switchId * Core.Std.Sexp.t
-                 | `Message of
-                     SDN_Types.switchId * Message.t ],
+                ([ `Ready ],
                  [ `Connect of
                      OpenFlow0x01.switchId * OpenFlow0x01.SwitchFeatures.t
                  | `Disconnect of SDN_Types.switchId * Core.Std.Sexp.t
                  | `Message of
-                     SDN_Types.switchId * Message.t ]) Channel.t
+                     SDN_Types.switchId * Message.t]) Channel.t
             | `Send_resp of [ `Drop of exn | `Sent of Time.t ]
             | `Has_client_id_resp of bool
             | `Client_addr_port_resp of (Unix.Inet_addr.t * int) option
@@ -472,10 +490,11 @@ module Controller = struct
     Channel.write t `Listen;
     let reader,writer = Pipe.create () in
     don't_wait_for (
-      Channel.read t >>= function
-      | `Listen_resp resp -> Log.debug ~tags "Listen channel returned (local)";
-        Log.flushed () >>|
-        fun () -> channel_transfer resp writer);
+      Log.debug ~tags "About to listen for listen_resp";
+      Channel.read t >>| function
+      | `Listen_resp chan -> Log.debug ~tags "Listen channel returned (local)";
+        Channel.write chan `Ready;
+        channel_transfer chan writer);
     reader
 
   let barrier (t : t) sw_id =
