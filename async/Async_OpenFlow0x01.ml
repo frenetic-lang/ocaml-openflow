@@ -334,6 +334,14 @@ module Controller = struct
   module Log = Async_OpenFlow_Log
   let tags = [("openflow", "openflow0x01")]
 
+  (* We can not call read() on the same pipe concurrently. 
+     Somehow this is happening sometimes, so we need to 
+     enforce this invariant locally with condition variables. *)
+
+  let read_outstanding = ref false
+
+  let read_finished = Condition.create ()
+
   module Client_id = ControllerProcess.Client_id
   type t = ([ `Barrier of SwitchMap.key
             | `Individual_stats of
@@ -381,36 +389,47 @@ module Controller = struct
             | `Send_pkt_out_resp of (unit, exn) Result.t
             | `Aggregate_stats_resp of (OpenFlow0x01_Stats.aggregateStats, exn) Result.t
             ]) Channel.t
+  let rec clear_to_read () = if (!read_outstanding)
+    then Condition.wait read_finished >>= clear_to_read
+    else return (read_outstanding := true)
+
+  let signal_read () = read_outstanding := false; 
+    Condition.broadcast read_finished ()
 
   let aggregate_stats ?(pattern=C.match_all) (t : t) sw_id =
+    clear_to_read () >>= fun () ->
     Log.debug ~tags "aggregate_stats (local)";
     Channel.write t (`Aggregate_stats (pattern, sw_id));
     Channel.read t >>| function
-    | `Aggregate_stats_resp resp -> resp
+    | `Aggregate_stats_resp resp -> signal_read (); resp
 
   let send_pkt_out (t : t) (sw_id:Client_id.t) pkt_out =
+    clear_to_read () >>= fun () ->
     Log.debug ~tags "send_pkt_out (local)";
     Channel.write t (`Send_pkt_out (sw_id, pkt_out));
     Channel.read t >>| function
-    | `Send_pkt_out_resp resp -> resp
+    | `Send_pkt_out_resp resp -> signal_read (); resp
 
   let send_flow_mods ?(clear=true) (t : t) (sw_id:Client_id.t) flow_mods =
+    clear_to_read () >>= fun () ->
     Log.debug ~tags "send_flow_mods (local)";
     Channel.write t (`Send_flow_mods (clear, sw_id, flow_mods));
     Channel.read t >>| function
-    | `Send_flow_mods_resp resp -> resp
+    | `Send_flow_mods_resp resp -> signal_read (); resp
 
   let clear_flows ?(pattern=C.match_all) (t : t) (sw_id:Client_id.t) =
+    clear_to_read () >>= fun () ->
     Log.debug ~tags "clear_flows (local)";
     Channel.write t (`Clear_flows (pattern, sw_id));
     Channel.read t >>| function
-    | `Clear_flows_resp resp -> resp
+    | `Clear_flows_resp resp -> signal_read (); resp
 
   let get_switches (t : t) =
+    clear_to_read () >>= fun () ->
     Log.debug ~tags "get_switches (local)";
     Channel.write t `Get_switches;
     Channel.read t >>| function
-    | `Get_switches_resp resp -> resp
+    | `Get_switches_resp resp -> signal_read (); resp
 
   let set_kill_wait t (s:Time.Span.t) =
     Log.debug ~tags "set_kill_wait (local)";
@@ -425,16 +444,18 @@ module Controller = struct
     Channel.write t (`Set_idle_wait s)
 
   let listening_port (t : t) =
+    clear_to_read () >>= fun () ->
     Log.debug ~tags "set_listening_port (local)";
     Channel.write t `Listening_port;
     Channel.read t >>| function
-    | `Listening_port_resp resp -> resp
+    | `Listening_port_resp resp -> signal_read (); resp
 
   let client_addr_port (t : t) sw_id =
+    clear_to_read () >>= fun () ->
     Log.debug ~tags "client_addr_port (local)";
     Channel.write t (`Client_addr_port sw_id);
     Channel.read t >>| function
-    | `Client_addr_port_resp resp -> resp
+    | `Client_addr_port_resp resp -> signal_read (); resp
 
   let send_to_all (t : t) msg =
     Log.debug ~tags "send_to_all (local)";
@@ -445,10 +466,11 @@ module Controller = struct
     Channel.write t (`Send_ignore_errors (sw_id, msg))
 
   let has_client_id (t : t) sw_id =
+    clear_to_read () >>= fun () ->
     Log.debug ~tags "has_client_id (local)";
     Channel.write t (`Has_client_id sw_id);
     Channel.read t >>| function
-    | `Has_client_id_resp resp -> resp
+    | `Has_client_id_resp resp -> signal_read (); resp
 
   let close (t : t) sw_id =
     Log.debug ~tags "close (local)";
@@ -477,10 +499,11 @@ module Controller = struct
     c
 
   let send (t : t) sw_id msg =
+    clear_to_read () >>= fun () ->
     Log.debug ~tags "send (local)";
     Channel.write t (`Send (sw_id, msg));
     Channel.read t >>| function
-    | `Send_resp resp -> resp
+    | `Send_resp resp -> signal_read (); resp
 
   let channel_transfer chan writer =
     Deferred.forever () (fun _ -> Channel.read chan >>=
@@ -490,22 +513,26 @@ module Controller = struct
     Channel.write t `Listen;
     let reader,writer = Pipe.create () in
     don't_wait_for (
+      clear_to_read () >>= fun () ->
       Log.debug ~tags "About to listen for listen_resp";
       Channel.read t >>| function
       | `Listen_resp chan -> Log.debug ~tags "Listen channel returned (local)";
+        signal_read ();
         Channel.write chan `Ready;
         channel_transfer chan writer);
     reader
 
   let barrier (t : t) sw_id =
+    clear_to_read () >>= fun () ->
     Log.debug ~tags "barrier (local)";
     Channel.write t (`Barrier sw_id);
     Channel.read t >>| function
-    | `Barrier_resp resp -> resp
+    | `Barrier_resp resp -> signal_read (); resp
 
   let individual_stats ?(pattern=C.match_all) (t : t) sw_id =
+    clear_to_read () >>= fun () ->
     Log.debug ~tags "individual_stats (local)";
     Channel.write t (`Individual_stats (pattern, sw_id));
     Channel.read t >>| function
-    | `Individual_stats_resp resp -> resp
+    | `Individual_stats_resp resp -> signal_read (); resp
 end
