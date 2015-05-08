@@ -43,6 +43,7 @@ module Platform : sig
       -> ?log_disconnects:bool
       -> ?buffer_age_limit:[ `At_most of Time.Span.t | `Unlimited ]
       -> ?monitor_connections:bool
+      -> ?log_level:Async.Std.Log.Level.t
       -> port:int
       -> unit
       -> t Deferred.t
@@ -264,6 +265,7 @@ module SDN : sig
     -> ?log_disconnects:bool (** default is [true] *)
     -> ?buffer_age_limit:[ `At_most of Time.Span.t | `Unlimited ]
     -> ?monitor_connections:bool
+    -> ?log_level:Async.Std.Log.Level.t
     -> port:int
     -> unit
     -> t Deferred.t

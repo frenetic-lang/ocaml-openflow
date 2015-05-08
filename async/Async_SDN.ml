@@ -42,9 +42,10 @@ let create ?max_pending_connections
     ?verbose
     ?log_disconnects
     ?buffer_age_limit
-    ?monitor_connections ~port () =
+    ?monitor_connections
+    ?log_level ~port () =
   Chunk_Controller.create ?max_pending_connections ?verbose ?log_disconnects
-    ?buffer_age_limit ?monitor_connections ~port ()
+    ?buffer_age_limit ?monitor_connections ?log_level ~port ()
   >>| function chunk ->
     { sub_chunk = chunk
     ; sub_0x01 = OF0x01_Controller.create_from_chunk chunk

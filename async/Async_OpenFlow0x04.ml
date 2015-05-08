@@ -99,9 +99,10 @@ module Controller = struct
       ?verbose
       ?log_disconnects
       ?buffer_age_limit
-      ?monitor_connections ~port () =
+      ?monitor_connections
+      ?log_level ~port () =
     ChunkController.create ?max_pending_connections ?verbose ?log_disconnects
-      ?buffer_age_limit ?monitor_connections ~port ()
+      ?buffer_age_limit ?monitor_connections ?log_level ~port ()
     >>| create_from_chunk
 
   (* XXX(seliopou): Raises `Not_found` if the client is no longer connected. *)

@@ -29,6 +29,7 @@ module type S = sig
     -> ?log_disconnects:bool
     -> ?buffer_age_limit:[ `At_most of Time.Span.t | `Unlimited ]
     -> ?monitor_connections:bool
+    -> ?log_level:Async.Std.Log.Level.t
     -> port:int
     -> unit
     -> t Deferred.t
@@ -114,6 +115,7 @@ module Make(Message : Message) () = struct
       ?log_disconnects
       ?buffer_age_limit
       ?monitor_connections
+      ?log_level
       ~port () =
     Impl.create ?max_pending_connections ?verbose ?log_disconnects
       ?buffer_age_limit ~port ~auth:(fun _ _ _ -> return `Allow) ()
