@@ -198,10 +198,10 @@ module ControllerProcess = struct
     let open Deferred.Result in
     begin if clear then clear_flows t sw_id else return () end
     >>= fun () ->
-      let sends = List.map flow_mods
+      Deferred.(List.map flow_mods
         ~f:(fun f -> send_result t sw_id (0l, M.FlowModMsg f))
-      in
-      all_ignore sends
+    >>| (fun sends ->
+    Core.Std.Result.all_ignore sends))
 
   let send_pkt_out (t:t) (sw_id:Client_id.t) pkt_out =
     send_result t sw_id (0l, M.PacketOutMsg pkt_out)
@@ -239,6 +239,10 @@ module ControllerProcess = struct
          | _ -> assert false)
       | _ -> assert false)
 
+  let launch_cpu_process () =
+    don't_wait_for (Pipe.iter_without_pushback (Cpu_usage.samples ()) 
+      ~f:(fun pct -> Log.printf ~tags ~level:`Info "[remote] %s CPU usage" (Percent.to_string pct)))
+
   let create_from_chunk t =
     { sub = t
     ; shakes = ClientSet.create ()
@@ -247,6 +251,7 @@ module ControllerProcess = struct
     }
 
     let create_from_chunk_hub t h =
+      launch_cpu_process ();
       let ctl = create_from_chunk t in
       Pipe.iter (Hub.listen_simple h) ~f:(fun (id, msg) -> match msg with
         | `Send (sw_id, msg) -> begin
