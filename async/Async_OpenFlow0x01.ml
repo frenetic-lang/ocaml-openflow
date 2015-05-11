@@ -198,7 +198,7 @@ module ControllerProcess = struct
     let open Deferred.Result in
     begin if clear then clear_flows t sw_id else return () end
     >>= fun () ->
-      Deferred.(List.map flow_mods
+      Deferred.(List.map ~how:`Parallel flow_mods
         ~f:(fun f -> send_result t sw_id (0l, M.FlowModMsg f))
     >>| (fun sends ->
     Core.Std.Result.all_ignore sends))
@@ -241,7 +241,7 @@ module ControllerProcess = struct
 
   let launch_cpu_process () =
     don't_wait_for (Pipe.iter_without_pushback (Cpu_usage.samples ()) 
-      ~f:(fun pct -> Log.printf ~tags ~level:`Info "[remote] %s CPU usage" (Percent.to_string pct)))
+      ~f:(fun pct -> Log.printf ~tags ~level:`Debug "[remote] %s CPU usage" (Percent.to_string pct)))
 
   let create_from_chunk t =
     { sub = t
@@ -263,8 +263,10 @@ module ControllerProcess = struct
           Log.debug ~tags "[remote] send_to_all";
           return (send_to_all ctl msg)
         | `Send_ignore_errors (sw_id, msg) ->
+          Log.debug ~tags "[remote] send_ignore_errors";
             return (send_ignore_errors ctl sw_id msg)
         | `Listen -> begin
+          Log.debug ~tags "[remote] listen";
             Intf.hub ~buffer_age_limit:`Unlimited ()
             >>= fun new_h ->
             Deferred.don't_wait_for (Pipe.read (Hub.listen_simple new_h)
@@ -275,32 +277,56 @@ module ControllerProcess = struct
             Hub.open_channel new_h
             >>| fun chan -> Hub.send h id (`Listen_resp chan)
           end
-        | `Individual_stats (pattern, sw_id) -> (individual_stats ctl ~pattern sw_id)
+        | `Individual_stats (pattern, sw_id) -> 
+          Log.debug ~tags "[remote] individual_stats";
+          (individual_stats ctl ~pattern sw_id)
           >>| fun resp -> Hub.send h id (`Individual_stats_resp resp)
-        | `Barrier args -> barrier ctl args
+        | `Barrier args -> 
+          Log.debug ~tags "[remote] barrier";
+          barrier ctl args
           >>| fun resp -> Hub.send h id (`Barrier_resp resp)
-        | `Close sw_id -> return (close ctl sw_id)
-        | `Has_client_id sw_id -> has_client_id ctl sw_id
+        | `Close sw_id -> 
+          Log.debug ~tags "[remote] close";
+          return (close ctl sw_id)
+        | `Has_client_id sw_id -> 
+          Log.debug ~tags "[remote] has_client_id";
+          has_client_id ctl sw_id
           >>| fun resp -> Hub.send h id (`Has_client_id_resp resp)
-        | `Client_addr_port sw_id -> client_addr_port ctl sw_id
+        | `Client_addr_port sw_id -> 
+          Log.debug ~tags "[remote] client_addr_port";
+          client_addr_port ctl sw_id
           >>| fun resp -> Hub.send h id (`Client_addr_port_resp resp)
-        | `Listening_port -> listening_port ctl
+        | `Listening_port -> 
+          Log.debug ~tags "[remote] listening_port";
+          listening_port ctl
           >>| fun resp -> Hub.send h id (`Listening_port_resp resp)
-        | `Set_monitor_interval interval -> return (set_monitor_interval ctl interval)
-        | `Set_idle_wait interval -> return (set_idle_wait ctl interval)
-        | `Set_kill_wait interval -> return (set_kill_wait ctl interval)
+        | `Set_monitor_interval interval -> 
+          Log.debug ~tags "[remote] set_monitor_interval";
+          return (set_monitor_interval ctl interval)
+        | `Set_idle_wait interval -> 
+          Log.debug ~tags "[remote] set_idle_wait";
+          return (set_idle_wait ctl interval)
+        | `Set_kill_wait interval -> 
+          Log.debug ~tags "[remote] set_kill_wait";
+          return (set_kill_wait ctl interval)
         | `Get_switches ->
           Log.debug ~tags "[remote] get_switches";
           return (Hub.send h id (`Get_switches_resp (get_switches ctl)))
-        | `Clear_flows (pattern, sw_id) -> clear_flows ~pattern ctl sw_id
+        | `Clear_flows (pattern, sw_id) -> 
+          Log.debug ~tags "[remote] clear_flows";
+          clear_flows ~pattern ctl sw_id
           >>| fun resp -> Hub.send h id (`Clear_flows_resp resp)
         | `Send_flow_mods (clear, sw_id, flow_mods) -> 
           Log.debug ~tags "[remote] send_flow_mods";
           send_flow_mods ~clear ctl sw_id flow_mods
           >>| fun resp -> Hub.send h id (`Send_flow_mods_resp resp)
-        | `Send_pkt_out (sw_id, pkt_out) -> send_pkt_out ctl sw_id pkt_out
+        | `Send_pkt_out (sw_id, pkt_out) -> 
+          Log.debug ~tags "[remote] send_pkt_out";
+          send_pkt_out ctl sw_id pkt_out
           >>| fun resp -> Hub.send h id (`Send_pkt_out_resp resp)
-        | `Aggregate_stats (pattern, sw_id) -> aggregate_stats ~pattern ctl sw_id
+        | `Aggregate_stats (pattern, sw_id) -> 
+          Log.debug ~tags "[remote] aggregate_stats";
+          aggregate_stats ~pattern ctl sw_id
           >>| fun resp -> Hub.send h id (`Aggregate_stats_resp resp)
 
       )
