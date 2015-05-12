@@ -29,6 +29,7 @@ module type S = sig
     -> ?log_disconnects:bool
     -> ?buffer_age_limit:[ `At_most of Time.Span.t | `Unlimited ]
     -> ?monitor_connections:bool
+    -> ?log_level:Async.Std.Log.Level.t
     -> port:int
     -> unit
     -> t Deferred.t
@@ -37,7 +38,7 @@ module type S = sig
 
   val close : t -> Client_id.t -> unit
 
-  val has_client_id : t -> Client_id.t -> bool
+  val has_client_id : t -> Client_id.t -> bool Deferred.t
 
   val send
     : t
@@ -52,9 +53,9 @@ module type S = sig
   val client_addr_port
     :  t
     -> Client_id.t
-    -> (Unix.Inet_addr.t * int) option
+    -> (Unix.Inet_addr.t * int) option Deferred.t
 
-  val listening_port : t -> int
+  val listening_port : t -> int Deferred.t
 
 end
 
@@ -114,6 +115,7 @@ module Make(Message : Message) () = struct
       ?log_disconnects
       ?buffer_age_limit
       ?monitor_connections
+      ?log_level
       ~port () =
     Impl.create ?max_pending_connections ?verbose ?log_disconnects
       ?buffer_age_limit ~port ~auth:(fun _ _ _ -> return `Allow) ()
@@ -129,7 +131,7 @@ module Make(Message : Message) () = struct
 
   let close = Impl.close
 
-  let has_client_id = Impl.has_client_id
+  let has_client_id a b = return (Impl.has_client_id a b)
 
   let send t c_id m =
     Monitor.try_with (fun () -> Impl.send t c_id m)
@@ -141,8 +143,8 @@ module Make(Message : Message) () = struct
 
   let send_to_all = Impl.send_to_all
 
-  let client_addr_port = Impl.client_addr_port
+  let client_addr_port a b = return (Impl.client_addr_port a b)
 
-  let listening_port = Impl.port
+  let listening_port a = return (Impl.port a)
 
 end

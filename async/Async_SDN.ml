@@ -2,7 +2,7 @@ open Core.Std
 open Async.Std
 
 module Chunk_Controller = Async_OpenFlowChunk.Controller
-module OF0x01_Controller = Async_OpenFlow0x01.Controller
+module OF0x01_Controller = Async_OpenFlow0x01.ControllerProcess
 module OF0x04_Controller = Async_OpenFlow0x04.Controller
 
 module SDN = SDN_Types
@@ -42,15 +42,16 @@ let create ?max_pending_connections
     ?verbose
     ?log_disconnects
     ?buffer_age_limit
-    ?monitor_connections ~port () =
+    ?monitor_connections
+    ?log_level ~port () =
   Chunk_Controller.create ?max_pending_connections ?verbose ?log_disconnects
-    ?buffer_age_limit ?monitor_connections ~port ()
+    ?buffer_age_limit ?monitor_connections ?log_level ~port ()
   >>| function chunk ->
-      { sub_chunk = chunk
-      ; sub_0x01 = OF0x01_Controller.create_from_chunk chunk
-      ; sub_0x04 = OF0x04_Controller.create_from_chunk chunk
-      ; conns = ClientMap.create ()
-      }
+    { sub_chunk = chunk
+    ; sub_0x01 = OF0x01_Controller.create_from_chunk chunk
+    ; sub_0x04 = OF0x04_Controller.create_from_chunk chunk
+    ; conns = ClientMap.create ()
+    }
 
 let listen_of0x01 (t : t) : Chunk_Controller.h Pipe.Writer.t * e Pipe.Reader.t =
   let module OF = OpenFlow0x01 in

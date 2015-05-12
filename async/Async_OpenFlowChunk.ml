@@ -2,6 +2,7 @@ open Core.Std
 
 module Platform = Async_OpenFlow_Platform
 module Header = OpenFlow_Header
+module Log = Async_OpenFlow_Log
 
 module Message : Platform.Message
   with type t = (Header.t * Cstruct.t) = struct
@@ -220,7 +221,11 @@ module Controller = struct
       ?verbose
       ?log_disconnects
       ?buffer_age_limit
-      ?(monitor_connections=false) ~port () =
+      ?(monitor_connections=false)
+      ?log_level ~port () =
+    (match log_level with
+     | Some level -> Async_OpenFlow_Log.set_level level
+     | None -> ());
     Platform.create ?max_pending_connections ?verbose ?log_disconnects
       ?buffer_age_limit ~monitor_connections ~port ()
     >>| function t ->
@@ -241,10 +246,13 @@ module Controller = struct
     Platform.close t.platform c_id
 
   let has_client_id t c_id =
-    Platform.has_client_id t.platform c_id &&
-      match Client_id.Table.find t.clients c_id with
+    Platform.has_client_id t.platform c_id >>| function
+      | true -> begin
+        match Client_id.Table.find t.clients c_id with
         | Some({ Conn.version = Some(_) }) -> true
         | _                                -> false
+        end
+      | false -> false
 
   let send t c_id m =
     Platform.send t.platform c_id m
