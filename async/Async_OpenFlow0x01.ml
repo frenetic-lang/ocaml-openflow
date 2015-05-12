@@ -56,6 +56,7 @@ module ControllerProcess = struct
     shakes : ClientSet.t;
     c2s : SDN_Types.switchId ClientMap.t;
     s2c : ChunkController.Client_id.t SwitchMap.t;
+    switch_features : (SDN_Types.switchId, OpenFlow0x01.SwitchFeatures.t) Hashtbl.t
   }
 
   type e = (Client_id.t, c, m) Platform.event
@@ -79,18 +80,26 @@ module ControllerProcess = struct
   let client_id_of_switch t sw_id = SwitchMap.find t.s2c sw_id
 
   let close t sw_id =
-    let c_id = client_id_of_switch_exn t sw_id in
-    ChunkController.close t.sub c_id
+    match client_id_of_switch t sw_id with
+    | Some c_id -> ChunkController.close t.sub c_id
+    | None -> Log.printf ~tags ~level:`Debug
+              "Attempted to close connection to unknown switch: %Lu"
+                sw_id
 
   let has_client_id t sw_id =
-    let c_id = client_id_of_switch_exn t sw_id in
-    ChunkController.has_client_id t.sub c_id
+    match client_id_of_switch t sw_id with
+    | Some c_id -> ChunkController.has_client_id t.sub c_id
+    | None -> return false
 
   let get_switches t = SwitchMap.keys t.s2c
 
+  let get_switch_features (t : t) (switch_id : SDN_Types.switchId) =
+    Hashtbl.Poly.find t.switch_features switch_id
+
   let send t sw_id msg =
-    let c_id = client_id_of_switch_exn t sw_id in
-    ChunkController.send t.sub c_id (Message.marshal' msg)
+    match client_id_of_switch t sw_id with
+    | Some c_id -> ChunkController.send t.sub c_id (Message.marshal' msg)
+    | None -> return (`Drop Not_found)
 
   let send_result t sw_id msg =
     send t sw_id msg
@@ -112,15 +121,19 @@ module ControllerProcess = struct
     end with Not_found -> return (Result.Error Not_found)
 
   let send_ignore_errors t sw_id msg =
-    let c_id = client_id_of_switch_exn t sw_id in
-    ChunkController.send_ignore_errors t.sub c_id (Message.marshal' msg)
+    match client_id_of_switch t sw_id with
+    | Some c_id -> ChunkController.send_ignore_errors t.sub c_id (Message.marshal' msg)
+    | None -> Log.printf ~tags ~level:`Debug
+              "Attempted to send (ignoring errors) to unknown switch: %Lu"
+                sw_id
 
   let send_to_all t msg =
     ChunkController.send_to_all t.sub (Message.marshal' msg)
 
   let client_addr_port t sw_id =
-    let c_id = client_id_of_switch_exn t sw_id in
-    ChunkController.client_addr_port t.sub c_id
+    match client_id_of_switch t sw_id with
+    | Some c_id -> ChunkController.client_addr_port t.sub c_id
+    | None -> return None
 
   let listening_port t =
     ChunkController.listening_port t.sub
@@ -160,6 +173,7 @@ module ControllerProcess = struct
             let switch_id = fs.OpenFlow0x01.SwitchFeatures.switch_id in
             ClientMap.add_exn t.c2s c_id switch_id;
             SwitchMap.add_exn t.s2c switch_id c_id;
+            Hashtbl.Poly.add_exn t.switch_features ~key:switch_id ~data:fs;
             Hash_set.remove t.shakes c_id;
             return [`Connect(switch_id, fs)]
           | _ ->
@@ -179,6 +193,7 @@ module ControllerProcess = struct
           | Some(sw_id) -> (* features request did complete *)
             ClientMap.remove t.c2s c_id;
             SwitchMap.remove t.s2c sw_id;
+            Hashtbl.Poly.remove t.switch_features sw_id;
             return [`Disconnect(sw_id, exn)]
 
   let listen_pipe t p =
@@ -239,6 +254,16 @@ module ControllerProcess = struct
          | _ -> assert false)
       | _ -> assert false)
 
+  let port_stats (t : t) sw_id pt =
+    let open OpenFlow0x01_Stats in
+    let msg = PortRequest (Some (PhysicalPort pt)) in
+    send_txn_with t sw_id (M.StatsRequestMsg msg) (function
+      | `Result (hdr, body) ->
+        (match M.parse hdr (Cstruct.to_string body) with
+         | (_, M.StatsReplyMsg (PortRep portStats)) -> Result.Ok portStats
+         | _ -> assert false)
+      | _ -> assert false)
+
   let launch_cpu_process () =
     don't_wait_for (Pipe.iter_without_pushback (Cpu_usage.samples ()) 
       ~f:(fun pct -> Log.printf ~tags ~level:`Debug "[remote] %s CPU usage" (Percent.to_string pct)))
@@ -248,6 +273,7 @@ module ControllerProcess = struct
     ; shakes = ClientSet.create ()
     ; c2s = ClientMap.create ()
     ; s2c = SwitchMap.create ()
+    ; switch_features = Hashtbl.Poly.create ()
     }
 
     let create_from_chunk_hub t h =
@@ -281,6 +307,10 @@ module ControllerProcess = struct
           Log.debug ~tags "[remote] individual_stats";
           (individual_stats ctl ~pattern sw_id)
           >>| fun resp -> Hub.send h id (`Individual_stats_resp resp)
+        | `Port_stats (sw_id, pt) -> 
+          Log.debug ~tags "[remote] port_stats";
+          (port_stats ctl sw_id pt)
+          >>| fun resp -> Hub.send h id (`Port_stats_resp resp)
         | `Barrier args -> 
           Log.debug ~tags "[remote] barrier";
           barrier ctl args
@@ -312,6 +342,9 @@ module ControllerProcess = struct
         | `Get_switches ->
           Log.debug ~tags "[remote] get_switches";
           return (Hub.send h id (`Get_switches_resp (get_switches ctl)))
+        | `Get_switch_features sw_id ->
+          Log.debug ~tags "[remote] get_switch_features";
+          return (Hub.send h id (`Get_switch_features_resp (get_switch_features ctl sw_id)))
         | `Clear_flows (pattern, sw_id) -> 
           Log.debug ~tags "[remote] clear_flows";
           clear_flows ~pattern ctl sw_id
@@ -364,6 +397,9 @@ module Controller = struct
             | `Individual_stats of
                 C.pattern *
                 SwitchMap.key
+            | `Port_stats of
+                SwitchMap.key *
+                OpenFlow0x01_Core.portId
             | `Listen
             | `Send of
                 SwitchMap.key *
@@ -381,6 +417,7 @@ module Controller = struct
             | `Set_idle_wait of Core.Std.Time.Span.t
             | `Set_kill_wait of Core.Std.Time.Span.t
             | `Get_switches
+            | `Get_switch_features of SwitchMap.key
             | `Clear_flows of OpenFlow0x01_Core.pattern * Client_id.t
             | `Send_flow_mods of bool * Client_id.t * OpenFlow0x01_Core.flowMod list
             | `Send_pkt_out of Client_id.t * OpenFlow0x01_Core.packetOut
@@ -389,6 +426,8 @@ module Controller = struct
             [ `Barrier_resp of (unit, exn) Result.t
             | `Individual_stats_resp of
                 (OpenFlow0x01_Stats.individualStats list, exn) Result.t
+            | `Port_stats_resp of
+                (OpenFlow0x01_Stats.portStats, exn) Result.t                  
             | `Listen_resp of
                 ([ `Ready ],
                  [ `Connect of
@@ -401,6 +440,7 @@ module Controller = struct
             | `Client_addr_port_resp of (Unix.Inet_addr.t * int) option
             | `Listening_port_resp of int
             | `Get_switches_resp of SDN_Types.switchId list
+            | `Get_switch_features_resp of OpenFlow0x01.SwitchFeatures.t option
             | `Clear_flows_resp of (unit, exn) Result.t
             | `Send_flow_mods_resp of (unit, exn) Result.t
             | `Send_pkt_out_resp of (unit, exn) Result.t
@@ -555,4 +595,18 @@ module Controller = struct
     Channel.write t (`Individual_stats (pattern, sw_id));
     Channel.read t >>| function
     | `Individual_stats_resp resp -> signal_read (); resp
+
+  let port_stats (t : t) sw_id pt_id =
+    clear_to_read () >>= fun () ->
+    Log.debug ~tags "[local] port_stats";
+    Channel.write t (`Port_stats (sw_id, pt_id));
+    Channel.read t >>| function
+    | `Port_stats_resp resp -> signal_read (); resp
+
+  let get_switch_features (t : t) (switch_id : SDN_Types.switchId) =
+    clear_to_read () >>= fun () ->
+    Log.debug ~tags "[local] get_switch_features";
+    Channel.write t (`Get_switch_features switch_id);
+    Channel.read t >>| function
+    | `Get_switch_features_resp resp -> signal_read (); resp
 end
