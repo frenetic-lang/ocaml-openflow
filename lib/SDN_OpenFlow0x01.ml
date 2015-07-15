@@ -65,9 +65,11 @@ let to_pattern (p:Core.pattern) : SDN_Types.Pattern.t =
   ; nwProto = p.Core.nwProto
   ; tpSrc = p.Core.tpSrc
   ; tpDst = p.Core.tpDst
-  ; inPort = match p.Core.inPort with
+  ; inPort = begin match p.Core.inPort with
       | None    -> None
       | Some(n) -> Some(Int32.of_int n)
+  end
+  ; wavelength = None
   }
 
 let to_pseudoPort (in_port : Core.portId option) pport =

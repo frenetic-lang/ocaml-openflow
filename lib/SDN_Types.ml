@@ -124,7 +124,8 @@ module Pattern = struct
       ; nwProto : nwProto option
       ; tpSrc : tpPort option
       ; tpDst : tpPort option
-      ; inPort : portId option }
+      ; inPort : portId option
+      ; wavelength : int8 option}
 
   let match_all =
       { dlSrc = None
@@ -137,7 +138,8 @@ module Pattern = struct
       ; nwProto = None
       ; tpSrc = None
       ; tpDst = None
-      ; inPort = None }
+      ; inPort = None
+      ; wavelength = None }
 
   (* TODO(jnf): rename subseteq ?*)
   let less_eq p1 p2 =
@@ -199,7 +201,8 @@ module Pattern = struct
     ; nwProto = joiner eq_join p1.nwProto p2.nwProto
     ; tpSrc = joiner eq_join p1.tpSrc p2.tpSrc
     ; tpDst = joiner eq_join p1.tpDst p2.tpDst
-    ; inPort = joiner eq_join p1.inPort p2.inPort }
+    ; inPort = joiner eq_join p1.inPort p2.inPort
+    ; wavelength = joiner eq_join p1.wavelength p2.wavelength}
 
   let format (fmt:Format.formatter) (p:t) : unit =
     let first = ref true in

@@ -52,4 +52,5 @@ let arbitrary_pattern =
           ; nwProto = nwProto
           ; tpSrc = tpSrc
           ; tpDst = tpDst
-          ; inPort = inPort }
+          ; inPort = inPort
+          ; wavelength = None}

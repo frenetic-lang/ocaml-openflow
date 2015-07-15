@@ -85,7 +85,8 @@ module Pattern : sig
       ; nwProto : nwProto option
       ; tpSrc : tpPort option
       ; tpDst : tpPort option
-      ; inPort : portId option }
+      ; inPort : portId option
+      ; wavelength : int8 option}
 
   (** [match_all] is pattern that matches any packet *)
   val match_all : t
