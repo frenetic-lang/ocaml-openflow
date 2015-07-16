@@ -139,7 +139,8 @@ module Common = HighLevelSwitch_common.Make (struct
       | AL.Modify (AL.SetIP4Src n) -> (Mod.nwSrc, Core.SetField (OxmIP4Src (v_to_m n)))
       | AL.Modify (AL.SetIP4Dst n) -> (Mod.nwDst, Core.SetField (OxmIP4Dst (v_to_m n)))
       | AL.Modify (AL.SetTCPSrcPort n) -> (Mod.tpSrc, Core.SetField (OxmTCPSrc  n))
-      | AL.Modify (AL.SetTCPDstPort n) -> (Mod.tpDst, Core.SetField (OxmTCPDst  n))
+      | AL.Modify (AL.SetTCPDstPort n) -> (Mod.tpDst, Core.SetField (OxmTCPDst n))
+      | AL.Modify (AL.SetWavelength _) -> raise (Invalid_argument "cannot set wavelength")
   end)
 
 (* calculates the watch port *)

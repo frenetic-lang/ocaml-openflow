@@ -241,6 +241,7 @@ type modify =
   | SetIP4Dst of nwAddr
   | SetTCPSrcPort of tpPort
   | SetTCPDstPort of tpPort
+  | SetWavelength of int8
 
 type pseudoport =
   | Physical of portId
@@ -337,6 +338,8 @@ let format_modify (fmt:Format.formatter) (m:modify) : unit =
     Format.fprintf fmt "SetField(tcpSrcPort, %a)" format_int tpPort
   | SetTCPDstPort(tpPort) ->
     Format.fprintf fmt "SetField(tcpDstPort, %a)" format_int tpPort
+  | SetWavelength(lambda) ->
+    Format.fprintf fmt "SetWavelength(tcpDstPort, %a)" format_int lambda
 
 let format_pseudoport (fmt:Format.formatter) (p:pseudoport) : unit =
   match p with

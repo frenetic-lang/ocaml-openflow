@@ -226,6 +226,8 @@ module Common = HighLevelSwitch_common.Make (struct
          (Mod.tpSrc, SetTpSrc VInt.(get_int16 (Int16 tp)))
       | AL.Modify (AL.SetTCPDstPort tp) ->
         (Mod.tpDst, SetTpDst VInt.(get_int16 (Int16 tp)))
+      | AL.Modify (AL.SetWavelength lambda) ->
+        raise (Invalid_argument "cannot set wavelength")
 end)
 
 let from_group (inPort : Core.portId option) (group : AL.group)
